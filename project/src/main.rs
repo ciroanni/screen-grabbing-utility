@@ -1,6 +1,6 @@
 fn main() {
     println!("Hello Ciro, Stefano and Jack");
-    println!("jackkkkkkkkkkkk");
+    println!("jack");
     println!("Cirooooooooooooooooo");
     println!("Stefano");
     let a=8;
