@@ -4,4 +4,5 @@ fn main() {
     println!("Cirooooooooooooooooo");
     println!("Stefano");
     let a=8;
+    let b = 9;
 }
