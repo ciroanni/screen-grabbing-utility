@@ -3,4 +3,5 @@ fn main() {
     println!("jackkkkkkkkkkkk");
     println!("Cirooooooooooooooooo");
     println!("Stefano");
+    let a=8;
 }
