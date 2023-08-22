@@ -1,7 +1,7 @@
 use crate::data::*;
-use druid::widget::{Button, Flex, Label, Radio, RadioGroup, TextBox};
+use druid::widget::{Button, Flex, Label, Radio, RadioGroup, TextBox, Align};
 use druid::PlatformError;
-use druid::{im::Vector, AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
+use druid::{im::Vector, AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc, UnitPoint};
 use image::ImageFormat;
 
 pub fn build_ui() -> impl Widget<AppState> {
@@ -18,11 +18,30 @@ pub fn build_ui() -> impl Widget<AppState> {
                 data.screen();
             }),
         )
+        .with_child(radiogroup())
 }
 
-pub fn radiogroup() -> impl Widget<AppState>{
+pub fn radiogroup() -> impl Widget<AppState> {
     Flex::column()
-        .with_child(Radio::new("Jpeg", AppState{name: "".to_string(), format: ".jpeg".to_string()}))
-        .with_child(Radio::new("Png", AppState{name: "".to_string(), format: ".png".to_string()}))
-        .with_child(Radio::new("Gif", AppState{name: "".to_string(), format: ".gif".to_string()}))
+        .with_child(Align::centered(Radio::new(
+            "Jpeg",
+            AppState {
+                name: "".to_string(),
+                format: ".jpeg".to_string(),
+            },
+        )))
+        .with_child(Align::centered(Radio::new(
+            "Png",
+            AppState {
+                name: "".to_string(),
+                format: ".png".to_string(),
+            },
+        )))
+        .with_child(Align::centered(Radio::new(
+            "Gif",
+            AppState {
+                name: "".to_string(),
+                format: ".gif".to_string(),
+            },
+        )))
 }
