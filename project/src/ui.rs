@@ -4,7 +4,6 @@ use druid::PlatformError;
 use druid::{
     im::Vector, AppLauncher, Data, Lens, LocalizedString, UnitPoint, Widget, WidgetExt, WindowDesc,
 };
-use image::ImageFormat;
 
 pub fn build_ui() -> impl Widget<AppState> {
     Flex::column()
@@ -20,31 +19,19 @@ pub fn build_ui() -> impl Widget<AppState> {
                 data.screen();
             }),
         )
-        .with_child(radiogroup())
-}
-
-pub fn radiogroup() -> impl Widget<AppState> {
-    Flex::row()
-        .cross_axis_alignment(CrossAxisAlignment::Center)
-        .with_child(Radio::new(
-            "Jpeg",
-            AppState {
-                name: "screenshot".to_string(),
-                format: ".jpeg".to_string(),
-            },
-        ))
-        .with_child(Radio::new(
-            "Png",
-            AppState {
-                name: "screenshot".to_string(),
-                format: ".png".to_string(),
-            },
-        ))
-        .with_child(Radio::new(
-            "Gif",
-            AppState {
-                name: "screenshot".to_string(),
-                format: ".gif".to_string(),
-            },
-        ))
+        .with_child(
+            Radio::new("Jpeg", ImageFormat::Jpeg)
+                .on_click(|ctx, data: &mut ImageFormat, _| *data = ImageFormat::Jpeg)
+                .lens(AppState::selected_format),
+        )
+        .with_child(
+            Radio::new("Png", ImageFormat::Png)
+                .on_click(|ctx, data: &mut ImageFormat, _| *data = ImageFormat::Png)
+                .lens(AppState::selected_format),
+        )
+        .with_child(
+            Radio::new("Gif", ImageFormat::Gif)
+                .on_click(|ctx, data: &mut ImageFormat, _| *data = ImageFormat::Gif)
+                .lens(AppState::selected_format),
+        )
 }

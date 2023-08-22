@@ -1,12 +1,37 @@
 use druid::{im::Vector, Data, Env, EventCtx, Lens};
-use image::ImageFormat;
 
-#[derive(Clone, Data, Lens, PartialEq)]
-pub struct AppState {
-    pub name: String,
-    pub format: String
+
+#[derive(Clone, Data, PartialEq, Debug)]
+pub enum ImageFormat {
+    Jpeg,
+    Png,
+    Gif,
 }
 
+#[derive(Clone, Data, PartialEq, Lens)]
+pub struct AppState {
+    pub name: String,
+    pub selected_format: ImageFormat,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        AppState {
+            name: "screen".to_string(),
+            selected_format: ImageFormat::Jpeg,
+        }
+    }
+}
+
+impl ImageFormat {
+    fn to_string(&self) -> String {
+        match self {
+            ImageFormat::Jpeg => ".jpeg".to_string(),
+            ImageFormat::Png => ".png".to_string(),
+            ImageFormat::Gif => ".gif".to_string(),
+        }
+    }
+}
 
 impl AppState {
 
@@ -56,7 +81,7 @@ impl AppState {
 
 
         let e = image::save_buffer_with_format(
-            self.name.as_str().to_owned()+self.format.as_str(),
+            self.name.as_str().to_owned()+&self.selected_format.to_string(),
             image.rgba(),
             (width * scale_factor) as u32,
             (height * scale_factor) as u32,

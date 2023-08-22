@@ -13,5 +13,5 @@ fn main() -> Result<(), PlatformError> {
         .title(LocalizedString::new("Screen grabbing"))
         .window_size((300.0, 200.0));
 
-    AppLauncher::with_window(main_window).launch(AppState { name: "".to_string(), format: ".jpeg".to_string()})
+    AppLauncher::with_window(main_window).launch(AppState::default())
 }
