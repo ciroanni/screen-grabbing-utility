@@ -8,11 +8,6 @@ use ui::build_ui;
 mod data;
 use data::AppState;
 
-#[derive(Clone, Data, Lens)]
-struct AppState {
-    name: String,
-}
-
 fn main() -> Result<(), PlatformError> {
     let main_window = WindowDesc::new(build_ui())
         .title(LocalizedString::new("Screen grabbing"))

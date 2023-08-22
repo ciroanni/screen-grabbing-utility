@@ -1,6 +1,5 @@
 use druid::{im::Vector, Data, Env, EventCtx, Lens};
 use image::ImageFormat;
-use crate::ui::format_choice;
 
 #[derive(Clone, Data, Lens, PartialEq)]
 pub struct AppState {
@@ -54,7 +53,7 @@ impl AppState {
         let width = display_info[0].width as f32;
         let height = display_info[0].height as f32;
 
-        
+
 
         let e = image::save_buffer_with_format(
             self.name.as_str().to_owned(),
