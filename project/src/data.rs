@@ -56,7 +56,7 @@ impl AppState {
 
 
         let e = image::save_buffer_with_format(
-            self.name.as_str().to_owned(),
+            self.name.as_str().to_owned()+self.format.as_str(),
             image.rgba(),
             (width * scale_factor) as u32,
             (height * scale_factor) as u32,
