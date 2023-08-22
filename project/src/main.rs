@@ -24,5 +24,5 @@ fn main() -> Result<(), PlatformError> {
         .title(LocalizedString::new("Rust Druid Example"))
         .window_size((300.0, 200.0));
 
-    AppLauncher::with_window(main_window).launch(AppState { counter: 0 })
+    AppLauncher::with_window(main_window).launch(AppState { name: ""})
 }
