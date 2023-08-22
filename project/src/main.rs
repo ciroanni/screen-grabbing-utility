@@ -11,7 +11,7 @@ fn build_ui() -> impl Widget<AppState> {
     Flex::column()
         .with_child(
             TextBox::new()
-                .with_placeholder("screen.jpeg")
+                .with_placeholder("es. screen.jpeg")
                 .expand_width()
                 .lens(AppState::name)
         )
@@ -23,7 +23,7 @@ fn build_ui() -> impl Widget<AppState> {
 
 fn main() -> Result<(), PlatformError> {
     let main_window = WindowDesc::new(build_ui())
-        .title(LocalizedString::new("Rust Druid Example"))
+        .title(LocalizedString::new("Screen grabbing"))
         .window_size((300.0, 200.0));
 
     AppLauncher::with_window(main_window).launch(AppState { name: "".to_string()})
