@@ -1,0 +1,10 @@
+C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\deps\fluent_langneg-b6e8cf6637d38ca3.rmeta: C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\lib.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\accepted_languages.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\negotiate\mod.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\negotiate\likely_subtags.rs
+
+C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\deps\libfluent_langneg-b6e8cf6637d38ca3.rlib: C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\lib.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\accepted_languages.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\negotiate\mod.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\negotiate\likely_subtags.rs
+
+C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\deps\fluent_langneg-b6e8cf6637d38ca3.d: C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\lib.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\accepted_languages.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\negotiate\mod.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\negotiate\likely_subtags.rs
+
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\lib.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\accepted_languages.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\negotiate\mod.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\fluent-langneg-0.13.0\src\negotiate\likely_subtags.rs:

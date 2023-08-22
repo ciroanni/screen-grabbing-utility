@@ -1,0 +1,12 @@
+C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\deps\tinystr-cf236a75f4b24222.rmeta: C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\lib.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\macros.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\ascii.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\asciibyte.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\error.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\int_ops.rs
+
+C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\deps\libtinystr-cf236a75f4b24222.rlib: C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\lib.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\macros.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\ascii.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\asciibyte.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\error.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\int_ops.rs
+
+C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\deps\tinystr-cf236a75f4b24222.d: C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\lib.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\macros.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\ascii.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\asciibyte.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\error.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\int_ops.rs
+
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\lib.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\macros.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\ascii.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\asciibyte.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\error.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\tinystr-0.7.1\src\int_ops.rs:
