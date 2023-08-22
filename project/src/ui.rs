@@ -19,3 +19,10 @@ pub fn build_ui() -> impl Widget<AppState> {
             }),
         )
 }
+
+pub fn radiogroup() -> impl Widget<AppState>{
+    Flex::column()
+        .with_child(Radio::new("Jpeg", AppState{name: "".to_string(), format: ".jpeg".to_string()}))
+        .with_child(Radio::new("Png", AppState{name: "".to_string(), format: ".png".to_string()}))
+        .with_child(Radio::new("Gif", AppState{name: "".to_string(), format: ".gif".to_string()}))
+}
