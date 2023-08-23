@@ -1,5 +1,5 @@
 # PDS project 2023
-Rust code for a screen grabbing utility capable of acquiring what is currently shown in a display, post-process it and make it available in one or more formats.
+## Rust code for a screen grabbing utility capable of acquiring what is currently shown in a display, post-process it and make it available in one or more formats.
 
 :bangbang: v1.0.3: Better UI with a dropdwon select list for the output format. (Adding [this library](https://github.com/linebender/druid-widget-nursery). See [Cargo.toml](/project/Cargo.toml))
 
@@ -22,3 +22,7 @@ Bonus features:
 7. Delay Timer: The utility should support a delay timer function, allowing users to set up a screen grab after a specified delay.
 8. Save Options: The utility should allow users to specify the default save location for screen grabs. It should also support automatic saving with predefined naming conventions.
 9. Multi-monitor Support: The utility should be able to recognize and handle multiple monitors independently, allowing users to grab screens from any of the connected displays.
+
+* [ ] Checkbox 1
+* [ ] Checkbox 2
+* [ ] Checkbox 3
