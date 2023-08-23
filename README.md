@@ -1,7 +1,7 @@
 # PDS project 2023
 Rust code for a screen grabbing utility capable of acquiring what is currently shown in a display, post-process it and make it available in one or more formats.
 
-:bangbang: v1.0.3: Better UI with a dropdwon select list for the output format. (Adding this library https://github.com/linebender/druid-widget-nursery. See [Cargo.toml](screen-grabbing-utility/project/Cargo.toml))
+:bangbang: v1.0.3: Better UI with a dropdwon select list for the output format. (Adding this library https://github.com/linebender/druid-widget-nursery. See [Cargo.toml](/project/Cargo.toml))
 
 
 v1.0.2: Radio buttons for output format added. (Feature 5)
