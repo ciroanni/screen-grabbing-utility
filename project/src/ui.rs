@@ -1,9 +1,12 @@
 use crate::data::*;
-use druid::widget::{Align, Button, Flex, Label, Radio, RadioGroup, TextBox, CrossAxisAlignment};
+use druid::widget::{Align, Button, CrossAxisAlignment, Flex, Label, Radio, RadioGroup, TextBox};
 use druid::PlatformError;
 use druid::{
-    im::Vector, AppLauncher, Data, Lens, LocalizedString, UnitPoint, Widget, WidgetExt, WindowDesc,
+    im::Vector, AppLauncher, Data, Env, EventCtx, Lens, LocalizedString, UnitPoint, Widget,
+    WidgetExt, WindowDesc,
 };
+use druid_widget_nursery::dropdown::DROPDOWN_SHOW;
+use druid_widget_nursery::{Dropdown, DropdownSelect};
 
 pub fn build_ui() -> impl Widget<AppState> {
     Flex::column()
@@ -15,23 +18,17 @@ pub fn build_ui() -> impl Widget<AppState> {
         )
         .with_spacer(20.0)
         .with_child(
-            Button::new("+ Nuovo").on_click(|ctx, data: &mut AppState, _env| {
+            DropdownSelect::new(vec![
+                ("Jpeg", ImageFormat::Jpeg),
+                ("Png", ImageFormat::Png),
+                ("Gif", ImageFormat::Gif),
+            ])
+            .align_left()
+            .lens(AppState::selected_format),
+        )
+        .with_child(Flex::row().with_child(Button::new("+ Nuovo").on_click(
+            |ctx, data: &mut AppState, _env| {
                 data.screen();
-            }),
-        )
-        .with_child(
-            Radio::new("Jpeg", ImageFormat::Jpeg)
-                .on_click(|ctx, data: &mut ImageFormat, _| *data = ImageFormat::Jpeg)
-                .lens(AppState::selected_format),
-        )
-        .with_child(
-            Radio::new("Png", ImageFormat::Png)
-                .on_click(|ctx, data: &mut ImageFormat, _| *data = ImageFormat::Png)
-                .lens(AppState::selected_format),
-        )
-        .with_child(
-            Radio::new("Gif", ImageFormat::Gif)
-                .on_click(|ctx, data: &mut ImageFormat, _| *data = ImageFormat::Gif)
-                .lens(AppState::selected_format),
-        )
+            },
+        )))
 }

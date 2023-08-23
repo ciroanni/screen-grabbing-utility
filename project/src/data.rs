@@ -17,7 +17,7 @@ pub struct AppState {
 impl Default for AppState {
     fn default() -> Self {
         AppState {
-            name: "screen".to_string(),
+            name: "".to_string(),
             selected_format: ImageFormat::Jpeg,
         }
     }

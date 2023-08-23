@@ -470,6 +470,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "druid-widget-nursery"
+version = "0.1.0"
+source = "git+https://github.com/linebender/druid-widget-nursery#4427a99a99417420651ea45a334f499a14224cf8"
+dependencies = [
+ "druid",
+ "log",
+ "tracing",
+]
+
+[[package]]
 name = "dwrote"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1540,6 +1550,7 @@ name = "project"
 version = "0.1.0"
 dependencies = [
  "druid",
+ "druid-widget-nursery",
  "image",
  "native-dialog",
  "num-complex",
