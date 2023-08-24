@@ -17,4 +17,3 @@ scrap = "0.5.0"
 screenshots="0.7.2"
 
 druid-widget-nursery = { git = "https://github.com/linebender/druid-widget-nursery" }
-
