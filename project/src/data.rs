@@ -102,6 +102,10 @@ impl AppState {
         let width = display_info[0].width as f32;
         let height = display_info[0].height as f32;
 
+        if self.name.is_empty(){
+            self.name = "screenshot".to_string();
+        }
+
         let e = image::save_buffer_with_format(
             self.name.as_str().to_owned()+&self.selected_format.to_string(),
             image.rgba(),
