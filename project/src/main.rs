@@ -1,6 +1,5 @@
-use druid::widget::{Button, CrossAxisAlignment, Flex, Label, TextBox};
 use druid::PlatformError;
-use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
+use druid::{AppLauncher, LocalizedString, WindowDesc};
 
 mod ui;
 use ui::build_ui;

@@ -6,6 +6,18 @@ pub enum ImageFormat {
     Jpeg,
     Png,
     Gif,
+    WebP,
+    Pnm,
+    Tiff,
+    Tga,
+    Dds,
+    Bmp,
+    Ico,
+    Hdr,
+    OpenExr,
+    Farbfeld,
+    Avif,
+    Qoi,
 }
 
 #[derive(Clone, Data, PartialEq, Lens)]
@@ -29,6 +41,18 @@ impl ImageFormat {
             ImageFormat::Jpeg => ".jpeg".to_string(),
             ImageFormat::Png => ".png".to_string(),
             ImageFormat::Gif => ".gif".to_string(),
+            ImageFormat::WebP => ".webp".to_string(),
+            ImageFormat::Pnm => ".pnm".to_string(),
+            ImageFormat::Tiff => ".tiff".to_string(),
+            ImageFormat::Tga => ".tga".to_string(),
+            ImageFormat::Dds => ".dds".to_string(),
+            ImageFormat::Bmp => ".bmp".to_string(),
+            ImageFormat::Ico => ".ico".to_string(),
+            ImageFormat::Hdr => ".hdr".to_string(),
+            ImageFormat::OpenExr => ".openexr".to_string(),
+            ImageFormat::Farbfeld => ".farbfeld".to_string(),
+            ImageFormat::Avif => ".avif".to_string(),
+            ImageFormat::Qoi => ".qoi".to_string(),
         }
     }
 }
@@ -64,7 +88,7 @@ impl AppState {
             Ok(data) => data,
         };
 
-        println!("lunghezza vettore immagine:{}", immagine.len());
+        //println!("lunghezza vettore immagine:{}", immagine.len());
 
         let f = image::guess_format(&immagine);
         let format = match f {
@@ -72,13 +96,11 @@ impl AppState {
             Ok(data) => data,
         };
 
-        println!("{:?}", format);
+        //println!("{:?}", format);
 
         let scale_factor = display_info[0].scale_factor;
         let width = display_info[0].width as f32;
         let height = display_info[0].height as f32;
-
-
 
         let e = image::save_buffer_with_format(
             self.name.as_str().to_owned()+&self.selected_format.to_string(),
