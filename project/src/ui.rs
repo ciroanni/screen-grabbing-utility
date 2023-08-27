@@ -1,11 +1,7 @@
 use crate::data::*;
-use druid::widget::{Align, Button, CrossAxisAlignment, Flex, Label, Radio, RadioGroup, TextBox};
-use druid::{
-    im::Vector, AppLauncher, Data, Env, EventCtx, Lens, LocalizedString, UnitPoint, Widget,
-    WidgetExt, WindowDesc,
-};
-use druid_widget_nursery::dropdown::DROPDOWN_SHOW;
-use druid_widget_nursery::{Dropdown, DropdownSelect};
+use druid::widget::{Button, Controller, Flex, TextBox};
+use druid::{Code, Env, Event, EventCtx, Widget, WidgetExt};
+use druid_widget_nursery::DropdownSelect;
 
 pub fn build_ui() -> impl Widget<AppState> {
     Flex::column()
@@ -13,7 +9,8 @@ pub fn build_ui() -> impl Widget<AppState> {
             TextBox::new()
                 .with_placeholder("es. screenshot.jpeg")
                 .expand_width()
-                .lens(AppState::name),
+                .lens(AppState::name)
+                .controller(Enter {}),
         )
         .with_spacer(20.0)
         .with_child(
@@ -38,8 +35,50 @@ pub fn build_ui() -> impl Widget<AppState> {
             .lens(AppState::selected_format),
         )
         .with_child(Flex::row().with_child(Button::new("+ Nuovo").on_click(
-            |ctx, data: &mut AppState, _env| {
+            |_ctx, data: &mut AppState, _env| {
                 data.screen();
             },
         )))
+}
+
+pub struct Enter;
+
+impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &druid::Event,
+        data: &mut AppState,
+        env: &Env,
+    ) {
+        if let Event::KeyUp(key) = event {
+            if key.code == Code::Enter {
+                data.screen();
+            }
+        }
+        child.event(ctx, event, data, env)
+    }
+
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::LifeCycleCtx,
+        event: &druid::LifeCycle,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.lifecycle(ctx, event, data, env)
+    }
+
+    fn update(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::UpdateCtx,
+        old_data: &AppState,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.update(ctx, old_data, data, env)
+    }
 }

@@ -1550,6 +1550,7 @@ name = "project"
 version = "0.1.0"
 dependencies = [
  "druid",
+ "druid-shell",
  "druid-widget-nursery",
  "image",
  "native-dialog",
