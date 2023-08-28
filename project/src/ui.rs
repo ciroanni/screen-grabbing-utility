@@ -1,6 +1,6 @@
 use crate::data::*;
-use druid::widget::{Button, Controller, Flex, TextBox};
-use druid::{Code, Env, Event, EventCtx, Widget, WidgetExt};
+use druid::widget::{Button, Flex, TextBox, Label};
+use druid::{Widget, WidgetExt};
 use druid_widget_nursery::DropdownSelect;
 
 pub fn build_ui() -> impl Widget<AppState> {
@@ -39,4 +39,5 @@ pub fn build_ui() -> impl Widget<AppState> {
                 data.screen();
             },
         )))
+        .with_child(Label::new("Shortcut: ALT + S"))
 }

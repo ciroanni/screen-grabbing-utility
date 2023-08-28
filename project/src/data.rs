@@ -1,4 +1,5 @@
-use druid::{Data, Lens};
+use druid::{widget::Controller, Data, Env, Event, EventCtx, Lens, Widget};
+use druid_shell::keyboard_types::{KeyboardEvent, Modifiers, ShortcutMatcher};
 
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
@@ -57,9 +58,7 @@ impl ImageFormat {
 }
 
 impl AppState {
-
     pub fn screen(&mut self) {
-
         let a = screenshots::DisplayInfo::all();
 
         let display_info = match a {
@@ -85,17 +84,17 @@ impl AppState {
         let width = display_info[0].width as f32;
         let height = display_info[0].height as f32;
 
-        if self.name.is_empty(){
+        if self.name.is_empty() {
             self.name = "screenshot".to_string();
         }
 
         let e = image::save_buffer_with_format(
-            self.name.as_str().to_owned()+&self.selected_format.to_string(),
+            self.name.as_str().to_owned() + &self.selected_format.to_string(),
             image.rgba(),
             (width * scale_factor) as u32,
             (height * scale_factor) as u32,
             image::ColorType::Rgba8,
-            image::ImageFormat::Png //useless, but necessary to support formats like gif and webp (save_buffer not working)
+            image::ImageFormat::Png, //useless, but necessary to support formats like gif and webp (save_buffer not working)
         );
 
         self.name = "".to_string();
@@ -118,11 +117,24 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
         data: &mut AppState,
         env: &Env,
     ) {
-        if let Event::KeyUp(key) = event {
-            if key.code == Code::Enter {
-                data.screen();
-            }
+        if let Event::KeyDown(key) = event {
+            let keyboard_event = KeyboardEvent {
+                state: key.state,
+                key: key.key.clone(),
+                code: key.code,
+                location: key.location,
+                modifiers: Modifiers::ALT,
+                repeat: key.repeat,
+                is_composing: false,
+            };
+
+            ShortcutMatcher::from_event(keyboard_event).shortcut(
+                Modifiers::ALT,
+                's',
+                || data.screen(),
+            );
         }
+        
         child.event(ctx, event, data, env)
     }
 
