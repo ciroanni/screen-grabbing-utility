@@ -123,9 +123,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                 key: key.key.clone(),
                 code: key.code,
                 location: key.location,
-                modifiers: Modifiers::ALT,
+                modifiers: key.mods.raw(),
                 repeat: key.repeat,
-                is_composing: false,
+                is_composing: true,
             };
 
             ShortcutMatcher::from_event(keyboard_event).shortcut(
