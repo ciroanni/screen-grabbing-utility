@@ -1,5 +1,5 @@
 use druid::{widget::Controller, Data, Env, Event, EventCtx, Lens, Widget};
-use druid_shell::keyboard_types::{KeyboardEvent, Modifiers, ShortcutMatcher};
+use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
@@ -24,6 +24,9 @@ pub enum ImageFormat {
 pub struct AppState {
     pub name: String,
     pub selected_format: ImageFormat,
+    pub shortcut: String,
+    pub mods: u32,
+    pub key: u32
 }
 
 impl Default for AppState {
@@ -31,6 +34,9 @@ impl Default for AppState {
         AppState {
             name: "".to_string(),
             selected_format: ImageFormat::Jpeg,
+            shortcut: "".to_string(),
+            mods: Modifiers::ALT.bits(),
+            key: Key::Character("s".to_string()).legacy_charcode(),
         }
     }
 }
@@ -103,6 +109,7 @@ impl AppState {
             Err(why) => return println!("errore:{}", why),
             Ok(()) => return,
         };
+
     }
 }
 
@@ -129,12 +136,65 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
             };
 
             ShortcutMatcher::from_event(keyboard_event).shortcut(
-                Modifiers::ALT,
-                's',
+                Modifiers::from_bits(data.mods).expect("Not a modifier"),
+                Key::Character(char::from_u32(data.key).expect("Not a char").to_string()),
                 || data.screen(),
             );
+
         }
-        
+
+        child.event(ctx, event, data, env)
+    }
+
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::LifeCycleCtx,
+        event: &druid::LifeCycle,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.lifecycle(ctx, event, data, env)
+    }
+
+    fn update(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::UpdateCtx,
+        old_data: &AppState,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.update(ctx, old_data, data, env)
+    }
+}
+
+pub struct ShortcutController;
+
+impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &druid::Event,
+        data: &mut AppState,
+        env: &Env,
+    ) {
+        if let Event::KeyDown(key) = event {
+            let keyboard_event = KeyboardEvent {
+                state: key.state,
+                key: key.key.clone(),
+                code: key.code,
+                location: key.location,
+                modifiers: key.mods.raw(),
+                repeat: key.repeat,
+                is_composing: true,
+            };
+
+            data.mods = keyboard_event.modifiers.bits();
+            data.key = keyboard_event.key.legacy_charcode();
+        }
+
         child.event(ctx, event, data, env)
     }
 
