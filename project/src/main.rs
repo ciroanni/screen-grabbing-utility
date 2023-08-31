@@ -8,9 +8,12 @@ mod data;
 use data::AppState;
 
 fn main() -> Result<(), PlatformError> {
+
+    let app_state = AppState::default();
+
     let main_window = WindowDesc::new(build_ui())
         .title(LocalizedString::new("Screen grabbing"))
-        .window_size((300.0, 200.0));
-
-    AppLauncher::with_window(main_window).launch(AppState::default())
+        .window_size((500.0, 500.0));
+        
+    AppLauncher::with_window(main_window).launch(app_state)
 }
