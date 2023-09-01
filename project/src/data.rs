@@ -29,30 +29,7 @@ pub struct AppState {
     pub key: u32,
     pub from: Point,
     pub size: Point,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        let display_info = screenshots::DisplayInfo::all().expect("Err");
-        
-        let width = display_info[0].width as f32 * display_info[0].scale_factor;
-        let height = display_info[0].height as f32 * display_info[0].scale_factor;
-
-        println!("{} {}", width, height);
-
-        AppState {
-            name: "".to_string(),
-            selected_format: ImageFormat::Jpeg,
-            shortcut: "".to_string(),
-            mods: Modifiers::ALT.bits(),
-            key: Key::Character("s".to_string()).legacy_charcode(),
-            from: Point { x: 0.0, y: 0.0 },
-            size: Point {
-                x: width as f64,
-                y: height as f64,
-            },
-        }
-    }
+    pub scale: f32,
 }
 
 impl ImageFormat {
@@ -78,6 +55,22 @@ impl ImageFormat {
 }
 
 impl AppState {
+    pub fn new(width: f32, height: f32, scale: f32) -> Self {
+        AppState {
+            name: "".to_string(),
+            selected_format: ImageFormat::Jpeg,
+            shortcut: "".to_string(),
+            mods: Modifiers::ALT.bits(),
+            key: Key::Character("s".to_string()).legacy_charcode(),
+            from: Point { x: 0.0, y: 0.0 },
+            size: Point {
+                x: width as f64,
+                y: height as f64,
+            },
+            scale,
+        }
+    }
+
     pub fn screen(&mut self) {
         let a = screenshots::DisplayInfo::all();
 
@@ -86,23 +79,21 @@ impl AppState {
             Ok(info) => info,
         };
 
-
-        println!("{:?}", display_info);
-        //println!("{:?}", display_info);
-
         let b = screenshots::Screen::new(&display_info[0]);
 
-        //println!("{:?}", b);
-
         //let c = b.capture();
-        let c=b.capture_area(self.from.x as i32, self.from.y as i32, self.size.x as u32, self.size.y as u32);
+        let c = b.capture_area(
+            (self.from.x as f32 * self.scale) as i32,
+            (self.from.y as f32 * self.scale) as i32,
+            (self.size.x as f32 * self.scale) as u32,
+            (self.size.y as f32 * self.scale) as u32,
+        );
 
         let image = match c {
             Err(why) => return println!("{}", why),
             Ok(info) => info,
         };
 
-        let scale_factor = display_info[0].scale_factor;
         /*let width = display_info[0].width as f32;
         let height = display_info[0].height as f32;*/
 
@@ -113,13 +104,13 @@ impl AppState {
         let e = image::save_buffer_with_format(
             self.name.as_str().to_owned() + &self.selected_format.to_string(),
             image.rgba(),
-            (self.size.x as f32 * scale_factor) as u32,
-            (self.size.y as f32 * scale_factor) as u32,
+            (self.size.x as f32 * self.scale) as u32,
+            (self.size.y as f32 * self.scale) as u32,
             image::ColorType::Rgba8,
             image::ImageFormat::Png, //useless, but necessary to support formats like gif and webp (save_buffer not working)
         );
 
-        *self = AppState::default();
+        *self = AppState::new(self.size.x as f32, self.size.y as f32, self.scale);
 
         match e {
             Err(why) => return println!("errore:{}", why),

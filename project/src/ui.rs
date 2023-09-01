@@ -1,12 +1,12 @@
 use crate::data::*;
 use druid::widget::{Button, Flex, Label, SizedBox, TextBox};
-use druid::{Color, Event, EventCtx, LocalizedString, Widget, WidgetExt, WindowDesc, WindowHandle, WindowState};
+use druid::{
+    Color, EventCtx, LocalizedString, Widget, WidgetExt, WindowDesc,
+};
 use druid_widget_nursery::DropdownSelect;
 const INTERACTIVE_AREA_BORDER: Color = Color::grey8(0xCC);
 
-
 pub fn build_ui() -> impl Widget<AppState> {
-
     let display_info = screenshots::DisplayInfo::all().expect("Err");
 
     let width = display_info[0].width as f64;
@@ -57,14 +57,14 @@ pub fn build_ui() -> impl Widget<AppState> {
             }),
         )
         .with_child(
-            Button::new("Area").on_click(move|ctx: &mut EventCtx, _data, _env| {
+            Button::new("Area").on_click(move |ctx: &mut EventCtx, _data, _env| {
                 ctx.view_context_changed();
                 let new_win = WindowDesc::new(screen_area_ui())
                     .show_titlebar(false)
                     .transparent(true)
                     .window_size((width, height))
                     .resizable(false)
-                    .set_position((0.0,0.0));
+                    .set_position((0.0, 0.0));
                 ctx.new_window(new_win);
             }),
         )
