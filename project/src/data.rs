@@ -214,7 +214,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
 
         child.event(ctx, event, data, env)
     }
-
+    
     fn lifecycle(
         &mut self,
         child: &mut W,
