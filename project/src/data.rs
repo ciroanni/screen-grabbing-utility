@@ -30,6 +30,67 @@ pub struct AppState {
     pub from: Point,
     pub size: Point,
     pub scale: f32,
+    pub rect: SelectionRectangle,
+}
+#[derive(Clone, Data, PartialEq, Lens, Debug)]
+pub struct SelectionRectangle {
+    pub start_point: Option<Point>,
+    pub end_point: Option<Point>,
+}
+
+impl Default for SelectionRectangle {
+    fn default() -> Self {
+        SelectionRectangle {
+            start_point: None,
+            end_point: None,
+        }
+    }
+}
+
+//Controller to paint live the selection rectangle
+pub struct PainterController;
+
+impl<W: Widget<AppState>> Controller<AppState, W> for PainterController {
+    fn event(
+        &mut self,
+        _child: &mut W,
+        _ctx: &mut EventCtx,
+        event: &druid::Event,
+        data: &mut AppState,
+        _env: &Env,
+    ) {
+        if let Event::MouseDown(mouse_button) = event {
+            data.rect.start_point = Some(mouse_button.pos);
+            data.rect.end_point = None;
+        } else if let Event::MouseUp(mouse_button) = event {
+            data.rect.end_point = Some(mouse_button.pos);
+        } else if let Event::MouseMove(mouse_button) = event {
+            if !data.rect.start_point.is_none() {
+                data.rect.end_point = Some(mouse_button.pos);
+            }
+        }
+    }
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::LifeCycleCtx,
+        event: &druid::LifeCycle,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.lifecycle(ctx, event, data, env)
+    }
+
+    fn update(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::UpdateCtx,
+        old_data: &AppState,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.update(ctx, old_data, data, env)
+    }
 }
 
 impl ImageFormat {
@@ -68,8 +129,10 @@ impl AppState {
                 y: height as f64,
             },
             scale,
+            rect: SelectionRectangle::default(),
         }
     }
+
 
     pub fn screen(&mut self) {
         let a = screenshots::DisplayInfo::all();
@@ -119,6 +182,7 @@ impl AppState {
     }
 }
 
+//Controller to take screen after the custom shortcut
 pub struct Enter;
 
 impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
@@ -174,6 +238,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
     }
 }
 
+//Controller to save custom shortcut
 pub struct ShortcutController;
 
 impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
@@ -226,6 +291,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
     }
 }
 
+//Controller to take screen after click and drag motion
 pub struct AreaController;
 
 impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
@@ -264,9 +330,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
             };
             data.size.x = (data.from.x - mouse_up.pos.x).abs();
             data.size.y = (data.from.y - mouse_up.pos.y).abs();
+            data.rect = SelectionRectangle::default();
             ctx.window().close();
         }
-
+        
         child.event(ctx, event, data, env)
     }
 
