@@ -1,7 +1,10 @@
 # PDS project 2023
 ## Rust code for a screen grabbing utility capable of acquiring what is currently shown in a display, post-process it and make it available in one or more formats.
 
-:bangbang:v1.0.6: You can now have a custom area to select with a click and drag motion (Looks like it's holding up pretty well...)
+:bangbang:v1.0.7 _BETA_: Animation for the click and drag motion added but BIG ISSUES to solve...
+
+
+v1.0.6: You can now have a custom area to select with a click and drag motion.
 
 
 v1.0.5: You can now take screen with a customizable shortcut (Feature 4).
