@@ -116,7 +116,7 @@ impl ImageFormat {
 }
 
 impl AppState {
-    pub fn new(width: f32, height: f32, scale: f32) -> Self {
+    pub fn new(width: u32, height: u32, scale: f32) -> Self {
         AppState {
             name: "".to_string(),
             selected_format: ImageFormat::Jpeg,
@@ -173,7 +173,7 @@ impl AppState {
             image::ImageFormat::Png, //useless, but necessary to support formats like gif and webp (save_buffer not working)
         );
 
-        *self = AppState::new(self.size.x as f32, self.size.y as f32, self.scale);
+        *self = AppState::new(self.size.x as u32, self.size.y as u32, self.scale);
 
         match e {
             Err(why) => return println!("errore:{}", why),
