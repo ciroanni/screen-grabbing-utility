@@ -42,7 +42,7 @@ pub fn build_ui() -> impl Widget<AppState> {
             .align_left()
             .lens(AppState::selected_format),
         )
-        .with_child(Flex::row().with_child(Button::new("+ Nuovo").on_click(
+        .with_child(Flex::row().with_child(Button::new("Nuovo").on_click(
             |_ctx, data: &mut AppState, _env| {
                 data.screen();
                 data.name = "".to_string();
