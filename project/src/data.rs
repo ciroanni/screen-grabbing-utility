@@ -20,79 +20,6 @@ pub enum ImageFormat {
     Qoi,
 }
 
-#[derive(Clone, Data, PartialEq, Lens)]
-pub struct AppState {
-    pub name: String,
-    pub selected_format: ImageFormat,
-    pub shortcut: String,
-    pub mods: u32,
-    pub key: u32,
-    pub from: Point,
-    pub size: Point,
-    pub scale: f32,
-    pub rect: SelectionRectangle,
-}
-#[derive(Clone, Data, PartialEq, Lens, Debug)]
-pub struct SelectionRectangle {
-    pub start_point: Option<Point>,
-    pub end_point: Option<Point>,
-}
-
-impl Default for SelectionRectangle {
-    fn default() -> Self {
-        SelectionRectangle {
-            start_point: None,
-            end_point: None,
-        }
-    }
-}
-
-//Controller to paint live the selection rectangle
-pub struct PainterController;
-
-impl<W: Widget<AppState>> Controller<AppState, W> for PainterController {
-    fn event(
-        &mut self,
-        _child: &mut W,
-        _ctx: &mut EventCtx,
-        event: &druid::Event,
-        data: &mut AppState,
-        _env: &Env,
-    ) {
-        if let Event::MouseDown(mouse_button) = event {
-            data.rect.start_point = Some(mouse_button.pos);
-            data.rect.end_point = None;
-        } else if let Event::MouseUp(mouse_button) = event {
-            data.rect.end_point = Some(mouse_button.pos);
-        } else if let Event::MouseMove(mouse_button) = event {
-            if !data.rect.start_point.is_none() {
-                data.rect.end_point = Some(mouse_button.pos);
-            }
-        }
-    }
-    fn lifecycle(
-        &mut self,
-        child: &mut W,
-        ctx: &mut druid::LifeCycleCtx,
-        event: &druid::LifeCycle,
-        data: &AppState,
-        env: &Env,
-    ) {
-        child.lifecycle(ctx, event, data, env)
-    }
-
-    fn update(
-        &mut self,
-        child: &mut W,
-        ctx: &mut druid::UpdateCtx,
-        old_data: &AppState,
-        data: &AppState,
-        env: &Env,
-    ) {
-        child.update(ctx, old_data, data, env)
-    }
-}
-
 impl ImageFormat {
     fn to_string(&self) -> String {
         match self {
@@ -113,6 +40,19 @@ impl ImageFormat {
             ImageFormat::Qoi => ".qoi".to_string(),
         }
     }
+}
+
+#[derive(Clone, Data, PartialEq, Lens)]
+pub struct AppState {
+    pub name: String,
+    pub selected_format: ImageFormat,
+    pub shortcut: String,
+    pub mods: u32,
+    pub key: u32,
+    pub from: Point,
+    pub size: Point,
+    pub scale: f32,
+    pub rect: SelectionRectangle,
 }
 
 impl AppState {
@@ -181,6 +121,22 @@ impl AppState {
         };
     }
 }
+
+#[derive(Clone, Data, PartialEq, Lens, Debug)]
+pub struct SelectionRectangle {
+    pub start_point: Option<Point>,
+    pub end_point: Option<Point>,
+}
+
+impl Default for SelectionRectangle {
+    fn default() -> Self {
+        SelectionRectangle {
+            start_point: None,
+            end_point: None,
+        }
+    }
+}
+
 
 //Controller to take screen after the custom shortcut
 pub struct Enter;
@@ -337,6 +293,52 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
         child.event(ctx, event, data, env)
     }
 
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::LifeCycleCtx,
+        event: &druid::LifeCycle,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.lifecycle(ctx, event, data, env)
+    }
+
+    fn update(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::UpdateCtx,
+        old_data: &AppState,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.update(ctx, old_data, data, env)
+    }
+}
+
+//Controller to paint live the selection rectangle
+pub struct PainterController;
+
+impl<W: Widget<AppState>> Controller<AppState, W> for PainterController {
+    fn event(
+        &mut self,
+        _child: &mut W,
+        _ctx: &mut EventCtx,
+        event: &druid::Event,
+        data: &mut AppState,
+        _env: &Env,
+    ) {
+        if let Event::MouseDown(mouse_button) = event {
+            data.rect.start_point = Some(mouse_button.pos);
+            data.rect.end_point = None;
+        } else if let Event::MouseUp(mouse_button) = event {
+            data.rect.end_point = Some(mouse_button.pos);
+        } else if let Event::MouseMove(mouse_button) = event {
+            if !data.rect.start_point.is_none() {
+                data.rect.end_point = Some(mouse_button.pos);
+            }
+        }
+    }
     fn lifecycle(
         &mut self,
         child: &mut W,
