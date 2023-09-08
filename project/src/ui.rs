@@ -2,7 +2,7 @@ use crate::data::*;
 use druid::widget::{Button, Flex, Label, Painter, TextBox};
 use druid::{
     Color, EventCtx, LocalizedString, RenderContext, Widget, WidgetExt, WindowDesc,
-    WindowState,
+    WindowState, WindowConfig, Env
 };
 use druid_widget_nursery::DropdownSelect;
 
@@ -57,7 +57,7 @@ pub fn build_ui() -> impl Widget<AppState> {
             }),
         )
         .with_child(
-            Button::new("Area").on_click(move |ctx: &mut EventCtx, _data, _env| {
+            Button::new("Area").on_click(move |ctx: &mut EventCtx, data: &mut AppState, env: &Env| {
                 let mut current = ctx.window().clone();
                 current.set_window_state(WindowState::Minimized);
                 let new_win = WindowDesc::new(drag_motion_ui())
@@ -67,6 +67,7 @@ pub fn build_ui() -> impl Widget<AppState> {
                     .resizable(false)
                     .set_position((0.0, 0.0));
                 ctx.new_window(new_win);
+                //ctx.new_sub_window(WindowConfig::default().transparent(true), drag_motion_ui(), data.clone(), env.clone());
             }),
         )
 }

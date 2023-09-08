@@ -1,5 +1,6 @@
 use druid::{widget::Controller, Data, Env, Event, EventCtx, Lens, MouseEvent, Point, Widget};
 use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
+use std::path::Path;
 
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
@@ -50,6 +51,7 @@ pub struct AppState {
     pub mods: u32,
     pub key: u32,
     pub from: Point,
+    pub to: Point,
     pub size: Point,
     pub scale: f32,
     pub rect: SelectionRectangle,
@@ -64,6 +66,10 @@ impl AppState {
             mods: Modifiers::ALT.bits(),
             key: Key::Character("s".to_string()).legacy_charcode(),
             from: Point { x: 0.0, y: 0.0 },
+            to: Point {
+                x: width as f64,
+                y: height as f64,
+            },
             size: Point {
                 x: width as f64,
                 y: height as f64,
@@ -72,7 +78,6 @@ impl AppState {
             rect: SelectionRectangle::default(),
         }
     }
-
 
     pub fn screen(&mut self) {
         let a = screenshots::DisplayInfo::all();
@@ -85,7 +90,9 @@ impl AppState {
         let b = screenshots::Screen::new(&display_info[0]);
 
         //let c = b.capture();
+
         let c = b.capture_area(
+            //RISOLVI FROM-TO
             (self.from.x as f32 * self.scale) as i32,
             (self.from.y as f32 * self.scale) as i32,
             (self.size.x as f32 * self.scale) as u32,
@@ -97,11 +104,35 @@ impl AppState {
             Ok(info) => info,
         };
 
-        /*let width = display_info[0].width as f32;
-        let height = display_info[0].height as f32;*/
-
+        //GESTISCO NOMI
+        let first: String;
         if self.name.is_empty() {
-            self.name = "screenshot".to_string();
+            first = String::from("screenshot");
+        } else {
+            first = self.name.clone();
+        }
+
+        let mut str3 = format!("{}{}", first, self.selected_format.to_string());
+
+        let mut index = 0;
+        loop {
+            if !Path::new(&str3).exists() {
+                //println!("{}", str3);
+                break;
+            } else {
+                index += 1;
+                str3 = format!(
+                    "{}{}{}",
+                    first,
+                    index.to_string(),
+                    self.selected_format.to_string()
+                );
+            }
+        }
+        if index == 0 {
+            self.name = first;
+        } else {
+            self.name = format!("{}{}", first, index.to_string());
         }
 
         let e = image::save_buffer_with_format(
@@ -137,7 +168,6 @@ impl Default for SelectionRectangle {
     }
 }
 
-
 //Controller to take screen after the custom shortcut
 pub struct Enter;
 
@@ -170,7 +200,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
 
         child.event(ctx, event, data, env)
     }
-    
+
     fn lifecycle(
         &mut self,
         child: &mut W,
@@ -284,12 +314,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                 button: mouse_button.button,
                 wheel_delta: mouse_button.wheel_delta,
             };
+            data.to = mouse_up.pos;
             data.size.x = (data.from.x - mouse_up.pos.x).abs();
             data.size.y = (data.from.y - mouse_up.pos.y).abs();
             data.rect = SelectionRectangle::default();
             ctx.window().close();
+            data.screen();
         }
-        
+
         child.event(ctx, event, data, env)
     }
 
