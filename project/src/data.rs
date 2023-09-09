@@ -51,14 +51,20 @@ pub struct AppState {
     pub mods: u32,
     pub key: u32,
     pub from: Point,
-    pub to: Point,
     pub size: Point,
     pub scale: f32,
     pub rect: SelectionRectangle,
+    pub selection_end: bool, //true --> end of area selection
+    pub selection_transparency: f64,
 }
 
 impl AppState {
-    pub fn new(width: u32, height: u32, scale: f32) -> Self {
+    pub fn new(scale: f32) -> Self {
+        let display_info = screenshots::DisplayInfo::all().expect("Err");
+
+        let width = display_info[0].width as f32 * display_info[0].scale_factor;
+        let height = display_info[0].height as f32 * display_info[0].scale_factor;
+
         AppState {
             name: "".to_string(),
             selected_format: ImageFormat::Jpeg,
@@ -66,16 +72,14 @@ impl AppState {
             mods: Modifiers::ALT.bits(),
             key: Key::Character("s".to_string()).legacy_charcode(),
             from: Point { x: 0.0, y: 0.0 },
-            to: Point {
-                x: width as f64,
-                y: height as f64,
-            },
             size: Point {
                 x: width as f64,
                 y: height as f64,
             },
             scale,
             rect: SelectionRectangle::default(),
+            selection_end: false,
+            selection_transparency: 0.4,
         }
     }
 
@@ -89,22 +93,49 @@ impl AppState {
 
         let b = screenshots::Screen::new(&display_info[0]);
 
-        //let c = b.capture();
+        let c;
+        if self.rect.is_none() {
+            c = b.capture_area(0, 0, (self.size.x) as u32, (self.size.y) as u32);
+        } else {
+            let origin = druid::Rect::from_points(
+                self.rect.start_point.unwrap(),
+                self.rect.end_point.unwrap(),
+            )
+            .origin();
+            c = b.capture_area(
+                (origin.x as f32 * self.scale) as i32,
+                (origin.y as f32 * self.scale) as i32,
+                (self.size.x as f32) as u32,
+                (self.size.y as f32) as u32,
+            );
+            self.rect = SelectionRectangle::default();
+        }
 
-        let c = b.capture_area(
-            //RISOLVI FROM-TO
-            (self.from.x as f32 * self.scale) as i32,
-            (self.from.y as f32 * self.scale) as i32,
-            (self.size.x as f32 * self.scale) as u32,
-            (self.size.y as f32 * self.scale) as u32,
-        );
+        self.set_default_name();
 
         let image = match c {
             Err(why) => return println!("{}", why),
             Ok(info) => info,
         };
 
-        //GESTISCO NOMI
+        let e = image::save_buffer_with_format(
+            self.name.as_str().to_owned() + &self.selected_format.to_string(),
+            image.rgba(),
+            (self.size.x) as u32,
+            (self.size.y) as u32,
+            image::ColorType::Rgba8,
+            image::ImageFormat::Png, //useless, but necessary to support formats like gif and webp (save_buffer not working)
+        );
+
+        *self = AppState::new(self.scale);
+
+        match e {
+            Err(why) => return println!("errore:{}", why),
+            Ok(()) => return,
+        };
+    }
+
+    pub fn set_default_name(&mut self) {
         let first: String;
         if self.name.is_empty() {
             first = String::from("screenshot");
@@ -134,22 +165,6 @@ impl AppState {
         } else {
             self.name = format!("{}{}", first, index.to_string());
         }
-
-        let e = image::save_buffer_with_format(
-            self.name.as_str().to_owned() + &self.selected_format.to_string(),
-            image.rgba(),
-            (self.size.x as f32 * self.scale) as u32,
-            (self.size.y as f32 * self.scale) as u32,
-            image::ColorType::Rgba8,
-            image::ImageFormat::Png, //useless, but necessary to support formats like gif and webp (save_buffer not working)
-        );
-
-        *self = AppState::new(self.size.x as u32, self.size.y as u32, self.scale);
-
-        match e {
-            Err(why) => return println!("errore:{}", why),
-            Ok(()) => return,
-        };
     }
 }
 
@@ -164,6 +179,16 @@ impl Default for SelectionRectangle {
         SelectionRectangle {
             start_point: None,
             end_point: None,
+        }
+    }
+}
+
+impl SelectionRectangle {
+    pub fn is_none(&self) -> bool {
+        if self.start_point.is_none() && self.end_point.is_none() {
+            true
+        } else {
+            false
         }
     }
 }
@@ -277,7 +302,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
     }
 }
 
-//Controller to take screen after click and drag motion
+//Controller for the click and drag motion
 pub struct AreaController;
 
 impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
@@ -301,9 +326,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                 wheel_delta: mouse_button.wheel_delta,
             };
             data.from = mouse_down.pos;
-        }
-
-        if let Event::MouseUp(mouse_button) = event {
+            data.rect.start_point = Some(mouse_button.pos);
+            data.rect.end_point = None;
+        } else if let Event::MouseUp(mouse_button) = event {
             let mouse_up = MouseEvent {
                 pos: mouse_button.pos,
                 window_pos: mouse_button.window_pos,
@@ -314,12 +339,15 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                 button: mouse_button.button,
                 wheel_delta: mouse_button.wheel_delta,
             };
-            data.to = mouse_up.pos;
-            data.size.x = (data.from.x - mouse_up.pos.x).abs();
-            data.size.y = (data.from.y - mouse_up.pos.y).abs();
-            data.rect = SelectionRectangle::default();
-            ctx.window().close();
-            data.screen();
+            data.size.x = ((data.from.x - mouse_up.pos.x).abs() as f32 * data.scale) as f64;
+            data.size.y = ((data.from.y - mouse_up.pos.y).abs() as f32 * data.scale) as f64;
+            data.rect.end_point = Some(mouse_button.pos);
+            data.selection_transparency = 0.0;
+            data.selection_end = true;
+        } else if let Event::MouseMove(mouse_button) = event {
+            if !data.rect.start_point.is_none() {
+                data.rect.end_point = Some(mouse_button.pos);
+            }
         }
 
         child.event(ctx, event, data, env)
@@ -348,28 +376,25 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
     }
 }
 
-//Controller to paint live the selection rectangle
-pub struct PainterController;
+//Controller to take screen after setting the selection area
+pub struct SelectionScreenController;
 
-impl<W: Widget<AppState>> Controller<AppState, W> for PainterController {
+impl<W: Widget<AppState>> Controller<AppState, W> for SelectionScreenController {
     fn event(
         &mut self,
-        _child: &mut W,
-        _ctx: &mut EventCtx,
+        child: &mut W,
+        ctx: &mut EventCtx,
         event: &druid::Event,
         data: &mut AppState,
-        _env: &Env,
+        env: &Env,
     ) {
-        if let Event::MouseDown(mouse_button) = event {
-            data.rect.start_point = Some(mouse_button.pos);
-            data.rect.end_point = None;
-        } else if let Event::MouseUp(mouse_button) = event {
-            data.rect.end_point = Some(mouse_button.pos);
-        } else if let Event::MouseMove(mouse_button) = event {
-            if !data.rect.start_point.is_none() {
-                data.rect.end_point = Some(mouse_button.pos);
-            }
+        if data.selection_end {
+            data.screen();
+            data.selection_end = false;
+            ctx.window().close();
         }
+
+        child.event(ctx, event, data, env)
     }
     fn lifecycle(
         &mut self,

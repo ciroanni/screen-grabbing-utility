@@ -1,8 +1,8 @@
 use crate::data::*;
 use druid::widget::{Button, Flex, Label, Painter, TextBox};
 use druid::{
-    Color, EventCtx, LocalizedString, RenderContext, Widget, WidgetExt, WindowDesc,
-    WindowState, WindowConfig, Env
+    Color, Env, EventCtx, LocalizedString, RenderContext, Widget, WidgetExt,
+    WindowDesc, WindowState,
 };
 use druid_widget_nursery::DropdownSelect;
 
@@ -56,8 +56,8 @@ pub fn build_ui() -> impl Widget<AppState> {
                 ctx.new_window(new_win);
             }),
         )
-        .with_child(
-            Button::new("Area").on_click(move |ctx: &mut EventCtx, data: &mut AppState, env: &Env| {
+        .with_child(Button::new("Area").on_click(
+            move |ctx: &mut EventCtx, _data: &mut AppState, _env: &Env| {
                 let mut current = ctx.window().clone();
                 current.set_window_state(WindowState::Minimized);
                 let new_win = WindowDesc::new(drag_motion_ui())
@@ -67,9 +67,8 @@ pub fn build_ui() -> impl Widget<AppState> {
                     .resizable(false)
                     .set_position((0.0, 0.0));
                 ctx.new_window(new_win);
-                //ctx.new_sub_window(WindowConfig::default().transparent(true), drag_motion_ui(), data.clone(), env.clone());
-            }),
-        )
+            },
+        ))
 }
 
 pub fn shortcut_ui() -> impl Widget<AppState> {
@@ -88,13 +87,14 @@ pub fn drag_motion_ui() -> impl Widget<AppState> {
     let paint = Painter::new(|ctx, data: &AppState, _env| {
         if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
             let rect = druid::Rect::from_points(start, end);
-            ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
-            ctx.stroke(rect, &druid::Color::WHITE, 2.0);
+            ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, data.selection_transparency));
+            //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
         }
     })
-    .controller(PainterController {})
     .controller(AreaController {})
+    .controller(SelectionScreenController{})
     .center();
+
 
     Flex::column().with_child(paint)
 }
