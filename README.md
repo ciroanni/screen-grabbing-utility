@@ -3,8 +3,7 @@
 
 ToDo: 
 1) Risolvere shortcut 
-2) Risolvere problema bordo screen
-3) Risolvere problema finestra dopo click and drag (minimized-restored)
+2) Risolvere problema finestra dopo click and drag (minimized-restored)
 
 
 
