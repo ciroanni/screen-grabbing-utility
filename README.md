@@ -8,7 +8,7 @@ ToDo:
 
 
 
-:bangbang:v1.0.7 _BETA_: Animation for the click and drag motion added but BIG ISSUES to solve...
+:bangbang:v1.0.7: Animation for the click and drag motion added and screen issue fixed.
 
 
 v1.0.6: You can now have a custom area to select with a click and drag motion.
