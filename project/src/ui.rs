@@ -1,8 +1,8 @@
 use crate::data::*;
-use druid::widget::{Button, Flex, Label, Painter, TextBox};
+use druid::widget::{Button, Flex, Label, Painter, TextBox, Image, SizedBox, FillStrat};
 use druid::{
     Color, Env, EventCtx, LocalizedString, RenderContext, Widget, WidgetExt,
-    WindowDesc, WindowState,
+    WindowDesc, WindowState,ImageBuf
 };
 use druid_widget_nursery::DropdownSelect;
 
@@ -43,8 +43,8 @@ pub fn build_ui() -> impl Widget<AppState> {
             .lens(AppState::selected_format),
         )
         .with_child(Flex::row().with_child(Button::new("Nuovo").on_click(
-            |_ctx, data: &mut AppState, _env| {
-                data.screen();
+            |ctx: &mut EventCtx, data: &mut AppState, _env| {
+                data.screen(ctx);
                 data.name = "".to_string();
             },
         )))
@@ -95,6 +95,10 @@ pub fn drag_motion_ui() -> impl Widget<AppState> {
     .controller(SelectionScreenController{})
     .center();
 
-
     Flex::column().with_child(paint)
+}
+ 
+pub fn show_screen_ui(img: ImageBuf)->impl Widget<AppState>{
+    let image = Image::new(img).fill_mode(FillStrat::ScaleDown);
+    SizedBox::new(image).width(1000.).height(1000.)
 }

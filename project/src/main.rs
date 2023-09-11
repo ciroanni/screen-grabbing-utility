@@ -1,5 +1,5 @@
 use druid::PlatformError;
-use druid::{AppLauncher, LocalizedString, WindowDesc};
+use druid::{AppLauncher, LocalizedString, WindowDesc, ImageBuf};
 
 mod ui;
 use ui::build_ui;
@@ -10,7 +10,7 @@ use data::AppState;
 fn main() -> Result<(), PlatformError> {
     let display_info = screenshots::DisplayInfo::all().expect("Err");
 
-    let app_state = AppState::new(display_info[0].scale_factor);
+    let app_state = AppState::new(display_info[0].scale_factor , ImageBuf::empty());
 
     let main_window = WindowDesc::new(build_ui())
         .title(LocalizedString::new("Screen grabbing"))

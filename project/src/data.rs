@@ -1,4 +1,8 @@
-use druid::{widget::Controller, Data, Env, Event, EventCtx, Lens, MouseEvent, Point, Widget};
+use crate::ui::*;
+use druid::{
+    widget::Controller,
+    Data, Env, Event, EventCtx, ImageBuf, Lens, MouseEvent, Point, Widget, WindowDesc,
+};
 use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use std::path::Path;
 
@@ -43,7 +47,7 @@ impl ImageFormat {
     }
 }
 
-#[derive(Clone, Data, PartialEq, Lens)]
+#[derive(Clone, Data, Lens)]
 pub struct AppState {
     pub name: String,
     pub selected_format: ImageFormat,
@@ -56,10 +60,11 @@ pub struct AppState {
     pub rect: SelectionRectangle,
     pub selection_end: bool, //true --> end of area selection
     pub selection_transparency: f64,
+    pub img: ImageBuf,
 }
 
 impl AppState {
-    pub fn new(scale: f32) -> Self {
+    pub fn new(scale: f32, img: ImageBuf) -> Self {
         let display_info = screenshots::DisplayInfo::all().expect("Err");
 
         let width = display_info[0].width as f32 * display_info[0].scale_factor;
@@ -80,10 +85,11 @@ impl AppState {
             rect: SelectionRectangle::default(),
             selection_end: false,
             selection_transparency: 0.4,
+            img,
         }
     }
 
-    pub fn screen(&mut self) {
+    pub fn screen(&mut self, ctx: &mut EventCtx) {
         let a = screenshots::DisplayInfo::all();
 
         let display_info = match a {
@@ -118,21 +124,23 @@ impl AppState {
             Ok(info) => info,
         };
 
-        let e = image::save_buffer_with_format(
-            self.name.as_str().to_owned() + &self.selected_format.to_string(),
-            image.rgba(),
-            (self.size.x) as u32,
-            (self.size.y) as u32,
-            image::ColorType::Rgba8,
-            image::ImageFormat::Png, //useless, but necessary to support formats like gif and webp (save_buffer not working)
+        self.img = ImageBuf::from_raw(
+            image.clone().into_raw(),
+            druid::piet::ImageFormat::RgbaPremul,
+            image.clone().width() as usize,
+            image.clone().height() as usize,
         );
 
-        *self = AppState::new(self.scale);
+        let window = WindowDesc::new(show_screen_ui(self.img.clone()))
+            .title("Shortcut")
+            .window_size((1000., 1000.));
+        ctx.new_window(window);
 
-        match e {
-            Err(why) => return println!("errore:{}", why),
-            Ok(()) => return,
-        };
+        image
+            .save(self.name.as_str().to_owned() + &self.selected_format.to_string())
+            .expect("Error saving screenshot");
+
+        *self = AppState::new(self.scale, self.img.clone());
     }
 
     pub fn set_default_name(&mut self) {
@@ -219,7 +227,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
             ShortcutMatcher::from_event(keyboard_event).shortcut(
                 Modifiers::from_bits(data.mods).expect("Not a modifier"),
                 Key::Character(char::from_u32(data.key).expect("Not a char").to_string()),
-                || data.screen(),
+                || data.screen(ctx),
             );
         }
 
@@ -389,7 +397,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for SelectionScreenController 
         env: &Env,
     ) {
         if data.selection_end {
-            data.screen();
+            data.screen(ctx);
             data.selection_end = false;
             ctx.window().close();
         }
