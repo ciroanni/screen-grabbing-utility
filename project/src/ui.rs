@@ -157,17 +157,17 @@ pub fn make_menu(_: Option<WindowId>, state: &AppState, _: &Env) -> Menu<AppStat
         .button_text("Import");
 
     Menu::new(LocalizedString::new("File"))
-        .entry(MenuItem::new(LocalizedString::new("Save")).on_activate(
+        .entry(MenuItem::new(LocalizedString::new("Save")).on_activate( //salvo nel path di default
             |ctx, data: &mut AppState, _env| {
                 data.save();
             },
         ))
         .entry(
-            MenuItem::new(LocalizedString::new("Save as"))
+            MenuItem::new(LocalizedString::new("Save as")) //posso scegliere il path
                 .command(commands::SHOW_SAVE_PANEL.with(save_dialog)),
         )
         .entry(
-            MenuItem::new(LocalizedString::new("Open"))
+            MenuItem::new(LocalizedString::new("Open")) //mi permette di scegliere il path di default in cui salva premendo SAVE
                 .command(commands::SHOW_OPEN_PANEL.with(open_dialog)),
         )
 }
