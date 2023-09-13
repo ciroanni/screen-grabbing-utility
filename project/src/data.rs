@@ -1,9 +1,10 @@
 use crate::ui::*;
 use druid::{
-    widget::Controller,
-    Data, Env, Event, EventCtx, ImageBuf, Lens, MouseEvent, Point, Widget, WindowDesc,
+    commands, widget::Controller, AppDelegate, Command, Cursor, Data, DelegateCtx, Env, Event,
+    EventCtx, Handled, ImageBuf, Lens, MouseEvent, Point, Target, Widget, WindowDesc,
 };
 use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
+use image::{ImageBuffer, Rgba};
 use std::path::Path;
 
 #[derive(Clone, Data, PartialEq, Debug)]
@@ -26,7 +27,7 @@ pub enum ImageFormat {
 }
 
 impl ImageFormat {
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         match self {
             ImageFormat::Jpeg => ".jpeg".to_string(),
             ImageFormat::Png => ".png".to_string(),
@@ -61,6 +62,8 @@ pub struct AppState {
     pub selection_end: bool, //true --> end of area selection
     pub selection_transparency: f64,
     pub img: ImageBuf,
+    pub cursor: Cursor,
+    pub path: String,
 }
 
 impl AppState {
@@ -86,6 +89,8 @@ impl AppState {
             selection_end: false,
             selection_transparency: 0.4,
             img,
+            cursor: Cursor::Arrow,
+            path: ".".to_string(),
         }
     }
 
@@ -114,10 +119,8 @@ impl AppState {
                 (self.size.x as f32) as u32,
                 (self.size.y as f32) as u32,
             );
-            self.rect = SelectionRectangle::default();
+            //self.rect = SelectionRectangle::default();
         }
-
-        self.set_default_name();
 
         let image = match c {
             Err(why) => return println!("{}", why),
@@ -132,15 +135,13 @@ impl AppState {
         );
 
         let window = WindowDesc::new(show_screen_ui(self.img.clone()))
+            .menu(make_menu)
             .title("Shortcut")
             .window_size((1000., 1000.));
         ctx.new_window(window);
 
-        image
-            .save(self.name.as_str().to_owned() + &self.selected_format.to_string())
-            .expect("Error saving screenshot");
-
-        *self = AppState::new(self.scale, self.img.clone());
+        self.selection_transparency = 0.4;
+        //*self = AppState::new(self.scale, self.img.clone());
     }
 
     pub fn set_default_name(&mut self) {
@@ -155,7 +156,7 @@ impl AppState {
 
         let mut index = 0;
         loop {
-            if !Path::new(&str3).exists() {
+            if !Path::new(&(self.path.clone() + "\\" + &str3)).exists() {
                 //println!("{}", str3);
                 break;
             } else {
@@ -173,6 +174,32 @@ impl AppState {
         } else {
             self.name = format!("{}{}", first, index.to_string());
         }
+    }
+
+    pub fn save(&mut self) {
+        let image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
+            self.img.width() as u32,
+            self.img.height() as u32,
+            self.img.raw_pixels().to_vec(),
+        )
+        .unwrap();
+        self.set_default_name();
+        image
+            .save(self.path.clone() + "\\" + &self.name + &self.selected_format.to_string())
+            .expect("Error saving");
+        self.name = "".to_string();
+        self.rect = SelectionRectangle::default();
+    }
+
+    pub fn save_as(&mut self, path: &Path) {
+        let image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
+            self.img.width() as u32,
+            self.img.height() as u32,
+            self.img.raw_pixels().to_vec(),
+        )
+        .unwrap();
+        image.save(path);
+        self.rect = SelectionRectangle::default();
     }
 }
 
@@ -213,6 +240,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
         data: &mut AppState,
         env: &Env,
     ) {
+        ctx.request_focus();
         if let Event::KeyDown(key) = event {
             let keyboard_event = KeyboardEvent {
                 state: key.state,
@@ -279,6 +307,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
                 repeat: key.repeat,
                 is_composing: true,
             };
+            println!("{:?} {:?}", keyboard_event.modifiers, keyboard_event.key);
 
             data.mods = keyboard_event.modifiers.bits();
             data.key = keyboard_event.key.legacy_charcode();
@@ -424,5 +453,152 @@ impl<W: Widget<AppState>> Controller<AppState, W> for SelectionScreenController 
         env: &Env,
     ) {
         child.update(ctx, old_data, data, env)
+    }
+}
+/*
+ pub struct ResizeController;
+
+impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &druid::Event,
+        data: &mut AppState,
+        env: &Env,
+    ) {
+        if let Event::MouseDown(mouse_button) = event {
+            let mouse_down = MouseEvent {
+                pos: mouse_button.pos,
+                window_pos: mouse_button.window_pos,
+                buttons: mouse_button.buttons,
+                mods: mouse_button.mods,
+                count: mouse_button.count,
+                focus: mouse_button.focus,
+                button: mouse_button.button,
+                wheel_delta: mouse_button.wheel_delta,
+            };
+
+            // data.from = mouse_down.pos;
+            // data.rect.start_point = Some(mouse_button.pos);
+            // data.rect.end_point = None;
+        } else if let Event::MouseUp(mouse_button) = event {
+            let mouse_up = MouseEvent {
+                pos: mouse_button.pos,
+                window_pos: mouse_button.window_pos,
+                buttons: mouse_button.buttons,
+                mods: mouse_button.mods,
+                count: mouse_button.count,
+                focus: mouse_button.focus,
+                button: mouse_button.button,
+                wheel_delta: mouse_button.wheel_delta,
+            };
+            // data.size.x = ((data.from.x - mouse_up.pos.x).abs() as f32 * data.scale) as f64;
+            // data.size.y = ((data.from.y - mouse_up.pos.y).abs() as f32 * data.scale) as f64;
+            // data.rect.end_point = Some(mouse_button.pos);
+            // data.selection_transparency = 0.0;
+            // data.selection_end = true;
+        } else if let Event::MouseMove(mouse_button) = event {
+            let mouse_button = MouseEvent {
+                pos: mouse_button.pos,
+                window_pos: mouse_button.window_pos,
+                buttons: mouse_button.buttons,
+                mods: mouse_button.mods,
+                count: mouse_button.count,
+                focus: mouse_button.focus,
+                button: mouse_button.button,
+                wheel_delta: mouse_button.wheel_delta,
+            };
+            let rect = druid::Rect::from_points(
+                data.rect.start_point.unwrap(),
+                data.rect.end_point.unwrap(),
+            );
+            println!("entra");
+            if (mouse_button.pos.x - rect.max_x()).abs() <= 10.
+                || (mouse_button.pos.x - rect.min_x()).abs() <= 10.
+            {
+                println!("dx pre");
+                if mouse_button.pos.y > rect.min_y() && mouse_button.pos.y < rect.max_y() {
+                    // cambia cursore -> orizzontale
+                    println!("Dx");
+                    data.cursor = Cursor::ResizeLeftRight;
+                    ctx.set_cursor(&data.cursor);
+                }
+            } else if (mouse_button.pos.y - rect.max_y()).abs() <= 10.
+                || (mouse_button.pos.y - rect.min_y()).abs() <= 10.
+            {
+                if mouse_button.pos.x > rect.min_x() && mouse_button.pos.x < rect.max_x() {
+                    // cambia cursore -> verticale
+                    println!("up");
+                    data.cursor = Cursor::ResizeUpDown;
+                    ctx.set_cursor(&data.cursor);
+                }
+            } else {
+                data.cursor = Cursor::Arrow;
+                ctx.set_cursor(&data.cursor);
+            }
+
+            // if !data.rect.start_point.is_none() {
+            //     data.rect.end_point = Some(mouse_button.pos);
+            // }
+        }
+
+        child.event(ctx, event, data, env)
+    }
+
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::LifeCycleCtx,
+        event: &druid::LifeCycle,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.lifecycle(ctx, event, data, env)
+    }
+
+    fn update(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::UpdateCtx,
+        old_data: &AppState,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.update(ctx, old_data, data, env)
+    }
+}
+ */
+
+pub struct Delegate; //vedi main.rs
+impl AppDelegate<AppState> for Delegate { //mi permette di gestire i comandi di show_save_panel e show_open_panel, rispettivamente infatti chiamano SAVE_FILE e OPEN_FILE
+    fn command(
+        &mut self,
+        ctx: &mut DelegateCtx,
+        _target: Target,
+        cmd: &Command,
+        data: &mut AppState,
+        _env: &Env,
+    ) -> Handled {
+        if let Some(file_info) = cmd.get(commands::SAVE_FILE_AS) {
+            if let Err(e) = std::fs::write(file_info.path(), &data.name[..]) {
+                println!("Error writing file: {e}");
+            } else {
+                data.save_as(file_info.path());
+                return Handled::Yes;
+            }
+        }
+        if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
+            match std::fs::read_dir(file_info.path()) {
+                Ok(s) => {
+                    data.path = file_info.path().to_str().unwrap().to_string();
+                }
+                Err(e) => {
+                    println!("Error opening folder: {e}");
+                }
+            }
+            return Handled::Yes;
+        }
+        Handled::No
     }
 }

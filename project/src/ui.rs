@@ -1,10 +1,13 @@
 use crate::data::*;
-use druid::widget::{Button, Flex, Label, Painter, TextBox, Image, SizedBox, FillStrat};
+use arboard::{Clipboard, ImageData};
+use druid::widget::{Button, FillStrat, Flex, Image, Label, Painter, SizedBox, TextBox};
 use druid::{
-    Color, Env, EventCtx, LocalizedString, RenderContext, Widget, WidgetExt,
-    WindowDesc, WindowState,ImageBuf
+    commands, Color, Cursor, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString,
+    Menu, MenuItem, RenderContext, SysMods, Widget, WidgetExt, WindowDesc, WindowId, WindowState,
 };
 use druid_widget_nursery::DropdownSelect;
+use image::{ImageBuffer, Rgba};
+use std::borrow::Cow;
 
 pub fn build_ui() -> impl Widget<AppState> {
     let display_info = screenshots::DisplayInfo::all().expect("Err");
@@ -13,13 +16,6 @@ pub fn build_ui() -> impl Widget<AppState> {
     let height = display_info[0].height as f64;
 
     Flex::column()
-        .with_child(
-            TextBox::new()
-                .with_placeholder("Insert your screenshot name")
-                .expand_width()
-                .lens(AppState::name)
-                .controller(Enter {}),
-        )
         .with_spacer(20.0)
         .with_child(
             DropdownSelect::new(vec![
@@ -69,6 +65,7 @@ pub fn build_ui() -> impl Widget<AppState> {
                 ctx.new_window(new_win);
             },
         ))
+        .controller(Enter {})
 }
 
 pub fn shortcut_ui() -> impl Widget<AppState> {
@@ -87,18 +84,110 @@ pub fn drag_motion_ui() -> impl Widget<AppState> {
     let paint = Painter::new(|ctx, data: &AppState, _env| {
         if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
             let rect = druid::Rect::from_points(start, end);
-            ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, data.selection_transparency));
+            ctx.fill(
+                rect,
+                &Color::rgba(0.0, 0.0, 0.0, data.selection_transparency),
+            );
             //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
         }
     })
     .controller(AreaController {})
-    .controller(SelectionScreenController{})
+    .controller(SelectionScreenController {})
     .center();
 
     Flex::column().with_child(paint)
 }
- 
-pub fn show_screen_ui(img: ImageBuf)->impl Widget<AppState>{
+
+pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img).fill_mode(FillStrat::ScaleDown);
-    SizedBox::new(image).width(1000.).height(1000.)
+    /* Flex::column()
+    .with_child(
+        Button::new("Resize").on_click(|ctx: &mut EventCtx, _data, _env| {
+            let paint = Painter::new(|ctx, data: &AppState, _env| {
+                if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
+                    let rect = druid::Rect::from_points(start, end);
+                    ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
+                    //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
+                }
+            });
+            let mut current = ctx.window().clone();
+            current.set_window_state(WindowState::Minimized);
+            let new_win = WindowDesc::new(
+                Flex::column()
+                    .with_child(paint)
+                    .controller(ResizeController {}),
+            )
+            .show_titlebar(false)
+            .transparent(true)
+            .window_size((2560., 1600.))
+            .resizable(false)
+            .set_position((0.0, 0.0));
+            ctx.new_window(new_win);
+        }),
+    )
+    .with_child(SizedBox::new(image).width(500.).height(500.)) */
+    Flex::column()
+        .with_child(
+            Button::new("Copy").on_click(move |ctx, data: &mut AppState, _env| {
+                //ctx.submit_command(commands::SHOW_SAVE_PANEL.with(save_dialog_options.clone()))
+                let img = ImageData {
+                    width: data.img.width(),
+                    height: data.img.height(),
+                    bytes: Cow::from(data.img.raw_pixels()),
+                };
+                let mut clip = Clipboard::new().unwrap();
+                clip.set_image(img).unwrap();
+            }),
+        )
+        .with_child(SizedBox::new(image).width(500.).height(500.))
+}
+
+#[allow(unused_assignments)]
+pub fn make_menu(_: Option<WindowId>, state: &AppState, _: &Env) -> Menu<AppState> {
+    let save_dialog = FileDialogOptions::new()
+        .allowed_types(formats())
+        .default_type(FileSpec::JPG)
+        .default_name("screenshot")
+        .name_label("Target")
+        .title("Choose a target for this lovely file")
+        .button_text("Export");
+
+    let open_dialog = FileDialogOptions::new()
+        .select_directories()
+        .button_text("Import");
+
+    Menu::new(LocalizedString::new("File"))
+        .entry(MenuItem::new(LocalizedString::new("Save")).on_activate(
+            |ctx, data: &mut AppState, _env| {
+                data.save();
+            },
+        ))
+        .entry(
+            MenuItem::new(LocalizedString::new("Save as"))
+                .command(commands::SHOW_SAVE_PANEL.with(save_dialog)),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("Open"))
+                .command(commands::SHOW_OPEN_PANEL.with(open_dialog)),
+        )
+}
+
+pub fn formats() -> Vec<FileSpec> {
+    vec![
+        FileSpec::JPG,
+        FileSpec::PNG,
+        FileSpec::GIF,
+        FileSpec::new("Webp", &["webp"]),
+        FileSpec::new("Pnm", &["pnm"]),
+        FileSpec::new("Tiff", &["tiff"]),
+        FileSpec::new("Tga", &["tga"]),
+        FileSpec::new("Dds", &["dds"]),
+        FileSpec::new("Bmp", &["bmp"]),
+        FileSpec::new("Ico", &["ico"]),
+        FileSpec::new("Hdr", &["hdr"]),
+        FileSpec::new("OpenExr", &["openexr"]),
+        FileSpec::new("Farbfeld", &["farbfeld"]),
+        FileSpec::new("Avif", &["avif"]),
+        FileSpec::new("Qoi", &["qoi"]),
+    ]
 }
