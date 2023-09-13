@@ -5,6 +5,7 @@ use druid::{
     commands, Color, Cursor, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString,
     Menu, MenuItem, RenderContext, SysMods, Widget, WidgetExt, WindowDesc, WindowId, WindowState,
 };
+use druid_shell::TimerToken;
 use druid_widget_nursery::DropdownSelect;
 use image::{ImageBuffer, Rgba};
 use std::borrow::Cow;
@@ -91,7 +92,7 @@ pub fn drag_motion_ui() -> impl Widget<AppState> {
             //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
         }
     })
-    .controller(AreaController {})
+    .controller(AreaController {id_t:TimerToken::next()})
     .controller(SelectionScreenController {})
     .center();
 

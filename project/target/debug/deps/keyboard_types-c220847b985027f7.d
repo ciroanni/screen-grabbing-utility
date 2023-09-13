@@ -1,0 +1,10 @@
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\keyboard_types-c220847b985027f7.rmeta: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\code.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\key.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\location.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\modifiers.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\shortcuts.rs
+
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\keyboard_types-c220847b985027f7.d: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\code.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\key.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\location.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\modifiers.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\shortcuts.rs
+
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\lib.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\code.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\key.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\location.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\modifiers.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\keyboard-types-0.6.2\src\shortcuts.rs:
