@@ -1,14 +1,13 @@
 use crate::ui::*;
 use druid::{
     commands, widget::Controller, AppDelegate, Command, Cursor, Data, DelegateCtx, Env, Event,
-    EventCtx, Handled, ImageBuf, Lens, MouseEvent, Point, Target, Widget, WindowDesc, TimerToken
+    EventCtx, Handled, ImageBuf, Lens, MouseEvent, Point, Target, TimerToken, Widget, WindowDesc,
 };
 use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use image::{ImageBuffer, Rgba};
 use std::path::Path;
-use std::sync::{Arc,Mutex};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::thread;
 
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
@@ -67,7 +66,7 @@ pub struct AppState {
     pub img: ImageBuf,
     pub cursor: Cursor,
     pub path: String,
-    pub delay: Arc::<Mutex::<Duration>>,
+    pub delay: Arc<Mutex<Duration>>,
 }
 
 impl AppState {
@@ -95,12 +94,11 @@ impl AppState {
             img,
             cursor: Cursor::Arrow,
             path: ".".to_string(),
-            delay: Arc::new(Mutex::new(Duration::from_secs(0)))
+            delay: Arc::new(Mutex::new(Duration::from_secs(0))),
         }
     }
 
     pub fn screen(&mut self, ctx: &mut EventCtx) {
-
         let a = screenshots::DisplayInfo::all();
 
         let display_info = match a {
@@ -204,7 +202,7 @@ impl AppState {
             self.img.raw_pixels().to_vec(),
         )
         .unwrap();
-        image.save(path);
+        image.save(path).expect("Error saving");
         self.rect = SelectionRectangle::default();
     }
 }
@@ -346,8 +344,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
 }
 
 //Controller for the click and drag motion
-pub struct AreaController{
-    pub id_t:TimerToken,
+pub struct AreaController {
+    pub id_t: TimerToken,
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
@@ -389,25 +387,19 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
             data.rect.end_point = Some(mouse_button.pos);
             data.selection_transparency = 0.0;
             data.selection_end = true;
-            self.id_t=ctx.request_timer(Duration::from_millis(100));
+            self.id_t = ctx.request_timer(Duration::from_millis(100));
         } else if let Event::MouseMove(mouse_button) = event {
             if !data.rect.start_point.is_none() {
                 data.rect.end_point = Some(mouse_button.pos);
             }
-        } else if let Event::Timer(id) = event{
-            if self.id_t==*id{
+        } else if let Event::Timer(id) = event {
+            if self.id_t == *id {
                 data.screen(ctx);
                 data.selection_end = false;
                 ctx.window().close();
             }
         }
-        /*
-        if data.selection_end && data.selection_transparency==0.0 {
-            data.screen(ctx);
-            data.selection_end = false;
-            ctx.window().close();
-        }
-        */
+
         child.event(ctx, event, data, env)
     }
 
@@ -434,51 +426,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
     }
 }
 
-//Controller to take screen after setting the selection area
-pub struct SelectionScreenController;
-
-impl<W: Widget<AppState>> Controller<AppState, W> for SelectionScreenController {
-    fn event(
-        &mut self,
-        child: &mut W,
-        ctx: &mut EventCtx,
-        event: &druid::Event,
-        data: &mut AppState,
-        env: &Env,
-    ) {
-
-        /*
-        if data.selection_end && data.selection_transparency==0.0 {
-            data.screen(ctx);
-            data.selection_end = false;
-            ctx.window().close();
-        }
-        */
-
-        child.event(ctx, event, data, env)
-    }
-    fn lifecycle(
-        &mut self,
-        child: &mut W,
-        ctx: &mut druid::LifeCycleCtx,
-        event: &druid::LifeCycle,
-        data: &AppState,
-        env: &Env,
-    ) {
-        child.lifecycle(ctx, event, data, env)
-    }
-
-    fn update(
-        &mut self,
-        child: &mut W,
-        ctx: &mut druid::UpdateCtx,
-        old_data: &AppState,
-        data: &AppState,
-        env: &Env,
-    ) {
-        child.update(ctx, old_data, data, env)
-    }
-}
 /*
  pub struct ResizeController;
 
@@ -595,10 +542,11 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
  */
 
 pub struct Delegate; //vedi main.rs
-impl AppDelegate<AppState> for Delegate { //mi permette di gestire i comandi di show_save_panel e show_open_panel, rispettivamente infatti chiamano SAVE_FILE e OPEN_FILE
+impl AppDelegate<AppState> for Delegate {
+    //mi permette di gestire i comandi di show_save_panel e show_open_panel, rispettivamente infatti chiamano SAVE_FILE e OPEN_FILE
     fn command(
         &mut self,
-        ctx: &mut DelegateCtx,
+        _ctx: &mut DelegateCtx,
         _target: Target,
         cmd: &Command,
         data: &mut AppState,
@@ -614,7 +562,7 @@ impl AppDelegate<AppState> for Delegate { //mi permette di gestire i comandi di 
         }
         if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
             match std::fs::read_dir(file_info.path()) {
-                Ok(s) => {
+                Ok(_s) => {
                     data.path = file_info.path().to_str().unwrap().to_string();
                 }
                 Err(e) => {

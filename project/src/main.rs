@@ -2,7 +2,7 @@ use druid::PlatformError;
 use druid::{AppLauncher, ImageBuf, LocalizedString, WindowDesc};
 
 mod ui;
-use ui::{build_ui, make_menu};
+use ui::build_ui;
 
 mod data;
 use data::{AppState, Delegate};

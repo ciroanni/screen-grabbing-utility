@@ -2,12 +2,11 @@ use crate::data::*;
 use arboard::{Clipboard, ImageData};
 use druid::widget::{Button, FillStrat, Flex, Image, Label, Painter, SizedBox, TextBox};
 use druid::{
-    commands, Color, Cursor, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString,
-    Menu, MenuItem, RenderContext, SysMods, Widget, WidgetExt, WindowDesc, WindowId, WindowState,
+    commands, Color, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString,
+    Menu, MenuItem, RenderContext, Widget, WidgetExt, WindowDesc, WindowId, WindowState,
 };
 use druid_shell::TimerToken;
 use druid_widget_nursery::DropdownSelect;
-use image::{ImageBuffer, Rgba};
 use std::borrow::Cow;
 
 pub fn build_ui() -> impl Widget<AppState> {
@@ -93,7 +92,6 @@ pub fn drag_motion_ui() -> impl Widget<AppState> {
         }
     })
     .controller(AreaController {id_t:TimerToken::next()})
-    .controller(SelectionScreenController {})
     .center();
 
     Flex::column().with_child(paint)
@@ -129,7 +127,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     .with_child(SizedBox::new(image).width(500.).height(500.)) */
     Flex::column()
         .with_child(
-            Button::new("Copy").on_click(move |ctx, data: &mut AppState, _env| {
+            Button::new("Copy").on_click(move |_ctx, data: &mut AppState, _env| {
                 //ctx.submit_command(commands::SHOW_SAVE_PANEL.with(save_dialog_options.clone()))
                 let img = ImageData {
                     width: data.img.width(),
@@ -144,7 +142,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
 }
 
 #[allow(unused_assignments)]
-pub fn make_menu(_: Option<WindowId>, state: &AppState, _: &Env) -> Menu<AppState> {
+pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppState> {
     let save_dialog = FileDialogOptions::new()
         .allowed_types(formats())
         .default_type(FileSpec::JPG)
@@ -159,7 +157,7 @@ pub fn make_menu(_: Option<WindowId>, state: &AppState, _: &Env) -> Menu<AppStat
 
     Menu::new(LocalizedString::new("File"))
         .entry(MenuItem::new(LocalizedString::new("Save")).on_activate( //salvo nel path di default
-            |ctx, data: &mut AppState, _env| {
+            |_ctx, data: &mut AppState, _env| {
                 data.save();
             },
         ))
