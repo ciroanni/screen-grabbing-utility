@@ -145,6 +145,7 @@ impl AppState {
         ctx.new_window(window);
 
         self.selection_transparency = 0.4;
+        self.rect = SelectionRectangle::default();
         //*self = AppState::new(self.scale, self.img.clone());
     }
 
