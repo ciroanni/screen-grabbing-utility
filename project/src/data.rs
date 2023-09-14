@@ -8,6 +8,7 @@ use image::{ImageBuffer, Rgba};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::thread;
 
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
@@ -190,7 +191,7 @@ impl AppState {
         .unwrap();
         self.set_default_name();
         image
-            .save(self.path.clone() + "\\" + &self.name + &self.selected_format.to_string())
+            .save_with_format(self.path.clone() + "\\" + &self.name + &self.selected_format.to_string(), image::ImageFormat::Png)
             .expect("Error saving");
         self.name = "".to_string();
         self.rect = SelectionRectangle::default();
@@ -203,7 +204,7 @@ impl AppState {
             self.img.raw_pixels().to_vec(),
         )
         .unwrap();
-        image.save(path).expect("Error saving");
+        image.save_with_format(path, image::ImageFormat::Png).expect("Error saving");
         self.rect = SelectionRectangle::default();
     }
 }

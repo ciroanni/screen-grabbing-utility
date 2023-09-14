@@ -1,10 +1,6 @@
 # PDS project 2023
 ## Rust code for a screen grabbing utility capable of acquiring what is currently shown in a display, post-process it and make it available in one or more formats.
 
-ToDo: 
-1) Risolvere shortcut 
-2) Risolvere problema finestra dopo click and drag (minimized-restored)
-
 
 :bangbang:v1.0.8:correction of the bug of the screenshot in the drag and drop feature
 

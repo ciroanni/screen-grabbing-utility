@@ -2,8 +2,8 @@ use crate::data::*;
 use arboard::{Clipboard, ImageData};
 use druid::widget::{Button, FillStrat, Flex, Image, Label, Painter, SizedBox, TextBox};
 use druid::{
-    commands, Color, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString,
-    Menu, MenuItem, RenderContext, Widget, WidgetExt, WindowDesc, WindowId, WindowState,
+    commands, Color, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString, Menu,
+    MenuItem, RenderContext, Widget, WidgetExt, WindowDesc, WindowId, WindowState,
 };
 use druid_shell::TimerToken;
 use druid_widget_nursery::DropdownSelect;
@@ -91,7 +91,9 @@ pub fn drag_motion_ui() -> impl Widget<AppState> {
             //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
         }
     })
-    .controller(AreaController {id_t:TimerToken::next()})
+    .controller(AreaController {
+        id_t: TimerToken::next(),
+    })
     .center();
 
     Flex::column().with_child(paint)
@@ -125,20 +127,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
         }),
     )
     .with_child(SizedBox::new(image).width(500.).height(500.)) */
-    Flex::column()
-        .with_child(
-            Button::new("Copy").on_click(move |_ctx, data: &mut AppState, _env| {
-                //ctx.submit_command(commands::SHOW_SAVE_PANEL.with(save_dialog_options.clone()))
-                let img = ImageData {
-                    width: data.img.width(),
-                    height: data.img.height(),
-                    bytes: Cow::from(data.img.raw_pixels()),
-                };
-                let mut clip = Clipboard::new().unwrap();
-                clip.set_image(img).unwrap();
-            }),
-        )
-        .with_child(SizedBox::new(image).width(500.).height(500.))
+    Flex::column().with_child(SizedBox::new(image).width(500.).height(500.))
 }
 
 #[allow(unused_assignments)]
@@ -154,9 +143,11 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
     let open_dialog = FileDialogOptions::new()
         .select_directories()
         .button_text("Import");
-
-    Menu::new(LocalizedString::new("File"))
-        .entry(MenuItem::new(LocalizedString::new("Save")).on_activate( //salvo nel path di default
+    let base = Menu::empty();
+    let mut file = Menu::new(LocalizedString::new("File"));
+    file = file
+        .entry(MenuItem::new(LocalizedString::new("Save")).on_activate(
+            //salvo nel path di default
             |_ctx, data: &mut AppState, _env| {
                 data.save();
             },
@@ -169,6 +160,46 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
             MenuItem::new(LocalizedString::new("Open")) //mi permette di scegliere il path di default in cui salva premendo SAVE
                 .command(commands::SHOW_OPEN_PANEL.with(open_dialog)),
         )
+        .entry(MenuItem::new(LocalizedString::new("Copy")).on_activate(
+            move |_ctx, data: &mut AppState, _env| {
+                //ctx.submit_command(commands::SHOW_SAVE_PANEL.with(save_dialog_options.clone()))
+                let img = ImageData {
+                    width: data.img.width(),
+                    height: data.img.height(),
+                    bytes: Cow::from(data.img.raw_pixels()),
+                };
+                let mut clip = Clipboard::new().unwrap();
+                clip.set_image(img).unwrap();
+            },
+        ));
+
+    /* let modify = Menu::new(LocalizedString::new("Modifica"));
+       modify = modify.entry(MenuItem::new(LocalizedString::new("Ritaglia")).on_activate(
+           |ctx: &mut EventCtx, _data, _env| {
+               let paint = Painter::new(|ctx, data: &AppState, _env| {
+                   if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
+                       let rect = druid::Rect::from_points(start, end);
+                       ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
+                       //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
+                   }
+               });
+               let mut current = ctx.window().clone();
+               current.set_window_state(WindowState::Minimized);
+               let new_win = WindowDesc::new(
+                   Flex::column()
+                       .with_child(paint)
+                       .controller(ResizeController {}),
+               )
+               .show_titlebar(false)
+               .transparent(true)
+               .window_size((2560., 1600.))
+               .resizable(false)
+               .set_position((0.0, 0.0));
+               ctx.new_window(new_win);
+           },
+       ));
+    */
+    base.entry(file)
 }
 
 pub fn formats() -> Vec<FileSpec> {
