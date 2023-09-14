@@ -57,7 +57,7 @@ pub fn build_ui() -> impl Widget<AppState> {
                 let mut current = ctx.window().clone();
                 current.set_window_state(WindowState::Minimized);
                 let new_win = WindowDesc::new(drag_motion_ui())
-                    .show_titlebar(false)
+                    .show_titlebar(true)
                     .transparent(true)
                     .window_size((width, height))
                     .resizable(false)
@@ -93,6 +93,7 @@ pub fn drag_motion_ui() -> impl Widget<AppState> {
     })
     .controller(AreaController {
         id_t: TimerToken::next(),
+        id_t2:TimerToken::next(),
     })
     .center();
 

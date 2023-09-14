@@ -1,14 +1,13 @@
 use crate::ui::*;
 use druid::{
     commands, widget::Controller, AppDelegate, Command, Cursor, Data, DelegateCtx, Env, Event,
-    EventCtx, Handled, ImageBuf, Lens, MouseEvent, Point, Target, TimerToken, Widget, WindowDesc,
+    EventCtx, Handled, ImageBuf, Lens, MouseEvent, Point, Target, TimerToken, Widget, WindowDesc, WindowState
 };
 use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use image::{ImageBuffer, Rgba};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::thread;
 
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
@@ -67,7 +66,7 @@ pub struct AppState {
     pub img: ImageBuf,
     pub cursor: Cursor,
     pub path: String,
-    pub delay: Arc<Mutex<Duration>>,
+    pub delay: Duration,
 }
 
 impl AppState {
@@ -95,7 +94,7 @@ impl AppState {
             img,
             cursor: Cursor::Arrow,
             path: ".".to_string(),
-            delay: Arc::new(Mutex::new(Duration::from_secs(0))),
+            delay: Duration::from_secs(3),
         }
     }
 
@@ -348,6 +347,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
 //Controller for the click and drag motion
 pub struct AreaController {
     pub id_t: TimerToken,
+    pub id_t2: TimerToken,
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
@@ -389,13 +389,23 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
             data.rect.end_point = Some(mouse_button.pos);
             data.selection_transparency = 0.0;
             data.selection_end = true;
-            self.id_t = ctx.request_timer(Duration::from_millis(100));
+            if data.delay<=Duration::from_millis(100){
+                self.id_t = ctx.request_timer(Duration::from_millis(100));
+            }else {
+                self.id_t = ctx.request_timer(data.delay);
+            }
+            
+            ctx.window().clone().set_window_state(WindowState::Minimized);
         } else if let Event::MouseMove(mouse_button) = event {
             if !data.rect.start_point.is_none() {
                 data.rect.end_point = Some(mouse_button.pos);
             }
         } else if let Event::Timer(id) = event {
             if self.id_t == *id {
+                ctx.window().clone().set_window_state(WindowState::Restored);
+                self.id_t2=ctx.request_timer(Duration::from_millis(100));
+                self.id_t=TimerToken::next();
+            } else if self.id_t2 == *id{
                 data.screen(ctx);
                 data.selection_end = false;
                 ctx.window().close();
