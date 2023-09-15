@@ -2,8 +2,9 @@ use crate::data::*;
 use arboard::{Clipboard, ImageData};
 use druid::widget::{Button, FillStrat, Flex, Image, Label, Painter, SizedBox, TextBox};
 use druid::{
-    commands, Color, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString, Menu,
-    MenuItem, RenderContext, Widget, WidgetExt, WindowDesc, WindowId, WindowState,
+    commands, Color, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf,
+    LocalizedString, Menu, MenuItem, RenderContext, Widget, WidgetExt,
+    WindowDesc, WindowId, WindowState,
 };
 use druid_shell::TimerToken;
 use druid_widget_nursery::DropdownSelect;
@@ -38,26 +39,25 @@ pub fn build_ui() -> impl Widget<AppState> {
             .align_left()
             .lens(AppState::selected_format),
         )
-        .with_child(Flex::row().with_child(Button::new("Nuovo").on_click(
-            |ctx: &mut EventCtx, data: &mut AppState, _env| {
-                data.screen(ctx);
-                data.name = "".to_string();
-            },
-        )))
-        .with_child(
-            Button::new("Shortcut").on_click(|ctx: &mut EventCtx, _data, _env| {
-                let new_win = WindowDesc::new(shortcut_ui())
-                    .title(LocalizedString::new("Shortcut"))
-                    .window_size((300.0, 200.0));
+        .with_child(Button::new("Nuovo").on_click(
+            move |ctx: &mut EventCtx, _data, _env| {
+                let mut current = ctx.window().clone();
+                current.set_window_state(WindowState::Minimized);
+                let new_win = WindowDesc::new(drag_motion_ui(true))
+                    .show_titlebar(false)
+                    .transparent(true)
+                    .window_size((width, height))
+                    .resizable(false)
+                    .set_position((0.0, 0.0));
                 ctx.new_window(new_win);
-            }),
-        )
+            },
+        ))
         .with_child(Button::new("Area").on_click(
             move |ctx: &mut EventCtx, _data: &mut AppState, _env: &Env| {
                 let mut current = ctx.window().clone();
                 current.set_window_state(WindowState::Minimized);
-                let new_win = WindowDesc::new(drag_motion_ui())
-                    .show_titlebar(true)
+                let new_win = WindowDesc::new(drag_motion_ui(false))
+                    .show_titlebar(false)
                     .transparent(true)
                     .window_size((width, height))
                     .resizable(false)
@@ -80,7 +80,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
         )
 }
 
-pub fn drag_motion_ui() -> impl Widget<AppState> {
+pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
     let paint = Painter::new(|ctx, data: &AppState, _env| {
         if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
             let rect = druid::Rect::from_points(start, end);
@@ -93,7 +93,8 @@ pub fn drag_motion_ui() -> impl Widget<AppState> {
     })
     .controller(AreaController {
         id_t: TimerToken::next(),
-        id_t2:TimerToken::next(),
+        id_t2: TimerToken::next(),
+        flag: is_full,
     })
     .center();
 
@@ -147,32 +148,46 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
     let base = Menu::empty();
     let mut file = Menu::new(LocalizedString::new("File"));
     file = file
-        .entry(MenuItem::new(LocalizedString::new("Save")).on_activate(
-            //salvo nel path di default
-            |_ctx, data: &mut AppState, _env| {
-                data.save();
-            },
-        ))
+        .entry(
+            MenuItem::new(LocalizedString::new("Save"))
+                .on_activate(
+                    //salvo nel path di default
+                    |_ctx, data: &mut AppState, _env| {
+                        data.save();
+                    },
+                )
+                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty()),
+        )
         .entry(
             MenuItem::new(LocalizedString::new("Save as")) //posso scegliere il path
-                .command(commands::SHOW_SAVE_PANEL.with(save_dialog)),
+                .command(commands::SHOW_SAVE_PANEL.with(save_dialog))
+                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty()),
         )
         .entry(
-            MenuItem::new(LocalizedString::new("Open")) //mi permette di scegliere il path di default in cui salva premendo SAVE
+            MenuItem::new(LocalizedString::new("Copy"))
+                .on_activate(move |_ctx, data: &mut AppState, _env| {
+                    //ctx.submit_command(commands::SHOW_SAVE_PANEL.with(save_dialog_options.clone()))
+                    let img = ImageData {
+                        width: data.img.width(),
+                        height: data.img.height(),
+                        bytes: Cow::from(data.img.raw_pixels()),
+                    };
+                    let mut clip = Clipboard::new().unwrap();
+                    clip.set_image(img).unwrap();
+                })
+                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty()),
+        );
+
+    let mut modifica = Menu::new(LocalizedString::new("Modify"));
+    modifica = modifica
+        .entry(
+            MenuItem::new(LocalizedString::new("Save in")) //mi permette di scegliere il path di default in cui salva premendo SAVE
                 .command(commands::SHOW_OPEN_PANEL.with(open_dialog)),
         )
-        .entry(MenuItem::new(LocalizedString::new("Copy")).on_activate(
-            move |_ctx, data: &mut AppState, _env| {
-                //ctx.submit_command(commands::SHOW_SAVE_PANEL.with(save_dialog_options.clone()))
-                let img = ImageData {
-                    width: data.img.width(),
-                    height: data.img.height(),
-                    bytes: Cow::from(data.img.raw_pixels()),
-                };
-                let mut clip = Clipboard::new().unwrap();
-                clip.set_image(img).unwrap();
-            },
-        ));
+        .entry(
+            MenuItem::new(LocalizedString::new("Shortcut"))
+                .on_activate(move |ctx, _data, _env| ctx.submit_command(SHORTCUT)),
+        );
 
     /* let modify = Menu::new(LocalizedString::new("Modifica"));
        modify = modify.entry(MenuItem::new(LocalizedString::new("Ritaglia")).on_activate(
@@ -200,7 +215,7 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
            },
        ));
     */
-    base.entry(file)
+    base.entry(file).entry(modifica)
 }
 
 pub fn formats() -> Vec<FileSpec> {

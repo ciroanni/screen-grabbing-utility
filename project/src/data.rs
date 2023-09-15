@@ -1,13 +1,15 @@
 use crate::ui::*;
 use druid::{
     commands, widget::Controller, AppDelegate, Command, Cursor, Data, DelegateCtx, Env, Event,
-    EventCtx, Handled, ImageBuf, Lens, MouseEvent, Point, Target, TimerToken, Widget, WindowDesc, WindowState
+    EventCtx, Handled, ImageBuf, Lens, MouseEvent, Point, Target, TimerToken, Widget, WindowDesc,
+    WindowState, LocalizedString, Selector, 
 };
 use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use image::{ImageBuffer, Rgba};
 use std::path::Path;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
+pub const SHORTCUT: Selector = Selector::new("shortcut_selector");
 
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
@@ -94,7 +96,7 @@ impl AppState {
             img,
             cursor: Cursor::Arrow,
             path: ".".to_string(),
-            delay: Duration::from_secs(3),
+            delay: Duration::from_secs(0),
         }
     }
 
@@ -144,9 +146,8 @@ impl AppState {
             .window_size((1000., 1000.));
         ctx.new_window(window);
 
-        self.selection_transparency = 0.4;
-        self.rect = SelectionRectangle::default();
-        //*self = AppState::new(self.scale, self.img.clone());
+        *self = AppState::new(self.scale, self.img.clone());
+        ctx.window().close();
     }
 
     pub fn set_default_name(&mut self) {
@@ -190,7 +191,10 @@ impl AppState {
         .unwrap();
         self.set_default_name();
         image
-            .save_with_format(self.path.clone() + "\\" + &self.name + &self.selected_format.to_string(), image::ImageFormat::Png)
+            .save_with_format(
+                self.path.clone() + "\\" + &self.name + &self.selected_format.to_string(),
+                image::ImageFormat::Png,
+            )
             .expect("Error saving");
         self.name = "".to_string();
         self.rect = SelectionRectangle::default();
@@ -203,7 +207,9 @@ impl AppState {
             self.img.raw_pixels().to_vec(),
         )
         .unwrap();
-        image.save_with_format(path, image::ImageFormat::Png).expect("Error saving");
+        image
+            .save_with_format(path, image::ImageFormat::Png)
+            .expect("Error saving");
         self.rect = SelectionRectangle::default();
     }
 }
@@ -348,6 +354,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
 pub struct AreaController {
     pub id_t: TimerToken,
     pub id_t2: TimerToken,
+    pub flag: bool,
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
@@ -359,59 +366,94 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
         data: &mut AppState,
         env: &Env,
     ) {
-        if let Event::MouseDown(mouse_button) = event {
-            let mouse_down = MouseEvent {
-                pos: mouse_button.pos,
-                window_pos: mouse_button.window_pos,
-                buttons: mouse_button.buttons,
-                mods: mouse_button.mods,
-                count: mouse_button.count,
-                focus: mouse_button.focus,
-                button: mouse_button.button,
-                wheel_delta: mouse_button.wheel_delta,
-            };
-            data.from = mouse_down.pos;
-            data.rect.start_point = Some(mouse_button.pos);
-            data.rect.end_point = None;
-        } else if let Event::MouseUp(mouse_button) = event {
-            let mouse_up = MouseEvent {
-                pos: mouse_button.pos,
-                window_pos: mouse_button.window_pos,
-                buttons: mouse_button.buttons,
-                mods: mouse_button.mods,
-                count: mouse_button.count,
-                focus: mouse_button.focus,
-                button: mouse_button.button,
-                wheel_delta: mouse_button.wheel_delta,
-            };
-            data.size.x = ((data.from.x - mouse_up.pos.x).abs() as f32 * data.scale) as f64;
-            data.size.y = ((data.from.y - mouse_up.pos.y).abs() as f32 * data.scale) as f64;
-            data.rect.end_point = Some(mouse_button.pos);
-            data.selection_transparency = 0.0;
-            data.selection_end = true;
-            if data.delay<=Duration::from_millis(100){
-                self.id_t = ctx.request_timer(Duration::from_millis(100));
-            }else {
-                self.id_t = ctx.request_timer(data.delay);
+        if !self.flag {
+            match event {
+                Event::MouseDown(mouse_button) => {
+                    let mouse_down = MouseEvent {
+                        pos: mouse_button.pos,
+                        window_pos: mouse_button.window_pos,
+                        buttons: mouse_button.buttons,
+                        mods: mouse_button.mods,
+                        count: mouse_button.count,
+                        focus: mouse_button.focus,
+                        button: mouse_button.button,
+                        wheel_delta: mouse_button.wheel_delta,
+                    };
+                    data.from = mouse_down.pos;
+                    data.rect.start_point = Some(mouse_button.pos);
+                    data.rect.end_point = None;
+                }
+                Event::MouseUp(mouse_button) => {
+                    let mouse_up = MouseEvent {
+                        pos: mouse_button.pos,
+                        window_pos: mouse_button.window_pos,
+                        buttons: mouse_button.buttons,
+                        mods: mouse_button.mods,
+                        count: mouse_button.count,
+                        focus: mouse_button.focus,
+                        button: mouse_button.button,
+                        wheel_delta: mouse_button.wheel_delta,
+                    };
+                    data.size.x = ((data.from.x - mouse_up.pos.x).abs() as f32 * data.scale) as f64;
+                    data.size.y = ((data.from.y - mouse_up.pos.y).abs() as f32 * data.scale) as f64;
+                    data.rect.end_point = Some(mouse_button.pos);
+                    data.selection_transparency = 0.0;
+                    data.selection_end = true;
+                    if data.delay <= Duration::from_millis(100) {
+                        self.id_t = ctx.request_timer(Duration::from_millis(100));
+                    } else {
+                        self.id_t = ctx.request_timer(data.delay);
+                    }
+
+                    ctx.window()
+                        .clone()
+                        .set_window_state(WindowState::Minimized);
+                }
+                Event::MouseMove(mouse_button) => {
+                    if !data.rect.start_point.is_none() {
+                        data.rect.end_point = Some(mouse_button.pos);
+                    }
+                }
+                Event::Timer(id) => {
+                    if self.id_t == *id {
+                        ctx.window().clone().set_window_state(WindowState::Restored);
+                        self.id_t2 = ctx.request_timer(Duration::from_millis(100));
+                        self.id_t = TimerToken::next();
+                    } else if self.id_t2 == *id {
+                        data.screen(ctx);
+                        data.selection_end = false;
+                        ctx.window().close();
+                    }
+                }
+                _ => child.event(ctx, event, data, env),
             }
-            
-            ctx.window().clone().set_window_state(WindowState::Minimized);
-        } else if let Event::MouseMove(mouse_button) = event {
-            if !data.rect.start_point.is_none() {
-                data.rect.end_point = Some(mouse_button.pos);
-            }
-        } else if let Event::Timer(id) = event {
-            if self.id_t == *id {
-                ctx.window().clone().set_window_state(WindowState::Restored);
-                self.id_t2=ctx.request_timer(Duration::from_millis(100));
-                self.id_t=TimerToken::next();
-            } else if self.id_t2 == *id{
-                data.screen(ctx);
-                data.selection_end = false;
-                ctx.window().close();
+        } else {
+            match event {
+                Event::Timer(id) => {
+                    if self.id_t == *id {
+                        ctx.window().clone().set_window_state(WindowState::Restored);
+                        self.id_t2 = ctx.request_timer(Duration::from_millis(100));
+                        self.id_t = TimerToken::next();
+                    } else if self.id_t2 == *id {
+                        data.screen(ctx);
+                        data.selection_end = false;
+                        ctx.window().close();
+                    }
+                }
+                _ => {
+                    data.selection_end = true;
+                    if data.delay <= Duration::from_millis(100) {
+                        self.id_t = ctx.request_timer(Duration::from_millis(100));
+                    } else {
+                        self.id_t = ctx.request_timer(data.delay);
+                    }
+
+                    ctx.window()
+                        .clone()
+                        .set_window_state(WindowState::Minimized)
+                }
             }
         }
-
         child.event(ctx, event, data, env)
     }
 
@@ -558,7 +600,7 @@ impl AppDelegate<AppState> for Delegate {
     //mi permette di gestire i comandi di show_save_panel e show_open_panel, rispettivamente infatti chiamano SAVE_FILE e OPEN_FILE
     fn command(
         &mut self,
-        _ctx: &mut DelegateCtx,
+        ctx: &mut DelegateCtx,
         _target: Target,
         cmd: &Command,
         data: &mut AppState,
@@ -582,6 +624,12 @@ impl AppDelegate<AppState> for Delegate {
                 }
             }
             return Handled::Yes;
+        }
+        if cmd.is(SHORTCUT) {
+            let new_win = WindowDesc::new(shortcut_ui())
+                .title(LocalizedString::new("Shortcut"))
+                .window_size((300.0, 200.0));
+            ctx.new_window(new_win);
         }
         Handled::No
     }
