@@ -103,33 +103,38 @@ pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
 
 pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img).fill_mode(FillStrat::ScaleDown);
-    /* Flex::column()
-    .with_child(
-        Button::new("Resize").on_click(|ctx: &mut EventCtx, _data, _env| {
-            let paint = Painter::new(|ctx, data: &AppState, _env| {
-                if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
-                    let rect = druid::Rect::from_points(start, end);
-                    ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
-                    //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
-                }
-            });
-            let mut current = ctx.window().clone();
-            current.set_window_state(WindowState::Minimized);
-            let new_win = WindowDesc::new(
-                Flex::column()
-                    .with_child(paint)
-                    .controller(ResizeController {}),
-            )
-            .show_titlebar(false)
-            .transparent(true)
-            .window_size((2560., 1600.))
-            .resizable(false)
-            .set_position((0.0, 0.0));
-            ctx.new_window(new_win);
-        }),
-    )
-    .with_child(SizedBox::new(image).width(500.).height(500.)) */
-    Flex::column().with_child(SizedBox::new(image).width(500.).height(500.))
+    Flex::column()
+        .with_child(
+            Button::new("Resize").on_click(|ctx: &mut EventCtx, _data, _env| {
+                let paint = Painter::new(|ctx, data: &AppState, _env| {
+                    if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
+                        let rect = druid::Rect::from_points(start, end);
+                        ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
+                        //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
+                    }
+                })
+                .controller(ResizeController {});
+                let mut current = ctx.window().clone();
+                current.set_window_state(WindowState::Minimized);
+                let new_win = WindowDesc::new(
+                    Flex::column()
+                        .with_child(
+                            Button::new("Ok").on_click(|ctx: &mut EventCtx, _data, _env| {}),
+                        )
+                        .with_child(
+                            Button::new("Annulla").on_click(|ctx: &mut EventCtx, _data, _env| {}),
+                        )
+                        .with_child(paint),
+                )
+                .show_titlebar(false)
+                .transparent(true)
+                .window_size((1980., 1020.))
+                .resizable(false)
+                .set_position((0.0, 0.0));
+                ctx.new_window(new_win);
+            }),
+        )
+        .with_child(SizedBox::new(image).width(500.).height(500.))
 }
 
 #[allow(unused_assignments)]
