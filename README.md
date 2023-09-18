@@ -42,3 +42,12 @@ v1.0.1: Makes a screenshot of the entire main display. Feature 1 & 2 & 5 partial
 7. Delay Timer: The utility should support a delay timer function, allowing users to set up a screen grab after a specified delay.
 8. Save Options: The utility should allow users to specify the default save location for screen grabs. It should also support automatic saving with predefined naming conventions.
 9. Multi-monitor Support: The utility should be able to recognize and handle multiple monitors independently, allowing users to grab screens from any of the connected displays.
+
+
+ToDo
+1) Come gestisco i monitor? Faccio scegliere o in base a dove clicco?
+3) Shortcut (Malnati dove sei????)
+4) Bordino al rettangolo per resize se vogliamo
+5) ANNOTATION TOOLS??????????????????????????????????????
+6) Screen dopo resize
+7) Cambia cursore per lo screen 
