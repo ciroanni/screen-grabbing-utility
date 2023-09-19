@@ -6,8 +6,8 @@ use druid::widget::{
 };
 use druid::{
     commands, Color, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString, Menu,
-    MenuItem, RenderContext, Size, UnitPoint, Vec2, Widget, WidgetExt, WidgetPod, WindowDesc,
-    WindowId, WindowLevel, WindowState,
+    MenuItem, Point, RenderContext, Size, UnitPoint, Vec2, Widget, WidgetExt, WidgetPod,
+    WindowDesc, WindowId, WindowLevel, WindowState,
 };
 use druid_shell::keyboard_types::Modifiers;
 use druid_shell::TimerToken;
@@ -89,13 +89,7 @@ pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
             })
             .with_text_size(24.)
             .center(),
-            ZStack::new(
-                SizedBox::new(Image::new(img.clone()))
-                    .width(500.)
-                    .height(312.5)
-                    .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
-            )
-            //show_screen_ui(img),
+            show_screen_ui(img),
         ))
 }
 
@@ -143,7 +137,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         println!("{} {}", start, end);
                         let rect = druid::Rect::from_points(start, end);
                         ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
-                        //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
+                        ctx.stroke(rect, &druid::Color::WHITE, 1.0);
                     }
                 })
                 .controller(ResizeController {});
@@ -182,15 +176,43 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     ZStack::new(
         SizedBox::new(image)
             .width(500.)
-            .height(312.5),
+            .height(312.5)
+            .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
     )
-    .with_centered_child(Painter::new(|ctx, data: &AppState, _env| {
-        if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
-            let rect = druid::Rect::from_points(start, end);
-            ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
-            //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
-        }
-    }).controller(ResizeController{}))
+    .with_centered_child(
+        Painter::new(|ctx, data: &AppState, _env| {
+            if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
+                let size = data.img.size();
+                println!("{}", size);
+                let mut width = 500.;
+                let mut height = 312.5;
+                if size.width > 500. {
+                    if size.height > 312.5 {
+                        width = 500.;
+                        height = size.height / (size.width / 500.);
+                        if height > 312.5 {
+                            height = 312.5;
+                            width = size.width / (size.height / 312.5);
+                        }
+                    } else {
+                        width = 500.;
+                        height = size.height / (size.width / 500.);
+                    }
+                } else {
+                    height = 312.5;
+                    width = size.width / (size.height / 312.5);
+                }
+                println!("w:{} h:{}", width, height);
+                let rect = druid::Rect::from_center_size(
+                    Point::new(250., 156.25),
+                    Size::new(width, height),
+                );
+                ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
+                ctx.stroke(rect, &druid::Color::WHITE, 2.0);
+            }
+        })
+        .center(), //.controller(ResizeController {}),
+    )
 
     /* .with_child(
         Painter::new(|ctx, data: &AppState, _env| {
