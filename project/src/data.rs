@@ -8,6 +8,7 @@ use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher
 use image::{ImageBuffer, Rgba};
 use std::path::Path;
 use std::time::Duration;
+use imageproc::drawing::*;
 
 pub const SHORTCUT: Selector = Selector::new("shortcut_selector");
 
@@ -73,6 +74,15 @@ impl Timer {
     }
 }
 
+#[derive(Clone, Data, PartialEq, Debug)]
+pub enum Tools{
+    No,
+    Resize,
+    Ellipse,
+    Arrow,
+    Text,
+}
+
 #[derive(Clone, Data, Lens, Debug)]
 pub struct AppState {
     pub name: String,
@@ -90,8 +100,12 @@ pub struct AppState {
     pub cursor: CursorData,
     pub path: String,
     pub delay: Timer,
-    //pub resize: bool,
+    pub resize: bool,
+    pub annulla: bool,
+    pub tool: Tools,
+    pub ellipse: SelectionEllipse
 }
+
 
 impl AppState {
     pub fn new(scale: f32, img: ImageBuf) -> Self {
@@ -119,7 +133,10 @@ impl AppState {
             cursor: CursorData::new(Cursor::Arrow, None, false),
             path: ".".to_string(),
             delay: Timer::Zero,
-            //resize: false,
+            resize: false,
+            annulla: true,
+            tool: Tools::No,
+            ellipse: SelectionEllipse::default()
         }
     }
 
@@ -157,10 +174,10 @@ impl AppState {
             image.clone().height() as usize,
         );
 
-        let window = WindowDesc::new( build_ui(self.img.clone()))
+        let window = WindowDesc::new(build_ui(self.img.clone()))
             .menu(make_menu)
             .title("Screen grabbing")
-            .window_size((1000.,1000.))
+            .window_size((1000., 1000.))
             .set_position(Point::new(0., 0.));
         ctx.new_window(window);
         //*self = AppState::new(self.scale, self.img.clone());
@@ -259,6 +276,26 @@ start = p1 .____. p2
         p3 .____. p4 = end
 
  */
+
+ #[derive(Clone, Data, PartialEq, Lens, Debug)]
+ pub struct SelectionEllipse {
+    pub start_point: Option<Point>,
+    pub end_point: Option<Point>,
+    pub center: Option<Point>,
+    pub radii: Option<druid::Vec2>
+}
+
+impl Default for SelectionEllipse {
+    fn default() -> Self {
+        SelectionEllipse {
+            start_point: None, //p1
+            end_point: None,   // p4
+            center: None,
+            radii:None,
+        }
+    }
+}
+
 
 #[derive(Clone, Data, PartialEq, Lens, Debug)]
 pub struct CursorData {
@@ -434,106 +471,102 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
         env: &Env,
     ) {
         //if !data.resize {
-            if !self.flag {
-                data.is_full_screen = false;
-                match event {
-                    Event::MouseDown(mouse_button) => {
-                        let mouse_down = MouseEvent {
-                            pos: mouse_button.pos,
-                            window_pos: mouse_button.window_pos,
-                            buttons: mouse_button.buttons,
-                            mods: mouse_button.mods,
-                            count: mouse_button.count,
-                            focus: mouse_button.focus,
-                            button: mouse_button.button,
-                            wheel_delta: mouse_button.wheel_delta,
-                        };
-                        data.from = mouse_down.pos;
-                        data.rect.start_point = Some(mouse_button.pos);
-                        data.rect.end_point = None;
-                    }
-                    Event::MouseUp(mouse_button) => {
-                        let mouse_up = MouseEvent {
-                            pos: mouse_button.pos,
-                            window_pos: mouse_button.window_pos,
-                            buttons: mouse_button.buttons,
-                            mods: mouse_button.mods,
-                            count: mouse_button.count,
-                            focus: mouse_button.focus,
-                            button: mouse_button.button,
-                            wheel_delta: mouse_button.wheel_delta,
-                        };
-                        //data.rect.end_point = Some(mouse_button.pos);
-                        let r = druid::Rect::from_points(data.from, mouse_button.pos);
-
-                        // aggiusto i punti
-                        data.rect.start_point = Some(r.origin());
-                        data.rect.p2 = Some(Point::new(r.max_x(), r.min_y()));
-                        data.rect.p3 = Some(Point::new(r.min_x(), r.max_y()));
-                        data.rect.end_point = Some(Point::new(r.max_x(), r.max_y()));
-                        data.rect.size = r.size();
-                        data.selection_transparency = 0.0;
-
-                        match data.delay {
-                            Timer::Zero => {
-                                self.id_t = ctx.request_timer(Duration::from_millis(100))
-                            }
-                            _ => {
-                                self.id_t =
-                                    ctx.request_timer(Duration::from_secs(data.delay.set_timer()))
-                            }
-                        }
-
-                        //ctx.window().clone().hide();
-                    }
-                    Event::MouseMove(mouse_button) => {
-                        if !data.rect.start_point.is_none() {
-                            data.rect.end_point = Some(mouse_button.pos);
-                        }
-                    }
-                    Event::Timer(id) => {
-                        if self.id_t == *id {
-                            //ctx.window().clone().show();
-                            self.id_t2 = ctx.request_timer(Duration::from_millis(100));
-                            self.id_t = TimerToken::next();
-                        } else if self.id_t2 == *id {
-                            data.screen(ctx);
-                            //data.resize = true;
-                            ctx.window().close();
-                        }
-                    }
-                    _ => child.event(ctx, event, data, env),
+        if !self.flag {
+            data.is_full_screen = false;
+            match event {
+                Event::MouseDown(mouse_button) => {
+                    let mouse_down = MouseEvent {
+                        pos: mouse_button.pos,
+                        window_pos: mouse_button.window_pos,
+                        buttons: mouse_button.buttons,
+                        mods: mouse_button.mods,
+                        count: mouse_button.count,
+                        focus: mouse_button.focus,
+                        button: mouse_button.button,
+                        wheel_delta: mouse_button.wheel_delta,
+                    };
+                    data.from = mouse_down.pos;
+                    data.rect.start_point = Some(mouse_button.pos);
+                    data.rect.end_point = None;
                 }
-            } else {
-                match event {
-                    Event::Timer(id) => {
-                        if self.id_t == *id {
-                            ctx.window().clone().set_window_state(WindowState::Restored);
-                            self.id_t2 = ctx.request_timer(Duration::from_millis(100));
-                            self.id_t = TimerToken::next();
-                        } else if self.id_t2 == *id {
-                            data.screen(ctx);
-                            ctx.window().close();
-                        }
-                    }
-                    _ => {
-                        data.is_full_screen = true;
-                        match data.delay {
-                            Timer::Zero => {
-                                self.id_t = ctx.request_timer(Duration::from_millis(100))
-                            }
-                            _ => {
-                                self.id_t =
-                                    ctx.request_timer(Duration::from_secs(data.delay.set_timer()))
-                            }
-                        }
+                Event::MouseUp(mouse_button) => {
+                    let mouse_up = MouseEvent {
+                        pos: mouse_button.pos,
+                        window_pos: mouse_button.window_pos,
+                        buttons: mouse_button.buttons,
+                        mods: mouse_button.mods,
+                        count: mouse_button.count,
+                        focus: mouse_button.focus,
+                        button: mouse_button.button,
+                        wheel_delta: mouse_button.wheel_delta,
+                    };
+                    //data.rect.end_point = Some(mouse_button.pos);
+                    let r = druid::Rect::from_points(data.from, mouse_button.pos);
 
-                        ctx.window()
-                            .clone()
-                            .set_window_state(WindowState::Minimized)
+                    // aggiusto i punti
+                    data.rect.start_point = Some(r.origin());
+                    data.rect.p2 = Some(Point::new(r.max_x(), r.min_y()));
+                    data.rect.p3 = Some(Point::new(r.min_x(), r.max_y()));
+                    data.rect.end_point = Some(Point::new(r.max_x(), r.max_y()));
+                    data.rect.size = r.size();
+                    data.selection_transparency = 0.0;
+
+                    match data.delay {
+                        Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(100)),
+                        _ => {
+                            self.id_t =
+                                ctx.request_timer(Duration::from_secs(data.delay.set_timer()))
+                        }
                     }
+
+                    //ctx.window().clone().hide();
+                }
+                Event::MouseMove(mouse_button) => {
+                    if !data.rect.start_point.is_none() {
+                        data.rect.end_point = Some(mouse_button.pos);
+                    }
+                }
+                Event::Timer(id) => {
+                    if self.id_t == *id {
+                        //ctx.window().clone().show();
+                        self.id_t2 = ctx.request_timer(Duration::from_millis(100));
+                        self.id_t = TimerToken::next();
+                    } else if self.id_t2 == *id {
+                        data.screen(ctx);
+                        //data.resize = true;
+                        ctx.window().close();
+                    }
+                }
+                _ => child.event(ctx, event, data, env),
+            }
+        } else {
+            match event {
+                Event::Timer(id) => {
+                    if self.id_t == *id {
+                        ctx.window().clone().set_window_state(WindowState::Restored);
+                        self.id_t2 = ctx.request_timer(Duration::from_millis(100));
+                        self.id_t = TimerToken::next();
+                    } else if self.id_t2 == *id {
+                        data.screen(ctx);
+                        ctx.window().close();
+                    }
+                }
+                _ => {
+                    data.is_full_screen = true;
+                    match data.delay {
+                        Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(100)),
+                        _ => {
+                            self.id_t =
+                                ctx.request_timer(Duration::from_secs(data.delay.set_timer()))
+                        }
+                    }
+
+                    ctx.window()
+                        .clone()
+                        .set_window_state(WindowState::Minimized)
                 }
             }
+        }
         //}
         child.event(ctx, event, data, env)
     }
@@ -574,26 +607,312 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
         data: &mut AppState,
         env: &Env,
     ) {
-        //if data.resize {
-            println!("ResizeController");
-            if let Event::MouseDown(mouse_button) = event {
+        if data.resize {
+            let width = data.rect.size.width;
+            let height = data.rect.size.height;
+            if data.rect.size.width > 500. {
+                if data.rect.size.height > 312.5 {
+                    data.rect.size.width = 500.;
+                    data.rect.size.height = height / (width / 500.);
+                    if data.rect.size.height > 312.5 {
+                        data.rect.size.height = 312.5;
+                        data.rect.size.width = width / (height / 312.5);
+                    }
+                } else {
+                    data.rect.size.width = 500.;
+                    data.rect.size.height = height / (width / 500.);
+                }
+            } else {
+                data.rect.size.height = 312.5;
+                data.rect.size.width = data.rect.size.width / (height / 312.5);
+            }
+            let rect = druid::Rect::from_center_size(Point::new(250., 156.25), data.rect.size);
+            data.rect.start_point.replace(rect.origin());
+            data.rect
+                .end_point
+                .replace(Point::new(rect.max_x(), rect.max_y()));
+            data.resize = false;
+        }
+
+        if let Event::MouseDown(mouse_button) = event {
+            match data.cursor.over {
+                Some(_) => {
+                    data.cursor.down = true; // è sopra il bordo, sto premendo
+                }
+                None => return, // non è sopra il bordo
+            }
+        } else if let Event::MouseUp(mouse_button) = event {
+            //data.selection_transparency = 0.0;
+            data.cursor.down = false;
+            data.rect.size = druid::Rect::from_points(
+                data.rect.start_point.unwrap(),
+                data.rect.end_point.unwrap(),
+            )
+            .size();
+        } else if let Event::MouseMove(mouse_button) = event {
+            let mouse_button = MouseEvent {
+                pos: mouse_button.pos,
+                window_pos: mouse_button.window_pos,
+                buttons: mouse_button.buttons,
+                mods: mouse_button.mods,
+                count: mouse_button.count,
+                focus: mouse_button.focus,
+                button: mouse_button.button,
+                wheel_delta: mouse_button.wheel_delta,
+            };
+
+            let rect = druid::Rect::from_points(
+                data.rect.start_point.unwrap(),
+                data.rect.end_point.unwrap(),
+            );
+            /* let rect = druid::Rect::from_center_size(
+                Point::new(250., 156.25),
+                Size::new(data.rect.size.width, data.rect.size.height),
+            ); */
+
+            //sposto senza premere
+            if data.cursor.down == false {
+                // cambia cursore -> diagonale
+                if (mouse_button.pos.x - rect.min_x()).abs() <= 10.
+                    && (mouse_button.pos.y - rect.min_y()).abs() <= 10.
+                {
+                    data.cursor.typ = Cursor::Crosshair;
+                    data.cursor.over = Some(Direction::UpLeft);
+                } else if (mouse_button.pos.x - rect.max_x()).abs() <= 10.
+                    && (mouse_button.pos.y - rect.max_y()).abs() <= 10.
+                {
+                    data.cursor.typ = Cursor::Crosshair;
+                    data.cursor.over = Some(Direction::DownRight);
+                }
+                // cambia cursore -> antidiagonale
+                else if (mouse_button.pos.x - rect.min_x()).abs() <= 10.
+                    && (mouse_button.pos.y - rect.max_y()).abs() <= 10.
+                {
+                    data.cursor.typ = Cursor::Crosshair;
+                    data.cursor.over = Some(Direction::DownLeft);
+                } else if (mouse_button.pos.y - rect.min_y()).abs() <= 10.
+                    && (mouse_button.pos.x - rect.max_x()).abs() <= 10.
+                {
+                    data.cursor.typ = Cursor::Crosshair;
+                    data.cursor.over = Some(Direction::UpRight);
+                } else if (mouse_button.pos.x - rect.min_x()).abs() <= 10. {
+                    if mouse_button.pos.y > rect.min_y() && mouse_button.pos.y < rect.max_y() {
+                        // cambia cursore -> sinistra
+                        data.cursor.typ = Cursor::ResizeLeftRight;
+                        data.cursor.over = Some(Direction::Left);
+                    }
+                } else if (mouse_button.pos.x - rect.max_x()).abs() <= 10. {
+                    if mouse_button.pos.y > rect.min_y() && mouse_button.pos.y < rect.max_y() {
+                        // cambia cursore -> destra
+                        data.cursor.typ = Cursor::ResizeLeftRight;
+                        data.cursor.over = Some(Direction::Right);
+                    }
+                } else if (mouse_button.pos.y - rect.max_y()).abs() <= 10. {
+                    if mouse_button.pos.x > rect.min_x() && mouse_button.pos.x < rect.max_x() {
+                        // cambia cursore -> verticale
+                        data.cursor.typ = Cursor::ResizeUpDown;
+                        data.cursor.over = Some(Direction::Down);
+                    }
+                } else if (mouse_button.pos.y - rect.min_y()).abs() <= 10. {
+                    if mouse_button.pos.x > rect.min_x() && mouse_button.pos.x < rect.max_x() {
+                        // cambia cursore -> verticale
+                        data.cursor.typ = Cursor::ResizeUpDown;
+                        data.cursor.over = Some(Direction::Up);
+                    }
+                } else {
+                    data.cursor.typ = Cursor::Arrow;
+                    data.cursor.over = None;
+                }
+                ctx.set_cursor(&data.cursor.typ);
+            }
+            //sposto premendo
+            else if data.cursor.down == true {
                 match data.cursor.over {
-                    Some(_) => {
-                        data.cursor.down = true; // è sopra il bordo, sto premendo
+                    Some(Direction::Up) => {
+                        if mouse_button.pos.y < data.rect.p3.unwrap().y - 10.{
+                            data.rect.start_point.replace(Point::new(
+                                data.rect.start_point.unwrap().x,
+                                mouse_button.pos.y,
+                            ));
+                            data.rect
+                                .p2
+                                .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
+                        }
+                    }
+                    Some(Direction::Down) => {
+                        if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
+                            data.rect.end_point.replace(Point::new(
+                                data.rect.end_point.unwrap().x,
+                                mouse_button.pos.y,
+                            ));
+                            data.rect
+                                .p3
+                                .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
+                        }
+                    }
+                    Some(Direction::Left) => {
+                        if mouse_button.pos.x < data.rect.p2.unwrap().x - 10. {
+                            data.rect.start_point.replace(Point::new(
+                                mouse_button.pos.x,
+                                data.rect.start_point.unwrap().y,
+                            ));
+                            data.rect
+                                .p3
+                                .replace(Point::new(mouse_button.pos.x, data.rect.p3.unwrap().y));
+                        }
+                    }
+                    Some(Direction::Right) => {
+                        if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. {
+                            data.rect.end_point.replace(Point::new(
+                                mouse_button.pos.x,
+                                data.rect.end_point.unwrap().y,
+                            ));
+                            data.rect
+                                .p2
+                                .replace(Point::new(mouse_button.pos.x, data.rect.p2.unwrap().y));
+                        }
+                    }
+                    Some(Direction::UpLeft) => {
+                        if mouse_button.pos.x < data.rect.end_point.unwrap().x - 10. {
+                            data.rect.start_point.replace(Point::new(
+                                mouse_button.pos.x,
+                                data.rect.start_point.unwrap().y,
+                            ));
+                            data.rect
+                                .p3
+                                .replace(Point::new(mouse_button.pos.x, data.rect.p3.unwrap().y));
+                        }
+                        if mouse_button.pos.y < data.rect.end_point.unwrap().y - 10. {
+                            data.rect.start_point.replace(Point::new(
+                                data.rect.start_point.unwrap().x,
+                                mouse_button.pos.y,
+                            ));
+                            data.rect
+                                .p2
+                                .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
+                        }
+                    }
+                    Some(Direction::UpRight) => {
+                        if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. {
+                            data.rect
+                                .p2
+                                .replace(Point::new(mouse_button.pos.x, data.rect.p2.unwrap().y));
+                            data.rect.end_point.replace(Point::new(
+                                mouse_button.pos.x,
+                                data.rect.end_point.unwrap().y,
+                            ));
+                        }
+                        if mouse_button.pos.y < data.rect.end_point.unwrap().y - 10. {
+                            data.rect
+                                .p2
+                                .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
+                            data.rect.start_point.replace(Point::new(
+                                data.rect.start_point.unwrap().x,
+                                mouse_button.pos.y,
+                            ));
+                        }
+                    }
+                    Some(Direction::DownLeft) => {
+                        if mouse_button.pos.x < data.rect.end_point.unwrap().x - 10. {
+                            data.rect
+                                .p3
+                                .replace(Point::new(mouse_button.pos.x, data.rect.p3.unwrap().y));
+                            data.rect.start_point.replace(Point::new(
+                                mouse_button.pos.x,
+                                data.rect.start_point.unwrap().y,
+                            ));
+                        }
+                        if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
+                            data.rect
+                                .p3
+                                .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
+                            data.rect.end_point.replace(Point::new(
+                                data.rect.end_point.unwrap().x,
+                                mouse_button.pos.y,
+                            ));
+                        }
+                    }
+                    Some(Direction::DownRight) => {
+                        if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. {
+                            data.rect.end_point.replace(Point::new(
+                                mouse_button.pos.x,
+                                data.rect.end_point.unwrap().y,
+                            ));
+                            data.rect
+                                .p2
+                                .replace(Point::new(mouse_button.pos.x, data.rect.p2.unwrap().y));
+                        }
+                        if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
+                            data.rect.end_point.replace(Point::new(
+                                data.rect.end_point.unwrap().x,
+                                mouse_button.pos.y,
+                            ));
+                            data.rect
+                                .p3
+                                .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
+                        }
                     }
                     None => return, // non è sopra il bordo
                 }
-            } else if let Event::MouseUp(mouse_button) = event {
-                //data.selection_transparency = 0.0;
-                data.cursor.down = false;
-                data.rect.size = druid::Rect::from_points(
-                    data.rect.start_point.unwrap(),
-                    data.rect.end_point.unwrap(),
-                )
-                .size();
-            } else if let Event::MouseMove(mouse_button) = event {
-                println!("Mouse move");
-                let mouse_button = MouseEvent {
+            }
+        }
+        //}
+        child.event(ctx, event, data, env)
+    }
+
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::LifeCycleCtx,
+        event: &druid::LifeCycle,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.lifecycle(ctx, event, data, env)
+    }
+
+    fn update(
+        &mut self,
+        child: &mut W,
+        ctx: &mut druid::UpdateCtx,
+        old_data: &AppState,
+        data: &AppState,
+        env: &Env,
+    ) {
+        child.update(ctx, old_data, data, env)
+    }
+}
+
+pub struct CircleController;
+
+impl<W: Widget<AppState>> Controller<AppState, W> for CircleController {
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &druid::Event,
+        data: &mut AppState,
+        env: &Env,
+    ) {
+
+        println!("circle controller");
+        match event {
+            Event::MouseDown(mouse_button) => {
+                let mouse_down = MouseEvent {
+                    pos: mouse_button.pos,
+                    window_pos: mouse_button.window_pos,
+                    buttons: mouse_button.buttons,
+                    mods: mouse_button.mods,
+                    count: mouse_button.count,
+                    focus: mouse_button.focus,
+                    button: mouse_button.button,
+                    wheel_delta: mouse_button.wheel_delta,
+                };
+                data.ellipse.start_point=Some(mouse_down.pos);
+                data.selection_transparency=1.;
+            }
+            Event::MouseMove(mouse_button)=>{
+                let mouse_move = MouseEvent {
                     pos: mouse_button.pos,
                     window_pos: mouse_button.window_pos,
                     buttons: mouse_button.buttons,
@@ -604,217 +923,64 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     wheel_delta: mouse_button.wheel_delta,
                 };
 
-                let rect = druid::Rect::from_points(
-                    data.rect.start_point.unwrap(),
-                    data.rect.end_point.unwrap(),
-                );
-
-                //sposto senza premere
-                if data.cursor.down == false {
-                    // cambia cursore -> diagonale
-                    if (mouse_button.pos.x - rect.min_x()).abs() <= 10.
-                        && (mouse_button.pos.y - rect.min_y()).abs() <= 10.
-                    {
-                        data.cursor.typ = Cursor::Crosshair;
-                        data.cursor.over = Some(Direction::UpLeft);
-                    } else if (mouse_button.pos.x - rect.max_x()).abs() <= 10.
-                        && (mouse_button.pos.y - rect.max_y()).abs() <= 10.
-                    {
-                        data.cursor.typ = Cursor::Crosshair;
-                        data.cursor.over = Some(Direction::DownRight);
-                    }
-                    // cambia cursore -> antidiagonale
-                    else if (mouse_button.pos.x - rect.min_x()).abs() <= 10.
-                        && (mouse_button.pos.y - rect.max_y()).abs() <= 10.
-                    {
-                        data.cursor.typ = Cursor::Crosshair;
-                        data.cursor.over = Some(Direction::DownLeft);
-                    } else if (mouse_button.pos.y - rect.min_y()).abs() <= 10.
-                        && (mouse_button.pos.x - rect.max_x()).abs() <= 10.
-                    {
-                        data.cursor.typ = Cursor::Crosshair;
-                        data.cursor.over = Some(Direction::UpRight);
-                    } else if (mouse_button.pos.x - rect.min_x()).abs() <= 10. {
-                        if mouse_button.pos.y > rect.min_y() && mouse_button.pos.y < rect.max_y() {
-                            // cambia cursore -> sinistra
-                            data.cursor.typ = Cursor::ResizeLeftRight;
-                            data.cursor.over = Some(Direction::Left);
-                        }
-                    } else if (mouse_button.pos.x - rect.max_x()).abs() <= 10. {
-                        if mouse_button.pos.y > rect.min_y() && mouse_button.pos.y < rect.max_y() {
-                            // cambia cursore -> destra
-                            data.cursor.typ = Cursor::ResizeLeftRight;
-                            data.cursor.over = Some(Direction::Right);
-                        }
-                    } else if (mouse_button.pos.y - rect.max_y()).abs() <= 10. {
-                        if mouse_button.pos.x > rect.min_x() && mouse_button.pos.x < rect.max_x() {
-                            // cambia cursore -> verticale
-                            data.cursor.typ = Cursor::ResizeUpDown;
-                            data.cursor.over = Some(Direction::Down);
-                        }
-                    } else if (mouse_button.pos.y - rect.min_y()).abs() <= 10. {
-                        if mouse_button.pos.x > rect.min_x() && mouse_button.pos.x < rect.max_x() {
-                            // cambia cursore -> verticale
-                            data.cursor.typ = Cursor::ResizeUpDown;
-                            data.cursor.over = Some(Direction::Up);
-                        }
-                    } else {
-                        data.cursor.typ = Cursor::Arrow;
-                        data.cursor.over = None;
-                    }
-                    ctx.set_cursor(&data.cursor.typ);
-                }
-                //sposto premendo
-                else if data.cursor.down == true {
-                    println!(
-                        "{}-{}-{}-{}",
-                        data.rect.start_point.unwrap(),
-                        data.rect.p2.unwrap(),
-                        data.rect.p3.unwrap(),
-                        data.rect.end_point.unwrap()
-                    );
-                    match data.cursor.over {
-                        Some(Direction::Up) => {
-                            if mouse_button.pos.y < data.rect.p3.unwrap().y - 10. {
-                                data.rect.start_point.replace(Point::new(
-                                    data.rect.start_point.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                                data.rect.p2.replace(Point::new(
-                                    data.rect.p2.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                            }
-                        }
-                        Some(Direction::Down) => {
-                            if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
-                                data.rect.end_point.replace(Point::new(
-                                    data.rect.end_point.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                                data.rect.p3.replace(Point::new(
-                                    data.rect.p3.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                            }
-                        }
-                        Some(Direction::Left) => {
-                            if mouse_button.pos.x < data.rect.p2.unwrap().x - 10. {
-                                data.rect.start_point.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.start_point.unwrap().y,
-                                ));
-                                data.rect.p3.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.p3.unwrap().y,
-                                ));
-                            }
-                        }
-                        Some(Direction::Right) => {
-                            if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. {
-                                data.rect.end_point.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.end_point.unwrap().y,
-                                ));
-                                data.rect.p2.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.p2.unwrap().y,
-                                ));
-                            }
-                        }
-                        Some(Direction::UpLeft) => {
-                            if mouse_button.pos.x < data.rect.end_point.unwrap().x - 10. {
-                                data.rect.start_point.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.start_point.unwrap().y,
-                                ));
-                                data.rect.p3.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.p3.unwrap().y,
-                                ));
-                            }
-                            if mouse_button.pos.y < data.rect.end_point.unwrap().y - 10. {
-                                data.rect.start_point.replace(Point::new(
-                                    data.rect.start_point.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                                data.rect.p2.replace(Point::new(
-                                    data.rect.p2.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                            }
-                        }
-                        Some(Direction::UpRight) => {
-                            if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. {
-                                data.rect.p2.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.p2.unwrap().y,
-                                ));
-                                data.rect.end_point.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.end_point.unwrap().y,
-                                ));
-                            }
-                            if mouse_button.pos.y < data.rect.end_point.unwrap().y - 10. {
-                                data.rect.p2.replace(Point::new(
-                                    data.rect.p2.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                                data.rect.start_point.replace(Point::new(
-                                    data.rect.start_point.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                            }
-                        }
-                        Some(Direction::DownLeft) => {
-                            if mouse_button.pos.x < data.rect.end_point.unwrap().x - 10. {
-                                data.rect.p3.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.p3.unwrap().y,
-                                ));
-                                data.rect.start_point.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.start_point.unwrap().y,
-                                ));
-                            }
-                            if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
-                                data.rect.p3.replace(Point::new(
-                                    data.rect.p3.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                                data.rect.end_point.replace(Point::new(
-                                    data.rect.end_point.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                            }
-                        }
-                        Some(Direction::DownRight) => {
-                            if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. {
-                                data.rect.end_point.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.end_point.unwrap().y,
-                                ));
-                                data.rect.p2.replace(Point::new(
-                                    mouse_button.pos.x,
-                                    data.rect.p2.unwrap().y,
-                                ));
-                            }
-                            if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
-                                data.rect.end_point.replace(Point::new(
-                                    data.rect.end_point.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                                data.rect.p3.replace(Point::new(
-                                    data.rect.p3.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                            }
-                        }
-                        None => return, // non è sopra il bordo
-                    }
-                }
+                data.ellipse.end_point=Some(mouse_move.pos);
+                /*let radius1=(data.ellipse.end_point.unwrap().x-data.ellipse.start_point.unwrap().x).abs()/2.;
+                let radius2=(data.ellipse.end_point.unwrap().y-data.ellipse.start_point.unwrap().y).abs()/2.;
+                let c1=data.ellipse.start_point.unwrap().x+radius1;
+                let c2=data.ellipse.start_point.unwrap().y+radius2;
+                data.ellipse.center=Some(druid::Point::new(c1,c2));*/
             }
-        //}
+            Event::MouseUp(mouse_button)=>{
+                let mouse_up = MouseEvent {
+                    pos: mouse_button.pos,
+                    window_pos: mouse_button.window_pos,
+                    buttons: mouse_button.buttons,
+                    mods: mouse_button.mods,
+                    count: mouse_button.count,
+                    focus: mouse_button.focus,
+                    button: mouse_button.button,
+                    wheel_delta: mouse_button.wheel_delta,
+                };
+
+                data.ellipse.end_point=Some(mouse_up.pos);
+                //let a=image_canvas::layout::CanvasLayout::with_plane(data.img);
+                let mut image2: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
+                    data.img.width() as u32,
+                    data.img.height() as u32,
+                data.img.raw_pixels().to_vec()).unwrap();
+
+                let prova=imageproc::drawing::draw_filled_ellipse(
+                    &mut image2,
+                    (mouse_up.pos.x as i32,mouse_up.pos.y as i32),
+                    100,
+                    100,
+                    Rgba([255,0,0,255]));
+
+                
+                
+                data.img=ImageBuf::from_raw(
+                    prova.clone().into_raw(),
+                    druid::piet::ImageFormat::RgbaPremul,
+                    prova.clone().width() as usize,
+                    prova.clone().height() as usize,
+                );
+                data.tool=Tools::No;
+
+
+
+                /*let radius1=(data.ellipse.end_point.unwrap().x-data.ellipse.start_point.unwrap().x).abs()/2.;
+                let radius2=(data.ellipse.end_point.unwrap().y-data.ellipse.start_point.unwrap().y).abs()/2.;
+                let c1=data.ellipse.start_point.unwrap().x+radius1;
+                let c2=data.ellipse.start_point.unwrap().y+radius2;
+                data.ellipse.center=Some(druid::Point::new(c1,c2));*/
+            }
+            _ => {},
+        }
+
+        let a=ctx.window();
+        println!("{:?}",a.get_position());//da la posizione della finestra nello schermo
+        println!("{:?}",ctx.window_origin());//da la posizione del widget nella finestra credo
+
         child.event(ctx, event, data, env)
     }
 

@@ -130,89 +130,114 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img.clone());
     //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
     let row = Flex::row()
-        .with_child(Button::new("Resize").on_click(
-            |ctx: &mut EventCtx, data: &mut AppState, _env| {
-                let paint = Painter::new(|ctx, data: &AppState, _env| {
+        .with_child(
+            Button::new("Resize").on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
+                data.resize = true;
+                data.annulla = false;
+            }), /*let new_win = WindowDesc::new(
+                            //Flex::column()
+                            /*.with_child(
+                                Button::new("Ok").on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
+                                    data.rect.size = druid::Rect::from_points(data.rect.start_point.unwrap(), data.rect.end_point.unwrap()).size();
+                                    data.screen(ctx);
+                                }),
+                            )
+                            .with_child(
+                                Button::new("Annulla").on_click(|ctx: &mut EventCtx, _data, _env| {
+                                    ctx.window().close();
+                                }),
+                            ) */
+                            //.with_child(paint)
+                            paint.controller(Enter {
+                                id_t: TimerToken::next(),
+                                id_t2: TimerToken::next(),
+                            }),
+                        )
+                        .show_titlebar(false)
+                        .transparent(true)
+                        .window_size((
+                            data.rect.size.width * data.scale as f64,
+                            data.rect.size.height * data.scale as f64,
+                        ))
+                        .resizable(false)
+                        .set_position((0., 0.));
+                        ctx.new_window(new_win);
+                    },
+                )*/
+        )
+        .with_child(Button::new("Modifica Immagine")); //ANNOTATION TOOLS
+    Flex::column()
+        .with_child(row)
+        .with_child(
+            ZStack::new(
+                SizedBox::new(image)
+                    .width(500.)
+                    .height(312.5)
+                    .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
+            )
+            .with_centered_child(Either::new(
+                |data: &AppState, _env| data.resize || !data.annulla,
+                Painter::new(|ctx, data: &AppState, _env| {
                     if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
-                        println!("{} {}", start, end);
-                        let rect = druid::Rect::from_points(start, end);
-                        ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
-                        ctx.stroke(rect, &druid::Color::WHITE, 1.0);
+                        if data.rect.size.width <= 500. && data.rect.size.height <= 312.5 {
+                            let rect = druid::Rect::from_points(
+                                data.rect.start_point.unwrap(),
+                                data.rect.end_point.unwrap(),
+                            );
+                            ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
+                            ctx.stroke(rect, &druid::Color::WHITE, 2.0);
+                        }
                     }
                 })
-                .controller(ResizeController {});
-                let new_win = WindowDesc::new(
-                    //Flex::column()
-                    /*.with_child(
-                        Button::new("Ok").on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
-                            data.rect.size = druid::Rect::from_points(data.rect.start_point.unwrap(), data.rect.end_point.unwrap()).size();
-                            data.screen(ctx);
-                        }),
-                    )
-                    .with_child(
-                        Button::new("Annulla").on_click(|ctx: &mut EventCtx, _data, _env| {
-                            ctx.window().close();
-                        }),
-                    ) */
-                    //.with_child(paint)
-                    paint.controller(Enter {
-                        id_t: TimerToken::next(),
-                        id_t2: TimerToken::next(),
-                    }),
-                )
-                .show_titlebar(false)
-                .transparent(true)
-                .window_size((
-                    data.rect.size.width * data.scale as f64,
-                    data.rect.size.height * data.scale as f64,
-                ))
-                .resizable(false)
-                .set_position((0., 0.));
-                ctx.new_window(new_win);
-            },
-        ))
-        .with_child(Button::new("Modifica Immagine")); //ANNOTATION TOOLS
+                .center()
+                .controller(ResizeController {}),
+                Label::new(""),
+            ))) //toglie questa parentesi
 
-    ZStack::new(
-        SizedBox::new(image)
-            .width(500.)
-            .height(312.5)
-            .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
-    )
-    .with_centered_child(
-        Painter::new(|ctx, data: &AppState, _env| {
-            if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
-                let size = data.img.size();
-                println!("{}", size);
-                let mut width = 500.;
-                let mut height = 312.5;
-                if size.width > 500. {
-                    if size.height > 312.5 {
-                        width = 500.;
-                        height = size.height / (size.width / 500.);
-                        if height > 312.5 {
-                            height = 312.5;
-                            width = size.width / (size.height / 312.5);
+           /*  .with_centered_child(Painter::new(|ctx, data: &AppState, _env| {
+                if let (Some(start), Some(end)) = (data.ellipse.start_point, data.ellipse.end_point)
+                {
+                    let shape;
+                    match data.tool {
+                        Tools::Ellipse => {
+                            let radius1 = (start.x - end.x) / 2.;
+                            let radius2 = (start.y - end.y) / 2.;
+                            let c1 = end.x + radius1;
+                            let c2 = end.y + radius2;
+                            let center = druid::Point::new(c1, c2);
+                            let radii = druid::Vec2::new(radius1.abs(), radius2.abs());
+                            shape = druid::kurbo::Ellipse::new(center, radii, 0.0);
+                            ctx.fill(
+                                shape,
+                                &Color::rgba(0.0, 255.0, 0.0, data.selection_transparency),
+                            );
                         }
-                    } else {
-                        width = 500.;
-                        height = size.height / (size.width / 500.);
+                        Tools::Text => {
+                            //let c=ctx.draw_text("ok", druid::Point::new(0.,0.));
+                            //let d=druid::piet::Text::new_textlayout(&mut self, "ciao");
+                        }
+                        _ => {}
                     }
-                } else {
-                    height = 312.5;
-                    width = size.width / (size.height / 312.5);
+                    //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
                 }
-                println!("w:{} h:{}", width, height);
-                let rect = druid::Rect::from_center_size(
-                    Point::new(250., 156.25),
-                    Size::new(width, height),
-                );
-                ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
-                ctx.stroke(rect, &druid::Color::WHITE, 2.0);
-            }
-        })
-        .center(), //.controller(ResizeController {}),
-    )
+            }))
+            .controller(CircleController),
+        )
+        .with_child(
+            Flex::row()
+                .with_child(Button::new("resize").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| data.tool = Tools::Resize,
+                ))
+                .with_child(Button::new("ellipse").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| data.tool = Tools::Ellipse,
+                ))
+                .with_child(Button::new("arrow").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| data.tool = Tools::Arrow,
+                ))
+                .with_child(Button::new("text").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| data.tool = Tools::Text,
+                )),
+        ) */
 
     /* .with_child(
         Painter::new(|ctx, data: &AppState, _env| {
