@@ -2,13 +2,13 @@ use crate::ui::*;
 use druid::{
     commands, widget::Controller, AppDelegate, Command, Cursor, Data, DelegateCtx, Env, Event,
     EventCtx, Handled, ImageBuf, Lens, LocalizedString, MouseEvent, Point, Selector, Size, Target,
-    TimerToken, Widget, WindowDesc, WindowLevel, WindowState,
+    TimerToken, Widget, WindowDesc, WindowState,
 };
 use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use image::{ImageBuffer, Rgba};
 use std::path::Path;
 use std::time::Duration;
-use imageproc::drawing::*;
+//use imageproc::drawing::*;
 
 pub const SHORTCUT: Selector = Selector::new("shortcut_selector");
 
@@ -102,8 +102,7 @@ pub struct AppState {
     pub delay: Timer,
     pub resize: bool,
     pub annulla: bool,
-    pub tool: Tools,
-    pub ellipse: SelectionEllipse
+    pub tool_window: AnnotationTools,
 }
 
 
@@ -135,8 +134,7 @@ impl AppState {
             delay: Timer::Zero,
             resize: false,
             annulla: true,
-            tool: Tools::No,
-            ellipse: SelectionEllipse::default()
+            tool_window:AnnotationTools::default(),
         }
     }
 
@@ -294,6 +292,29 @@ impl Default for SelectionEllipse {
             radii:None,
         }
     }
+}
+
+#[derive(Clone, Data, PartialEq, Lens, Debug)]
+pub struct AnnotationTools {
+    pub tool: Tools,
+    pub center: druid::Point,
+    pub width:f64,
+    pub height:f64,
+    pub rect: SelectionRectangle,
+    pub ellipse: SelectionEllipse,
+}
+
+impl Default for AnnotationTools {
+   fn default() -> Self {
+       AnnotationTools {
+        tool: Tools::No,
+        center: druid::Point::new(250., 156.25),
+        width:500.,
+        height:312.5,
+        rect:SelectionRectangle::default(),
+        ellipse:SelectionEllipse::default(),
+       }
+   }
 }
 
 
@@ -607,6 +628,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
         data: &mut AppState,
         env: &Env,
     ) {
+        /*
+        println!("{:?}",event);
         if data.resize {
             let width = data.rect.size.width;
             let height = data.rect.size.height;
@@ -633,7 +656,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                 .replace(Point::new(rect.max_x(), rect.max_y()));
             data.resize = false;
         }
-
+        */
         if let Event::MouseDown(mouse_button) = event {
             match data.cursor.over {
                 Some(_) => {
@@ -730,10 +753,11 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                 match data.cursor.over {
                     Some(Direction::Up) => {
                         if mouse_button.pos.y < data.rect.p3.unwrap().y - 10.{
-                            data.rect.start_point.replace(Point::new(
-                                data.rect.start_point.unwrap().x,
-                                mouse_button.pos.y,
-                            ));
+                            data.rect.start_point.replace(
+                                Point::new(
+                                    data.rect.start_point.unwrap().x,
+                                    mouse_button.pos.y,
+                                ));
                             data.rect
                                 .p2
                                 .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
@@ -741,10 +765,11 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     }
                     Some(Direction::Down) => {
                         if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
-                            data.rect.end_point.replace(Point::new(
-                                data.rect.end_point.unwrap().x,
-                                mouse_button.pos.y,
-                            ));
+                            data.rect.end_point.replace(
+                                Point::new(
+                                    data.rect.end_point.unwrap().x,
+                                    mouse_button.pos.y,
+                                ));
                             data.rect
                                 .p3
                                 .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
@@ -908,7 +933,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for CircleController {
                     button: mouse_button.button,
                     wheel_delta: mouse_button.wheel_delta,
                 };
-                data.ellipse.start_point=Some(mouse_down.pos);
+                data.tool_window.ellipse.start_point=Some(mouse_down.pos);
                 data.selection_transparency=1.;
             }
             Event::MouseMove(mouse_button)=>{
@@ -923,7 +948,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for CircleController {
                     wheel_delta: mouse_button.wheel_delta,
                 };
 
-                data.ellipse.end_point=Some(mouse_move.pos);
+                data.tool_window.ellipse.end_point=Some(mouse_move.pos);
                 /*let radius1=(data.ellipse.end_point.unwrap().x-data.ellipse.start_point.unwrap().x).abs()/2.;
                 let radius2=(data.ellipse.end_point.unwrap().y-data.ellipse.start_point.unwrap().y).abs()/2.;
                 let c1=data.ellipse.start_point.unwrap().x+radius1;
@@ -942,7 +967,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for CircleController {
                     wheel_delta: mouse_button.wheel_delta,
                 };
 
-                data.ellipse.end_point=Some(mouse_up.pos);
+                data.tool_window.ellipse.end_point=Some(mouse_up.pos);
                 //let a=image_canvas::layout::CanvasLayout::with_plane(data.img);
                 let mut image2: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
                     data.img.width() as u32,
@@ -964,7 +989,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for CircleController {
                     prova.clone().width() as usize,
                     prova.clone().height() as usize,
                 );
-                data.tool=Tools::No;
+                data.tool_window.tool=Tools::No;
 
 
 

@@ -129,12 +129,98 @@ pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
 pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img.clone());
     //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
-    let row = Flex::row()
-        .with_child(
-            Button::new("Resize").on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
-                data.resize = true;
-                data.annulla = false;
-            }), /*let new_win = WindowDesc::new(
+
+    Flex::column()
+    .with_child(
+        Either::new(|data,_env|{data.tool_window.tool==Tools::No},
+            Flex::row()
+            .with_child(
+                Button::new("Resize").on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
+                    data.tool_window.tool=Tools::Resize;
+                    data.resize = true;
+                    data.annulla = false;
+                    let width = data.rect.size.width;
+                    let height = data.rect.size.height;
+                    if data.rect.size.width > data.tool_window.width {
+                        if data.rect.size.height > data.tool_window.height {
+                            data.rect.size.width = data.tool_window.width;
+                            data.rect.size.height = height / (width / data.tool_window.width);
+                            if data.rect.size.height > data.tool_window.height {
+                                data.rect.size.height = data.tool_window.height;
+                                data.rect.size.width = width / (height / data.tool_window.height);
+                            }
+                        } else {
+                            data.rect.size.width = data.tool_window.width;
+                            data.rect.size.height = height / (width / data.tool_window.width);
+                        }
+                    } else {
+                        data.rect.size.height = data.tool_window.height;
+                        data.rect.size.width = data.rect.size.width / (height / data.tool_window.height);
+                    }
+                    let rect = druid::Rect::from_center_size(Point::new(data.tool_window.width/2., data.tool_window.height/2.), data.rect.size);
+                    data.rect.start_point.replace(rect.origin());
+                    data.rect
+                        .end_point
+                        .replace(Point::new(rect.max_x(), rect.max_y()));
+                            ctx.children_changed();
+                            //data.rect.start_point=None;
+                            //data.rect.end_point=None;
+                        })
+            )
+            .with_child(
+                Button::new("altro").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
+                    data.tool_window.tool = Tools::Resize,
+            ))
+            .with_child(
+                Button::new("ellipse").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
+                    data.tool_window.tool = Tools::Ellipse,
+            ))
+            .with_child(
+                Button::new("arrow").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
+                    data.tool_window.tool = Tools::Arrow,
+            ))
+            .with_child(
+                Button::new("text").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
+                    data.tool_window.tool = Tools::Text,
+            )),
+            Flex::row()
+            .with_child(
+                Button::new("salva").on_click(|ctx,data: &mut AppState,env|{
+                    data.tool_window.tool=Tools::No;
+                }))
+            .with_child(
+                Button::new("annulla").on_click(|ctx,data: &mut AppState,env|{
+                    data.tool_window.tool=Tools::No;
+                })))
+            )
+    .with_child(
+        ZStack::new(
+            SizedBox::new(image)
+                .width(500.)
+                .height(312.5)
+                .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
+        )
+        .with_centered_child(Either::new(
+            |data: &AppState, _env| data.resize || !data.annulla,
+            Painter::new(|ctx, data: &AppState, _env| {
+                if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
+                    if data.rect.size.width <= 500. && data.rect.size.height <= 312.5 {
+                        let rect = druid::Rect::from_points(
+                            data.rect.start_point.unwrap(),
+                            data.rect.end_point.unwrap(),
+                        );
+                        ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
+                        ctx.stroke(rect, &druid::Color::WHITE, 2.0);
+                    }
+                }
+            })
+            .center()
+            .controller(ResizeController {}),
+            Label::new(""),
+        )))
+
+            ////////////////////////roba di ciro
+            /*let new_win = WindowDesc::new(
                             //Flex::column()
                             /*.with_child(
                                 Button::new("Ok").on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
@@ -164,35 +250,9 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         ctx.new_window(new_win);
                     },
                 )*/
-        )
-        .with_child(Button::new("Modifica Immagine")); //ANNOTATION TOOLS
-    Flex::column()
-        .with_child(row)
-        .with_child(
-            ZStack::new(
-                SizedBox::new(image)
-                    .width(500.)
-                    .height(312.5)
-                    .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
-            )
-            .with_centered_child(Either::new(
-                |data: &AppState, _env| data.resize || !data.annulla,
-                Painter::new(|ctx, data: &AppState, _env| {
-                    if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
-                        if data.rect.size.width <= 500. && data.rect.size.height <= 312.5 {
-                            let rect = druid::Rect::from_points(
-                                data.rect.start_point.unwrap(),
-                                data.rect.end_point.unwrap(),
-                            );
-                            ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
-                            ctx.stroke(rect, &druid::Color::WHITE, 2.0);
-                        }
-                    }
-                })
-                .center()
-                .controller(ResizeController {}),
-                Label::new(""),
-            ))) //toglie questa parentesi
+            
+                    
+         //toglie questa parentesi///////////////////////roba di giacomo
 
            /*  .with_centered_child(Painter::new(|ctx, data: &AppState, _env| {
                 if let (Some(start), Some(end)) = (data.ellipse.start_point, data.ellipse.end_point)
@@ -225,18 +285,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
         )
         .with_child(
             Flex::row()
-                .with_child(Button::new("resize").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| data.tool = Tools::Resize,
-                ))
-                .with_child(Button::new("ellipse").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| data.tool = Tools::Ellipse,
-                ))
-                .with_child(Button::new("arrow").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| data.tool = Tools::Arrow,
-                ))
-                .with_child(Button::new("text").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| data.tool = Tools::Text,
-                )),
+                
         ) */
 
     /* .with_child(
