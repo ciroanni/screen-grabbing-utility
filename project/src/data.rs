@@ -175,7 +175,7 @@ impl AppState {
         let window = WindowDesc::new(build_ui(self.img.clone()))
             .menu(make_menu)
             .title("Screen grabbing")
-            .window_size((1000., 1000.))
+            .window_size((1000., 500.))
             .set_position(Point::new(0., 0.));
         ctx.new_window(window);
         //*self = AppState::new(self.scale, self.img.clone());
@@ -300,7 +300,9 @@ pub struct AnnotationTools {
     pub center: druid::Point,
     pub width:f64,
     pub height:f64,
-    pub rect: SelectionRectangle,
+    pub img_size: Size,
+    pub rect_stroke: f64,
+    pub rect_transparency: f64,
     pub ellipse: SelectionEllipse,
 }
 
@@ -311,7 +313,9 @@ impl Default for AnnotationTools {
         center: druid::Point::new(250., 156.25),
         width:500.,
         height:312.5,
-        rect:SelectionRectangle::default(),
+        img_size:Size::ZERO,
+        rect_stroke:0.0,
+        rect_transparency:0.0,
         ellipse:SelectionEllipse::default(),
        }
    }
@@ -628,6 +632,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
         data: &mut AppState,
         env: &Env,
     ) {
+
         /*
         println!("{:?}",event);
         if data.resize {
@@ -657,229 +662,316 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
             data.resize = false;
         }
         */
-        if let Event::MouseDown(mouse_button) = event {
-            match data.cursor.over {
-                Some(_) => {
-                    data.cursor.down = true; // è sopra il bordo, sto premendo
-                }
-                None => return, // non è sopra il bordo
-            }
-        } else if let Event::MouseUp(mouse_button) = event {
-            //data.selection_transparency = 0.0;
-            data.cursor.down = false;
-            data.rect.size = druid::Rect::from_points(
-                data.rect.start_point.unwrap(),
-                data.rect.end_point.unwrap(),
-            )
-            .size();
-        } else if let Event::MouseMove(mouse_button) = event {
-            let mouse_button = MouseEvent {
-                pos: mouse_button.pos,
-                window_pos: mouse_button.window_pos,
-                buttons: mouse_button.buttons,
-                mods: mouse_button.mods,
-                count: mouse_button.count,
-                focus: mouse_button.focus,
-                button: mouse_button.button,
-                wheel_delta: mouse_button.wheel_delta,
-            };
 
-            let rect = druid::Rect::from_points(
-                data.rect.start_point.unwrap(),
-                data.rect.end_point.unwrap(),
-            );
-            /* let rect = druid::Rect::from_center_size(
-                Point::new(250., 156.25),
-                Size::new(data.rect.size.width, data.rect.size.height),
-            ); */
+        match data.tool_window.tool {
+            Tools::Resize=>{
+                if let Event::MouseDown(_mouse_button) = event {
+                    match data.cursor.over {
+                        Some(_) => {
+                            data.cursor.down = true; // è sopra il bordo, sto premendo
+                        }
+                        None => return, // non è sopra il bordo
+                    }
+                } else if let Event::MouseUp(_mouse_button) = event {
+                    //data.selection_transparency = 0.0;
+                    data.cursor.down = false;
+                    data.rect.size = druid::Rect::from_points(
+                        data.rect.start_point.unwrap(),
+                        data.rect.end_point.unwrap(),
+                    )
+                    .size();
+                } else if let Event::MouseMove(mouse_button) = event {
+                    let mouse_button = MouseEvent {
+                        pos: mouse_button.pos,
+                        window_pos: mouse_button.window_pos,
+                        buttons: mouse_button.buttons,
+                        mods: mouse_button.mods,
+                        count: mouse_button.count,
+                        focus: mouse_button.focus,
+                        button: mouse_button.button,
+                        wheel_delta: mouse_button.wheel_delta,
+                    };
+        
+                    let rect = druid::Rect::from_points(
+                        data.rect.start_point.unwrap(),
+                        data.rect.end_point.unwrap(),
+                    );
+                    /* let rect = druid::Rect::from_center_size(
+                        Point::new(250., 156.25),
+                        Size::new(data.rect.size.width, data.rect.size.height),
+                    ); */
+        
+                    //sposto senza premere
+                    if data.cursor.down == false {
+                        // cambia cursore -> diagonale
+                        if (mouse_button.pos.x - rect.min_x()).abs() <= 10.
+                            && (mouse_button.pos.y - rect.min_y()).abs() <= 10.
+                        {
+                            data.cursor.typ = Cursor::Crosshair;
+                            data.cursor.over = Some(Direction::UpLeft);
+                        } else if (mouse_button.pos.x - rect.max_x()).abs() <= 10.
+                            && (mouse_button.pos.y - rect.max_y()).abs() <= 10.
+                        {
+                            data.cursor.typ = Cursor::Crosshair;
+                            data.cursor.over = Some(Direction::DownRight);
+                        }
+                        // cambia cursore -> antidiagonale
+                        else if (mouse_button.pos.x - rect.min_x()).abs() <= 10.
+                            && (mouse_button.pos.y - rect.max_y()).abs() <= 10.
+                        {
+                            data.cursor.typ = Cursor::Crosshair;
+                            data.cursor.over = Some(Direction::DownLeft);
+                        } else if (mouse_button.pos.y - rect.min_y()).abs() <= 10.
+                            && (mouse_button.pos.x - rect.max_x()).abs() <= 10.
+                        {
+                            data.cursor.typ = Cursor::Crosshair;
+                            data.cursor.over = Some(Direction::UpRight);
+                        } else if (mouse_button.pos.x - rect.min_x()).abs() <= 10. {
+                            if mouse_button.pos.y > rect.min_y() && mouse_button.pos.y < rect.max_y() {
+                                // cambia cursore -> sinistra
+                                data.cursor.typ = Cursor::ResizeLeftRight;
+                                data.cursor.over = Some(Direction::Left);
+                            }
+                        } else if (mouse_button.pos.x - rect.max_x()).abs() <= 10. {
+                            if mouse_button.pos.y > rect.min_y() && mouse_button.pos.y < rect.max_y() {
+                                // cambia cursore -> destra
+                                data.cursor.typ = Cursor::ResizeLeftRight;
+                                data.cursor.over = Some(Direction::Right);
+                            }
+                        } else if (mouse_button.pos.y - rect.max_y()).abs() <= 10. {
+                            if mouse_button.pos.x > rect.min_x() && mouse_button.pos.x < rect.max_x() {
+                                // cambia cursore -> verticale
+                                data.cursor.typ = Cursor::ResizeUpDown;
+                                data.cursor.over = Some(Direction::Down);
+                            }
+                        } else if (mouse_button.pos.y - rect.min_y()).abs() <= 10. {
+                            if mouse_button.pos.x > rect.min_x() && mouse_button.pos.x < rect.max_x() {
+                                // cambia cursore -> verticale
+                                data.cursor.typ = Cursor::ResizeUpDown;
+                                data.cursor.over = Some(Direction::Up);
+                            }
+                        } else {
+                            data.cursor.typ = Cursor::Arrow;
+                            data.cursor.over = None;
+                        }
+                        ctx.set_cursor(&data.cursor.typ);
+                    }
+                    //sposto premendo
+                    else if data.cursor.down == true {
+                        match data.cursor.over {
+                            Some(Direction::Up) => {
+                                if mouse_button.pos.y < data.rect.p3.unwrap().y - 10. && mouse_button.pos.y>(156.25-data.tool_window.img_size.height/2.){
+                                    data.rect.start_point.replace(
+                                        Point::new(
+                                            data.rect.start_point.unwrap().x,
+                                            mouse_button.pos.y,
+                                        ));
+                                    data.rect
+                                        .p2
+                                        .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
+                                }
+                            }
+                            Some(Direction::Down) => {
+                                if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. && mouse_button.pos.y<(156.25+data.tool_window.img_size.height/2.){
+                                    data.rect.end_point.replace(
+                                        Point::new(
+                                            data.rect.end_point.unwrap().x,
+                                            mouse_button.pos.y,
+                                        ));
+                                    data.rect
+                                        .p3
+                                        .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
+                                }
+                            }
+                            Some(Direction::Left) => {
+                                if mouse_button.pos.x < data.rect.p2.unwrap().x - 10. && mouse_button.pos.x>(250.-data.tool_window.img_size.width/2.) {
+                                    data.rect.start_point.replace(Point::new(
+                                        mouse_button.pos.x,
+                                        data.rect.start_point.unwrap().y,
+                                    ));
+                                    data.rect
+                                        .p3
+                                        .replace(Point::new(mouse_button.pos.x, data.rect.p3.unwrap().y));
+                                }
+                            }
+                            Some(Direction::Right) => {
+                                if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. && mouse_button.pos.x<(250.+data.tool_window.img_size.width/2.){
+                                    data.rect.end_point.replace(Point::new(
+                                        mouse_button.pos.x,
+                                        data.rect.end_point.unwrap().y,
+                                    ));
+                                    data.rect
+                                        .p2
+                                        .replace(Point::new(mouse_button.pos.x, data.rect.p2.unwrap().y));
+                                }
+                            }
+                            Some(Direction::UpLeft) => {
+                                if mouse_button.pos.x < data.rect.end_point.unwrap().x - 10. && mouse_button.pos.x>(250.-data.tool_window.img_size.width/2.){
+                                    data.rect.start_point.replace(Point::new(
+                                        mouse_button.pos.x,
+                                        data.rect.start_point.unwrap().y,
+                                    ));
+                                    data.rect
+                                        .p3
+                                        .replace(Point::new(mouse_button.pos.x, data.rect.p3.unwrap().y));
+                                }
+                                if mouse_button.pos.y < data.rect.end_point.unwrap().y - 10. && mouse_button.pos.y>(156.25-data.tool_window.img_size.height/2.) {
+                                    data.rect.start_point.replace(Point::new(
+                                        data.rect.start_point.unwrap().x,
+                                        mouse_button.pos.y,
+                                    ));
+                                    data.rect
+                                        .p2
+                                        .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
+                                }
+                            }
+                            Some(Direction::UpRight) => {
+                                if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. && mouse_button.pos.x<(250.+data.tool_window.img_size.width/2.){
+                                    data.rect
+                                        .p2
+                                        .replace(Point::new(mouse_button.pos.x, data.rect.p2.unwrap().y));
+                                    data.rect.end_point.replace(Point::new(
+                                        mouse_button.pos.x,
+                                        data.rect.end_point.unwrap().y,
+                                    ));
+                                }
+                                if mouse_button.pos.y < data.rect.end_point.unwrap().y - 10. && mouse_button.pos.y>(156.25-data.tool_window.img_size.height/2.){
+                                    data.rect
+                                        .p2
+                                        .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
+                                    data.rect.start_point.replace(Point::new(
+                                        data.rect.start_point.unwrap().x,
+                                        mouse_button.pos.y,
+                                    ));
+                                }
+                            }
+                            Some(Direction::DownLeft) => {
+                                if mouse_button.pos.x < data.rect.end_point.unwrap().x - 10. && mouse_button.pos.x>(250.-data.tool_window.img_size.width/2.){
+                                    data.rect
+                                        .p3
+                                        .replace(Point::new(mouse_button.pos.x, data.rect.p3.unwrap().y));
+                                    data.rect.start_point.replace(Point::new(
+                                        mouse_button.pos.x,
+                                        data.rect.start_point.unwrap().y,
+                                    ));
+                                }
+                                if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. && mouse_button.pos.y<(156.25+data.tool_window.img_size.height/2.){
+                                    data.rect
+                                        .p3
+                                        .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
+                                    data.rect.end_point.replace(Point::new(
+                                        data.rect.end_point.unwrap().x,
+                                        mouse_button.pos.y,
+                                    ));
+                                }
+                            }
+                            Some(Direction::DownRight) => {
+                                if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. && mouse_button.pos.x<(250.+data.tool_window.img_size.width/2.){
+                                    data.rect.end_point.replace(Point::new(
+                                        mouse_button.pos.x,
+                                        data.rect.end_point.unwrap().y,
+                                    ));
+                                    data.rect
+                                        .p2
+                                        .replace(Point::new(mouse_button.pos.x, data.rect.p2.unwrap().y));
+                                }
+                                if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. && mouse_button.pos.y<(156.25+data.tool_window.img_size.height/2.) {
+                                    data.rect.end_point.replace(Point::new(
+                                        data.rect.end_point.unwrap().x,
+                                        mouse_button.pos.y,
+                                    ));
+                                    data.rect
+                                        .p3
+                                        .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
+                                }
+                            }
+                            None => return, // non è sopra il bordo
+                        }
+                    }
+                }
+            },
+            Tools::Ellipse=>{
+                println!("ellipse");
+                match event {
+                    Event::MouseDown(mouse_button) => {
+                        let mouse_down = MouseEvent {
+                            pos: mouse_button.pos,
+                            window_pos: mouse_button.window_pos,
+                            buttons: mouse_button.buttons,
+                            mods: mouse_button.mods,
+                            count: mouse_button.count,
+                            focus: mouse_button.focus,
+                            button: mouse_button.button,
+                            wheel_delta: mouse_button.wheel_delta,
+                        };
+                        data.tool_window.ellipse.start_point=Some(mouse_down.pos);
+                        data.selection_transparency=1.;
+                    }
+                    Event::MouseMove(mouse_button)=>{
+                        let mouse_move = MouseEvent {
+                            pos: mouse_button.pos,
+                            window_pos: mouse_button.window_pos,
+                            buttons: mouse_button.buttons,
+                            mods: mouse_button.mods,
+                            count: mouse_button.count,
+                            focus: mouse_button.focus,
+                            button: mouse_button.button,
+                            wheel_delta: mouse_button.wheel_delta,
+                        };
+        
+                        data.tool_window.ellipse.end_point=Some(mouse_move.pos);
+                        /*let radius1=(data.ellipse.end_point.unwrap().x-data.ellipse.start_point.unwrap().x).abs()/2.;
+                        let radius2=(data.ellipse.end_point.unwrap().y-data.ellipse.start_point.unwrap().y).abs()/2.;
+                        let c1=data.ellipse.start_point.unwrap().x+radius1;
+                        let c2=data.ellipse.start_point.unwrap().y+radius2;
+                        data.ellipse.center=Some(druid::Point::new(c1,c2));*/
+                    }
+                    Event::MouseUp(mouse_button)=>{
+                        let mouse_up = MouseEvent {
+                            pos: mouse_button.pos,
+                            window_pos: mouse_button.window_pos,
+                            buttons: mouse_button.buttons,
+                            mods: mouse_button.mods,
+                            count: mouse_button.count,
+                            focus: mouse_button.focus,
+                            button: mouse_button.button,
+                            wheel_delta: mouse_button.wheel_delta,
+                        };
+        
+                        data.tool_window.ellipse.end_point=Some(mouse_up.pos);
+                        //let a=image_canvas::layout::CanvasLayout::with_plane(data.img);
+                        let mut image2: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
+                            data.img.width() as u32,
+                            data.img.height() as u32,
+                        data.img.raw_pixels().to_vec()).unwrap();
+        
+                        let prova=imageproc::drawing::draw_filled_ellipse(
+                            &mut image2,
+                            (mouse_up.pos.x as i32,mouse_up.pos.y as i32),
+                            100,
+                            100,
+                            Rgba([255,0,0,255]));
+        
+                        
+                        
+                        data.img=ImageBuf::from_raw(
+                            prova.clone().into_raw(),
+                            druid::piet::ImageFormat::RgbaPremul,
+                            prova.clone().width() as usize,
+                            prova.clone().height() as usize,
+                        );
+                        data.tool_window.tool=Tools::No;
+                    },
+                    _=>{}
+                }
+            }
+            _=>{}
+        }
+        
 
-            //sposto senza premere
-            if data.cursor.down == false {
-                // cambia cursore -> diagonale
-                if (mouse_button.pos.x - rect.min_x()).abs() <= 10.
-                    && (mouse_button.pos.y - rect.min_y()).abs() <= 10.
-                {
-                    data.cursor.typ = Cursor::Crosshair;
-                    data.cursor.over = Some(Direction::UpLeft);
-                } else if (mouse_button.pos.x - rect.max_x()).abs() <= 10.
-                    && (mouse_button.pos.y - rect.max_y()).abs() <= 10.
-                {
-                    data.cursor.typ = Cursor::Crosshair;
-                    data.cursor.over = Some(Direction::DownRight);
-                }
-                // cambia cursore -> antidiagonale
-                else if (mouse_button.pos.x - rect.min_x()).abs() <= 10.
-                    && (mouse_button.pos.y - rect.max_y()).abs() <= 10.
-                {
-                    data.cursor.typ = Cursor::Crosshair;
-                    data.cursor.over = Some(Direction::DownLeft);
-                } else if (mouse_button.pos.y - rect.min_y()).abs() <= 10.
-                    && (mouse_button.pos.x - rect.max_x()).abs() <= 10.
-                {
-                    data.cursor.typ = Cursor::Crosshair;
-                    data.cursor.over = Some(Direction::UpRight);
-                } else if (mouse_button.pos.x - rect.min_x()).abs() <= 10. {
-                    if mouse_button.pos.y > rect.min_y() && mouse_button.pos.y < rect.max_y() {
-                        // cambia cursore -> sinistra
-                        data.cursor.typ = Cursor::ResizeLeftRight;
-                        data.cursor.over = Some(Direction::Left);
-                    }
-                } else if (mouse_button.pos.x - rect.max_x()).abs() <= 10. {
-                    if mouse_button.pos.y > rect.min_y() && mouse_button.pos.y < rect.max_y() {
-                        // cambia cursore -> destra
-                        data.cursor.typ = Cursor::ResizeLeftRight;
-                        data.cursor.over = Some(Direction::Right);
-                    }
-                } else if (mouse_button.pos.y - rect.max_y()).abs() <= 10. {
-                    if mouse_button.pos.x > rect.min_x() && mouse_button.pos.x < rect.max_x() {
-                        // cambia cursore -> verticale
-                        data.cursor.typ = Cursor::ResizeUpDown;
-                        data.cursor.over = Some(Direction::Down);
-                    }
-                } else if (mouse_button.pos.y - rect.min_y()).abs() <= 10. {
-                    if mouse_button.pos.x > rect.min_x() && mouse_button.pos.x < rect.max_x() {
-                        // cambia cursore -> verticale
-                        data.cursor.typ = Cursor::ResizeUpDown;
-                        data.cursor.over = Some(Direction::Up);
-                    }
-                } else {
-                    data.cursor.typ = Cursor::Arrow;
-                    data.cursor.over = None;
-                }
-                ctx.set_cursor(&data.cursor.typ);
-            }
-            //sposto premendo
-            else if data.cursor.down == true {
-                match data.cursor.over {
-                    Some(Direction::Up) => {
-                        if mouse_button.pos.y < data.rect.p3.unwrap().y - 10.{
-                            data.rect.start_point.replace(
-                                Point::new(
-                                    data.rect.start_point.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                            data.rect
-                                .p2
-                                .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
-                        }
-                    }
-                    Some(Direction::Down) => {
-                        if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
-                            data.rect.end_point.replace(
-                                Point::new(
-                                    data.rect.end_point.unwrap().x,
-                                    mouse_button.pos.y,
-                                ));
-                            data.rect
-                                .p3
-                                .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
-                        }
-                    }
-                    Some(Direction::Left) => {
-                        if mouse_button.pos.x < data.rect.p2.unwrap().x - 10. {
-                            data.rect.start_point.replace(Point::new(
-                                mouse_button.pos.x,
-                                data.rect.start_point.unwrap().y,
-                            ));
-                            data.rect
-                                .p3
-                                .replace(Point::new(mouse_button.pos.x, data.rect.p3.unwrap().y));
-                        }
-                    }
-                    Some(Direction::Right) => {
-                        if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. {
-                            data.rect.end_point.replace(Point::new(
-                                mouse_button.pos.x,
-                                data.rect.end_point.unwrap().y,
-                            ));
-                            data.rect
-                                .p2
-                                .replace(Point::new(mouse_button.pos.x, data.rect.p2.unwrap().y));
-                        }
-                    }
-                    Some(Direction::UpLeft) => {
-                        if mouse_button.pos.x < data.rect.end_point.unwrap().x - 10. {
-                            data.rect.start_point.replace(Point::new(
-                                mouse_button.pos.x,
-                                data.rect.start_point.unwrap().y,
-                            ));
-                            data.rect
-                                .p3
-                                .replace(Point::new(mouse_button.pos.x, data.rect.p3.unwrap().y));
-                        }
-                        if mouse_button.pos.y < data.rect.end_point.unwrap().y - 10. {
-                            data.rect.start_point.replace(Point::new(
-                                data.rect.start_point.unwrap().x,
-                                mouse_button.pos.y,
-                            ));
-                            data.rect
-                                .p2
-                                .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
-                        }
-                    }
-                    Some(Direction::UpRight) => {
-                        if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. {
-                            data.rect
-                                .p2
-                                .replace(Point::new(mouse_button.pos.x, data.rect.p2.unwrap().y));
-                            data.rect.end_point.replace(Point::new(
-                                mouse_button.pos.x,
-                                data.rect.end_point.unwrap().y,
-                            ));
-                        }
-                        if mouse_button.pos.y < data.rect.end_point.unwrap().y - 10. {
-                            data.rect
-                                .p2
-                                .replace(Point::new(data.rect.p2.unwrap().x, mouse_button.pos.y));
-                            data.rect.start_point.replace(Point::new(
-                                data.rect.start_point.unwrap().x,
-                                mouse_button.pos.y,
-                            ));
-                        }
-                    }
-                    Some(Direction::DownLeft) => {
-                        if mouse_button.pos.x < data.rect.end_point.unwrap().x - 10. {
-                            data.rect
-                                .p3
-                                .replace(Point::new(mouse_button.pos.x, data.rect.p3.unwrap().y));
-                            data.rect.start_point.replace(Point::new(
-                                mouse_button.pos.x,
-                                data.rect.start_point.unwrap().y,
-                            ));
-                        }
-                        if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
-                            data.rect
-                                .p3
-                                .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
-                            data.rect.end_point.replace(Point::new(
-                                data.rect.end_point.unwrap().x,
-                                mouse_button.pos.y,
-                            ));
-                        }
-                    }
-                    Some(Direction::DownRight) => {
-                        if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. {
-                            data.rect.end_point.replace(Point::new(
-                                mouse_button.pos.x,
-                                data.rect.end_point.unwrap().y,
-                            ));
-                            data.rect
-                                .p2
-                                .replace(Point::new(mouse_button.pos.x, data.rect.p2.unwrap().y));
-                        }
-                        if mouse_button.pos.y > data.rect.start_point.unwrap().y + 10. {
-                            data.rect.end_point.replace(Point::new(
-                                data.rect.end_point.unwrap().x,
-                                mouse_button.pos.y,
-                            ));
-                            data.rect
-                                .p3
-                                .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
-                        }
-                    }
-                    None => return, // non è sopra il bordo
-                }
-            }
+        if !ctx.is_hot(){
+            data.cursor.over=None;
+            data.cursor.down=false;
         }
         //}
         child.event(ctx, event, data, env)
