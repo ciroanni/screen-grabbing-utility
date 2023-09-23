@@ -139,33 +139,47 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     data.tool_window.tool=Tools::Resize;
                     data.resize = true;
                     data.annulla = false;
-                    let width = data.rect.size.width;
-                    let height = data.rect.size.height;
-                    if data.rect.size.width > data.tool_window.width {
-                        if data.rect.size.height > data.tool_window.height {
-                            data.rect.size.width = data.tool_window.width;
-                            data.rect.size.height = height / (width / data.tool_window.width);
-                            if data.rect.size.height > data.tool_window.height {
-                                data.rect.size.height = data.tool_window.height;
-                                data.rect.size.width = width / (height / data.tool_window.height);
+                    let width = data.img.width() as f64;
+                    let height = data.img.height() as f64;
+
+                    if width>data.tool_window.width{
+                        if height>data.tool_window.height{
+                            if height-data.tool_window.height>width-data.tool_window.width{
+                                data.tool_window.img_size.height=data.tool_window.height;
+                                data.tool_window.img_size.width=width*(data.tool_window.height/height);
+                            }else {
+                                data.tool_window.img_size.width=data.tool_window.width;
+                                data.tool_window.img_size.height=height*(data.tool_window.width/width);
                             }
-                        } else {
-                            data.rect.size.width = data.tool_window.width;
-                            data.rect.size.height = height / (width / data.tool_window.width);
+                        }else {
+                            data.tool_window.img_size.width=data.tool_window.width;
+                            data.tool_window.img_size.height=height*(data.tool_window.width/width);
                         }
-                    } else {
-                        data.rect.size.height = data.tool_window.height;
-                        data.rect.size.width = data.rect.size.width / (height / data.tool_window.height);
+                    }else {
+                        if height>data.tool_window.height{
+                            data.tool_window.img_size.height=data.tool_window.height;
+                            data.tool_window.img_size.width=width*(data.tool_window.height/height);
+                        }else {
+                            if data.tool_window.height-height>data.tool_window.width-width{
+                                data.tool_window.img_size.height=data.tool_window.height;
+                                data.tool_window.img_size.width=width*(data.tool_window.height/height);
+                            }else {
+                                data.tool_window.img_size.width=data.tool_window.width;
+                                data.tool_window.img_size.height=height*(data.tool_window.width/width);
+                            }
+                        }
                     }
-                    let rect = druid::Rect::from_center_size(Point::new(data.tool_window.width/2., data.tool_window.height/2.), data.rect.size);
+
+                    let rect = druid::Rect::from_center_size(Point::new(data.tool_window.width/2., data.tool_window.height/2.), data.tool_window.img_size);
+                    data.rect.size=data.tool_window.img_size;
                     data.rect.start_point.replace(rect.origin());
-                    data.rect
-                        .end_point
-                        .replace(Point::new(rect.max_x(), rect.max_y()));
-                            ctx.children_changed();
+                    data.rect.end_point.replace(Point::new(rect.max_x(), rect.max_y()));
+                    data.tool_window.rect_stroke=2.0;
+                    data.tool_window.rect_transparency=0.4;
+                    ctx.children_changed();
                             //data.rect.start_point=None;
                             //data.rect.end_point=None;
-                        })
+                })
             )
             .with_child(
                 Button::new("altro").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
@@ -190,6 +204,13 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 }))
             .with_child(
                 Button::new("annulla").on_click(|ctx,data: &mut AppState,env|{
+                    match data.tool_window.tool {
+                        Tools::Resize=>{
+                            data.tool_window.rect_stroke=0.;
+                            data.tool_window.rect_transparency=0.;
+                        }
+                        _=>{}
+                    }
                     data.tool_window.tool=Tools::No;
                 })))
             )
@@ -204,20 +225,19 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
             |data: &AppState, _env| data.resize || !data.annulla,
             Painter::new(|ctx, data: &AppState, _env| {
                 if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
-                    if data.rect.size.width <= 500. && data.rect.size.height <= 312.5 {
+                    if data.rect.size.width <= data.tool_window.width && data.rect.size.height <= data.tool_window.height {
                         let rect = druid::Rect::from_points(
                             data.rect.start_point.unwrap(),
                             data.rect.end_point.unwrap(),
                         );
-                        ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, 0.4));
-                        ctx.stroke(rect, &druid::Color::WHITE, 2.0);
+                        ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, data.tool_window.rect_transparency));
+                        ctx.stroke(rect, &druid::Color::WHITE, data.tool_window.rect_stroke);
                     }
                 }
             })
-            .center()
-            .controller(ResizeController {}),
+            .center(),
             Label::new(""),
-        )))
+        )).controller(ResizeController {}))
 
             ////////////////////////roba di ciro
             /*let new_win = WindowDesc::new(
