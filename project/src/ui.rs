@@ -76,7 +76,7 @@ pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
                     id_t2: TimerToken::next(),
                 }),
         )
-        .with_spacer(100.)
+        .with_spacer(50.)
         .with_child(Either::new(
             |data: &AppState, _env| data.img.size() == Size::ZERO,
             Label::new(|data: &AppState, _env: &_| {
@@ -201,6 +201,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
             .with_child(
                 Button::new("salva").on_click(|ctx,data: &mut AppState,env|{
                     data.tool_window.tool=Tools::No;
+                    
                 }))
             .with_child(
                 Button::new("annulla").on_click(|ctx,data: &mut AppState,env|{
@@ -216,28 +217,100 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
             )
     .with_child(
         ZStack::new(
-            SizedBox::new(image)
-                .width(500.)
-                .height(312.5)
-                .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
-        )
-        .with_centered_child(Either::new(
-            |data: &AppState, _env| data.resize || !data.annulla,
-            Painter::new(|ctx, data: &AppState, _env| {
-                if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
-                    if data.rect.size.width <= data.tool_window.width && data.rect.size.height <= data.tool_window.height {
-                        let rect = druid::Rect::from_points(
-                            data.rect.start_point.unwrap(),
-                            data.rect.end_point.unwrap(),
-                        );
-                        ctx.fill(rect, &Color::rgba(0.0, 0.0, 0.0, data.tool_window.rect_transparency));
-                        ctx.stroke(rect, &druid::Color::WHITE, data.tool_window.rect_stroke);
+            SizedBox::new(
+
+                //image
+
+                Painter::new(|ctx,data:&AppState,env|{
+                    let mut width=data.img.width() as f64;
+                    let mut height=data.img.height() as f64;
+    
+                    if width>data.tool_window.width{
+                        if height>data.tool_window.height{
+                            if height-data.tool_window.height>width-data.tool_window.width{
+                                width=width*(data.tool_window.height/height);
+                                height=data.tool_window.height;
+                            }else {
+                                height=height*(data.tool_window.width/width);
+                                width=data.tool_window.width;
+                            }
+                        }else {
+                            height=height*(data.tool_window.width/width);
+                            width=data.tool_window.width;
+                        }
+                    }else {
+                        if height>data.tool_window.height{
+                            width=width*(data.tool_window.height/height);
+                            height=data.tool_window.height;
+                        }else {
+                            if data.tool_window.height-height>data.tool_window.width-width{
+                                width=width*(data.tool_window.height/height);
+                                height=data.tool_window.height;
+                            }else {
+                                height=height*(data.tool_window.width/width);
+                                width=data.tool_window.width;
+                            }
+                        }
                     }
-                }
-            })
-            .center(),
-            Label::new(""),
-        )).controller(ResizeController {}))
+                    let image=ctx.make_image(
+                        data.img.width(),
+                        data.img.height(),
+                        data.tool_window.img.clone().unwrap().raw_pixels(),
+                        druid_shell::piet::ImageFormat::RgbaPremul).unwrap();
+    
+                    ctx.draw_image(
+                        &image, 
+                        druid::Rect::from_center_size(druid::Point::new(250., 156.25),druid::Size::new(width, height)),
+                        druid_shell::piet::InterpolationMode::Bilinear)
+                })
+            )
+            .width(500.)
+            .height(312.5)
+            .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.)))
+
+        )
+        .with_centered_child(
+            Either::new(
+                |data: &AppState, _env| data.resize || !data.annulla,
+                Painter::new(|ctx, data: &AppState, _env| {
+                    match data.tool_window.tool {
+                        Tools::Resize=>{
+                            if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
+                                if data.rect.size.width <= data.tool_window.width && data.rect.size.height <= data.tool_window.height {
+                                    let shape = druid::Rect::from_points(
+                                        data.rect.start_point.unwrap(),
+                                        data.rect.end_point.unwrap(),
+                                    );
+                                    ctx.fill(shape, &Color::rgba(0.0, 0.0, 0.0, data.tool_window.rect_transparency));
+                                    ctx.stroke(shape, &druid::Color::WHITE, data.tool_window.rect_stroke);
+                                }
+                            }
+                        }
+                        Tools::Ellipse=>{
+                            if let (Some(start), Some(end)) = (data.tool_window.ellipse.start_point, data.tool_window.ellipse.end_point) {
+                                    
+                                let radius1 = (start.x - end.x) / 2.;
+                                let radius2 = (start.y - end.y) / 2.;
+                                let c1 = end.x + radius1;
+                                let c2 = end.y + radius2;
+                                let center = druid::Point::new(c1, c2);
+                                let radii = druid::Vec2::new(radius1.abs(), radius2.abs());
+                                let shape = druid::kurbo::Ellipse::new(center, radii, 0.0);
+                                ctx.fill(
+                                    shape,
+                                    &Color::rgba(0.0, 255.0, 0.0, data.selection_transparency),
+                                );
+                            }
+                        }
+                        _=>{}
+                    }
+                    
+                })
+                .center(),
+                Label::new(""),
+            )
+        ).controller(ResizeController {}))
+
 
             ////////////////////////roba di ciro
             /*let new_win = WindowDesc::new(

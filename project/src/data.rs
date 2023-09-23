@@ -1,10 +1,12 @@
 use crate::ui::*;
+use druid::Color;
 use druid::{
     commands, widget::Controller, AppDelegate, Command, Cursor, Data, DelegateCtx, Env, Event,
     EventCtx, Handled, ImageBuf, Lens, LocalizedString, MouseEvent, Point, Selector, Size, Target,
     TimerToken, Widget, WindowDesc, WindowState,
 };
 use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
+use druid_shell::piet::d2d::Bitmap;
 use image::{ImageBuffer, Rgba};
 use std::path::Path;
 use std::time::Duration;
@@ -171,6 +173,7 @@ impl AppState {
             image.clone().width() as usize,
             image.clone().height() as usize,
         );
+        self.tool_window.img=Some(self.img.clone());
 
         let window = WindowDesc::new(build_ui(self.img.clone()))
             .menu(make_menu)
@@ -294,7 +297,7 @@ impl Default for SelectionEllipse {
     }
 }
 
-#[derive(Clone, Data, PartialEq, Lens, Debug)]
+#[derive(Clone, Data, Lens, Debug)]
 pub struct AnnotationTools {
     pub tool: Tools,
     pub center: druid::Point,
@@ -304,6 +307,8 @@ pub struct AnnotationTools {
     pub rect_stroke: f64,
     pub rect_transparency: f64,
     pub ellipse: SelectionEllipse,
+    pub color: Color,
+    pub img: Option<ImageBuf>,
 }
 
 impl Default for AnnotationTools {
@@ -317,6 +322,8 @@ impl Default for AnnotationTools {
         rect_stroke:0.0,
         rect_transparency:0.0,
         ellipse:SelectionEllipse::default(),
+        color:Color::rgba(0.,0.,0.,1.),
+        img:None,
        }
    }
 }
@@ -891,7 +898,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                 }
             },
             Tools::Ellipse=>{
-                println!("ellipse");
                 match event {
                     Event::MouseDown(mouse_button) => {
                         let mouse_down = MouseEvent {
@@ -937,7 +943,32 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             button: mouse_button.button,
                             wheel_delta: mouse_button.wheel_delta,
                         };
-        
+
+                        data.tool_window.ellipse.end_point=Some(mouse_up.pos);
+                        data.tool_window.ellipse.center=Some(druid::Point::new(
+                            data.tool_window.ellipse.start_point.unwrap().x+(data.tool_window.ellipse.end_point.unwrap().x-data.tool_window.ellipse.start_point.unwrap().x).abs(), 
+                            data.tool_window.ellipse.start_point.unwrap().y+(data.tool_window.ellipse.end_point.unwrap().y-data.tool_window.ellipse.start_point.unwrap().y).abs()));
+                        
+                        let mut image: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
+                            data.img.width() as u32,
+                            data.img.height() as u32,
+                        data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
+
+
+                        let prova=imageproc::drawing::draw_filled_ellipse(
+                            &mut image,
+                            (data.tool_window.ellipse.center.unwrap().x as i32,data.tool_window.ellipse.center.unwrap().y as i32),
+                            100,
+                            100,
+                            Rgba([255,0,0,255]));
+
+                        data.tool_window.img=Some(ImageBuf::from_raw(
+                            prova.clone().into_raw(),
+                            druid::piet::ImageFormat::RgbaPremul,
+                            prova.clone().width() as usize,
+                            prova.clone().height() as usize,
+                        ));
+        /*
                         data.tool_window.ellipse.end_point=Some(mouse_up.pos);
                         //let a=image_canvas::layout::CanvasLayout::with_plane(data.img);
                         let mut image2: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
@@ -960,7 +991,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             prova.clone().width() as usize,
                             prova.clone().height() as usize,
                         );
-                        data.tool_window.tool=Tools::No;
+*/
+                        //data.img.to_image(ctx);
+                        //data.tool_window.tool=Tools::No;
                     },
                     _=>{}
                 }
