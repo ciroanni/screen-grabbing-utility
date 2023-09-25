@@ -12,7 +12,10 @@ use druid::{
 use druid_shell::keyboard_types::Modifiers;
 use druid_shell::TimerToken;
 use druid_widget_nursery::DropdownSelect;
+use imageproc::filter;
 use std::borrow::Cow;
+use image::{ImageBuffer, Rgba,GenericImage,SubImage};
+
 
 pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
     let display_info = screenshots::DisplayInfo::all().expect("Err");
@@ -200,6 +203,26 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
             Flex::row()
             .with_child(
                 Button::new("salva").on_click(|ctx,data: &mut AppState,env|{
+                    match data.tool_window.tool {
+                        Tools::Resize=>{
+                            let mut image: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
+                                data.img.width() as u32,
+                                data.img.height() as u32,
+                            data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
+
+
+                            let im=image.sub_image(0, 0, 100, 100);
+                            let imm=im.to_image();
+
+                            data.tool_window.img=Some(ImageBuf::from_raw(
+                                imm.clone().into_raw(),
+                                druid::piet::ImageFormat::RgbaPremul,
+                                imm.width() as usize,
+                                imm.height() as usize,));
+
+                        },
+                        _=>{}
+                    }
                     data.tool_window.tool=Tools::No;
                     
                 }))
