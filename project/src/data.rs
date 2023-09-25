@@ -207,8 +207,8 @@ impl AppState {
             }
         }
 
-        println!("inizializzazione altezza:{},{}",self.tool_window.img_size.height,self.img.height());
-        println!("inizializzazione larghezza:{},{}",self.tool_window.img_size.width,self.img.width());
+        //println!("inizializzazione altezza:{},{}",self.tool_window.img_size.height,self.img.height());
+        //println!("inizializzazione larghezza:{},{}",self.tool_window.img_size.width,self.img.width());
 
         self.tool_window.origin=druid::Point::new(
             self.tool_window.center.x-(self.tool_window.img_size.width/2.),
@@ -845,7 +845,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                 }
                             }
                             Some(Direction::Right) => {
-                                if mouse_button.pos.x > data.rect.p3.unwrap().x + 10. && mouse_button.pos.x<(250.+data.tool_window.img_size.width/2.){
+                                if mouse_button.pos.x > data.rect.start_point.unwrap().x + 10. && mouse_button.pos.x<(250.+data.tool_window.img_size.width/2.){
                                     data.rect.end_point.replace(Point::new(
                                         mouse_button.pos.x,
                                         data.rect.end_point.unwrap().y,
@@ -954,6 +954,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             wheel_delta: mouse_button.wheel_delta,
                         };
                         data.tool_window.ellipse.start_point=Some(mouse_down.pos);
+                        data.tool_window.ellipse.end_point=Some(mouse_down.pos);
+
+                        //println!("{:?}",data.tool_window.ellipse.end_point);
+                        
                         data.selection_transparency=1.;
                     }
                     Event::MouseMove(mouse_button)=>{
@@ -969,11 +973,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         };
         
                         data.tool_window.ellipse.end_point=Some(mouse_move.pos);
-                        /*let radius1=(data.ellipse.end_point.unwrap().x-data.ellipse.start_point.unwrap().x).abs()/2.;
-                        let radius2=(data.ellipse.end_point.unwrap().y-data.ellipse.start_point.unwrap().y).abs()/2.;
-                        let c1=data.ellipse.start_point.unwrap().x+radius1;
-                        let c2=data.ellipse.start_point.unwrap().y+radius2;
-                        data.ellipse.center=Some(druid::Point::new(c1,c2));*/
+                        if let (Some(start), Some(end)) = (data.tool_window.ellipse.start_point, data.tool_window.ellipse.end_point) {
+                            let radius1 = (start.x - end.x) / 2.;
+                            let radius2 = (start.y - end.y) / 2.;
+                            let c1 = end.x + radius1;
+                            let c2 = end.y + radius2;
+                            data.tool_window.ellipse.center = Some(druid::Point::new(c1, c2));
+                            data.tool_window.ellipse.radii = Some(druid::Vec2::new(radius1.abs(), radius2.abs()));
+                        }
                     }
                     Event::MouseUp(mouse_button)=>{
                         let mouse_up = MouseEvent {
@@ -987,10 +994,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             wheel_delta: mouse_button.wheel_delta,
                         };
 
-                        data.tool_window.ellipse.end_point=Some(mouse_up.pos);
-                        data.tool_window.ellipse.center=Some(druid::Point::new(
-                            data.tool_window.ellipse.start_point.unwrap().x+(data.tool_window.ellipse.end_point.unwrap().x-data.tool_window.ellipse.start_point.unwrap().x).abs(), 
-                            data.tool_window.ellipse.start_point.unwrap().y+(data.tool_window.ellipse.end_point.unwrap().y-data.tool_window.ellipse.start_point.unwrap().y).abs()));
+                        data.selection_transparency=0.;
                         
                         let mut image: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
                             data.img.width() as u32,
@@ -1000,9 +1004,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
 
                         let prova=imageproc::drawing::draw_filled_ellipse(
                             &mut image,
-                            (data.tool_window.ellipse.center.unwrap().x as i32,data.tool_window.ellipse.center.unwrap().y as i32),
-                            100,
-                            100,
+                            (((data.tool_window.ellipse.center.unwrap().x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as i32,
+                                ((data.tool_window.ellipse.center.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height))  as i32),
+                            (data.tool_window.ellipse.radii.unwrap().x*(data.img.width() as f64/data.tool_window.img_size.width)) as i32,
+                            (data.tool_window.ellipse.radii.unwrap().y*(data.img.height() as f64/data.tool_window.img_size.height)) as i32,
                             Rgba([255,0,0,255]));
 
                         data.tool_window.img=Some(ImageBuf::from_raw(
@@ -1011,6 +1016,11 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             prova.clone().width() as usize,
                             prova.clone().height() as usize,
                         ));
+
+                        data.tool_window.ellipse.start_point=None;
+                        data.tool_window.ellipse.end_point=None;
+                        data.tool_window.ellipse.center=None;
+                        data.tool_window.ellipse.radii=None;
         /*
                         data.tool_window.ellipse.end_point=Some(mouse_up.pos);
                         //let a=image_canvas::layout::CanvasLayout::with_plane(data.img);

@@ -218,13 +218,14 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 data.img.width() as u32,
                                 data.img.height() as u32,
                             data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
-
+/*
                             println!("rect:start:{},end{}",data.rect.start_point.unwrap(),data.rect.end_point.unwrap());
                             println!("tool_window{}",data.tool_window.origin);
                             println!("img:width:{},height:{}",data.img.width(),data.img.height());
                             println!("start point:x:{},y:{}",((data.rect.start_point.unwrap().x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as u32,((data.rect.start_point.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as u32);
                             println!("subimage dimensions:width:{},height:{}",(data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width) as u32,(data.rect.size.height*data.img.height() as f64/data.tool_window.img_size.height) as u32);
                             //println!("x:{},width:{}",(data.rect.start_point.unwrap().x-data.tool_window.origin.x),(data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width));
+                            */
                             let im=image.sub_image(
                                 ((data.rect.start_point.unwrap().x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as u32,
                                 ((data.rect.start_point.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as u32,
@@ -278,9 +279,17 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 data.tool_window.center.y-(data.tool_window.img_size.height/2.),
                             );
 
+                            
+
                         },
+                        Tools::Ellipse=>{
+                            data.img=data.tool_window.img.clone().unwrap();
+                        }
                         _=>{}
                     }
+                    
+                    data.tool_window.rect_stroke=0.0;
+                    data.tool_window.rect_transparency=0.;
                     data.tool_window.tool=Tools::No;
                     
                 }))
@@ -290,6 +299,9 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         Tools::Resize=>{
                             data.tool_window.rect_stroke=0.;
                             data.tool_window.rect_transparency=0.;
+                        }
+                        Tools::Ellipse=>{
+                            data.tool_window.img=Some(data.img.clone());
                         }
                         _=>{}
                     }
@@ -303,40 +315,8 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 //image
 
                 Painter::new(|ctx,data:&AppState,env|{
-                    let mut width=data.img.width() as f64;
-                    let mut height=data.img.height() as f64;
 
                     //println!("height:{},width:{}",height,width);
-    
-    /*
-                    if width>data.tool_window.width{
-                        if height>data.tool_window.height{
-                            if height-data.tool_window.height>width-data.tool_window.width{
-                                width=width*(data.tool_window.height/height);
-                                height=data.tool_window.height;
-                            }else {
-                                height=height*(data.tool_window.width/width);
-                                width=data.tool_window.width;
-                            }
-                        }else {
-                            height=height*(data.tool_window.width/width);
-                            width=data.tool_window.width;
-                        }
-                    }else {
-                        if height>data.tool_window.height{
-                            width=width*(data.tool_window.height/height);
-                            height=data.tool_window.height;
-                        }else {
-                            if data.tool_window.height-height>data.tool_window.width-width{
-                                height=height*(data.tool_window.width/width);
-                                width=data.tool_window.width;
-                            }else {
-                                width=width*(data.tool_window.height/height);
-                                height=data.tool_window.height;
-                            }
-                        }
-                    }
-*/
                     //println!("image:height:{},width:{}",height,width);
 
                     let image=ctx.make_image(
@@ -348,7 +328,25 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     ctx.draw_image(
                         &image, 
                         druid::Rect::from_center_size(data.tool_window.center,data.tool_window.img_size),
-                        druid_shell::piet::InterpolationMode::Bilinear)
+                        druid_shell::piet::InterpolationMode::Bilinear);
+
+                    let start = data.rect.start_point.unwrap();
+                    let end = data.rect.end_point.unwrap();
+                    let diff_x = end.x-start.x;
+                    let diff_y = end.y-start.y;
+
+                    let grid1 = druid::Rect::from_points(
+                        Point::new(start.x+diff_x/3.0, start.y),
+                        Point::new(start.x+diff_x/3.0*2.0, end.y)
+                    );
+                    let grid2 = druid::Rect::from_points(
+                        Point::new(start.x, start.y+diff_y/3.0),
+                        Point::new(end.x, start.y+diff_y/3.0*2.0)
+                    );
+                    if data.tool_window.rect_stroke != 0.0{
+                        ctx.stroke(grid1, &druid::Color::WHITE, 0.5);
+                        ctx.stroke(grid2, &druid::Color::WHITE, 0.5);
+                    }
                 })
             )
             .width(500.)
@@ -357,8 +355,6 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
 
         )
         .with_centered_child(
-            Either::new(
-                |data: &AppState, _env| data.resize || !data.annulla,
                 Painter::new(|ctx, data: &AppState, _env| {
                     match data.tool_window.tool {
                         Tools::Resize=>{
@@ -374,15 +370,17 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             }
                         }
                         Tools::Ellipse=>{
-                            if let (Some(start), Some(end)) = (data.tool_window.ellipse.start_point, data.tool_window.ellipse.end_point) {
-                                    
+                            if let (Some(center), Some(_end)) = (data.tool_window.ellipse.center, data.tool_window.ellipse.end_point) {
+                                /*
                                 let radius1 = (start.x - end.x) / 2.;
                                 let radius2 = (start.y - end.y) / 2.;
                                 let c1 = end.x + radius1;
                                 let c2 = end.y + radius2;
                                 let center = druid::Point::new(c1, c2);
                                 let radii = druid::Vec2::new(radius1.abs(), radius2.abs());
-                                let shape = druid::kurbo::Ellipse::new(center, radii, 0.0);
+                                */
+
+                                let shape = druid::kurbo::Ellipse::new(center,data.tool_window.ellipse.radii.unwrap(), 0.0);
                                 ctx.fill(
                                     shape,
                                     &Color::rgba(0.0, 255.0, 0.0, data.selection_transparency),
@@ -393,9 +391,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     }
                     
                 })
-                .center(),
-                Label::new(""),
-            )
+                .center()
         ).controller(ResizeController {}))
 
 
