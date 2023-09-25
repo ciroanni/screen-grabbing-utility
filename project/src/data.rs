@@ -173,7 +173,48 @@ impl AppState {
             image.clone().width() as usize,
             image.clone().height() as usize,
         );
+
         self.tool_window.img=Some(self.img.clone());
+
+        let width = self.img.width() as f64;
+        let height = self.img.height() as f64;
+
+        if width>=self.tool_window.width{
+            if height>=self.tool_window.height{
+                if height-self.tool_window.height>width-self.tool_window.width{
+                    self.tool_window.img_size.height=self.tool_window.height;
+                    self.tool_window.img_size.width=width*(self.tool_window.height/height);
+                }else {
+                    self.tool_window.img_size.width=self.tool_window.width;
+                    self.tool_window.img_size.height=height*(self.tool_window.width/width);
+                }
+            }else {
+                self.tool_window.img_size.width=self.tool_window.width;
+                self.tool_window.img_size.height=height*(self.tool_window.width/width);
+            }
+        }else {
+            if height>self.tool_window.height{
+                self.tool_window.img_size.height=self.tool_window.height;
+                self.tool_window.img_size.width=width*(self.tool_window.height/height);
+            }else {
+                if self.tool_window.height-height>self.tool_window.width-width{
+                    self.tool_window.img_size.width=self.tool_window.width;
+                    self.tool_window.img_size.height=height*(self.tool_window.width/width);
+                }else {
+                    self.tool_window.img_size.height=self.tool_window.height;
+                    self.tool_window.img_size.width=width*(self.tool_window.height/height);
+                }
+            }
+        }
+
+        println!("inizializzazione altezza:{},{}",self.tool_window.img_size.height,self.img.height());
+        println!("inizializzazione larghezza:{},{}",self.tool_window.img_size.width,self.img.width());
+
+        self.tool_window.origin=druid::Point::new(
+            self.tool_window.center.x-(self.tool_window.img_size.width/2.),
+            self.tool_window.center.y-(self.tool_window.img_size.height/2.),
+        );
+
 
         let window = WindowDesc::new(build_ui(self.img.clone()))
             .menu(make_menu)
@@ -301,6 +342,7 @@ impl Default for SelectionEllipse {
 pub struct AnnotationTools {
     pub tool: Tools,
     pub center: druid::Point,
+    pub origin: druid::Point,
     pub width:f64,
     pub height:f64,
     pub img_size: Size,
@@ -316,6 +358,7 @@ impl Default for AnnotationTools {
        AnnotationTools {
         tool: Tools::No,
         center: druid::Point::new(250., 156.25),
+        origin: druid::Point::new(0.,0.),
         width:500.,
         height:312.5,
         img_size:Size::ZERO,

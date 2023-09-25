@@ -145,8 +145,9 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     let width = data.img.width() as f64;
                     let height = data.img.height() as f64;
 
-                    if width>data.tool_window.width{
-                        if height>data.tool_window.height{
+                    /*
+                    if width>=data.tool_window.width{
+                        if height>=data.tool_window.height{
                             if height-data.tool_window.height>width-data.tool_window.width{
                                 data.tool_window.img_size.height=data.tool_window.height;
                                 data.tool_window.img_size.width=width*(data.tool_window.height/height);
@@ -172,14 +173,22 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             }
                         }
                     }
+                    */
 
-                    let rect = druid::Rect::from_center_size(Point::new(data.tool_window.width/2., data.tool_window.height/2.), data.tool_window.img_size);
+                    //println!("height:{},width:{}",height,width);
+                    println!("height:{},width:{}",data.tool_window.img_size.height,data.tool_window.img_size.width);
+
+
+
+                    let rect = druid::Rect::from_center_size(data.tool_window.center, data.tool_window.img_size);
                     data.rect.size=data.tool_window.img_size;
                     data.rect.start_point.replace(rect.origin());
                     data.rect.end_point.replace(Point::new(rect.max_x(), rect.max_y()));
                     data.tool_window.rect_stroke=2.0;
                     data.tool_window.rect_transparency=0.4;
-                    ctx.children_changed();
+
+                    //println!("rect start:{:?}",data.rect.start_point);
+                    //ctx.children_changed();
                             //data.rect.start_point=None;
                             //data.rect.end_point=None;
                 })
@@ -210,15 +219,64 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 data.img.height() as u32,
                             data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
 
-
-                            let im=image.sub_image(0, 0, 100, 100);
+                            println!("rect:start:{},end{}",data.rect.start_point.unwrap(),data.rect.end_point.unwrap());
+                            println!("tool_window{}",data.tool_window.origin);
+                            println!("img:width:{},height:{}",data.img.width(),data.img.height());
+                            println!("start point:x:{},y:{}",((data.rect.start_point.unwrap().x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as u32,((data.rect.start_point.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as u32);
+                            println!("subimage dimensions:width:{},height:{}",(data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width) as u32,(data.rect.size.height*data.img.height() as f64/data.tool_window.img_size.height) as u32);
+                            //println!("x:{},width:{}",(data.rect.start_point.unwrap().x-data.tool_window.origin.x),(data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width));
+                            let im=image.sub_image(
+                                ((data.rect.start_point.unwrap().x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as u32,
+                                ((data.rect.start_point.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as u32,
+                                (data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width) as u32,
+                                (data.rect.size.height*data.img.height() as f64/data.tool_window.img_size.height) as u32,);
                             let imm=im.to_image();
 
                             data.tool_window.img=Some(ImageBuf::from_raw(
                                 imm.clone().into_raw(),
                                 druid::piet::ImageFormat::RgbaPremul,
-                                imm.width() as usize,
-                                imm.height() as usize,));
+                                (data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width) as usize,
+                                (data.rect.size.height*data.img.height() as f64/data.tool_window.img_size.height)  as usize,));
+
+                            data.img=data.tool_window.img.clone().unwrap();
+
+                            println!("img:width:{},height:{}",data.img.width(),data.img.height());
+
+                            let width = data.img.width() as f64;
+                            let height = data.img.height() as f64;
+
+                            if width>=data.tool_window.width{
+                                if height>=data.tool_window.height{
+                                    if height-data.tool_window.height>width-data.tool_window.width{
+                                        data.tool_window.img_size.height=data.tool_window.height;
+                                        data.tool_window.img_size.width=width*(data.tool_window.height/height);
+                                    }else {
+                                        data.tool_window.img_size.width=data.tool_window.width;
+                                        data.tool_window.img_size.height=height*(data.tool_window.width/width);
+                                    }
+                                }else {
+                                    data.tool_window.img_size.width=data.tool_window.width;
+                                    data.tool_window.img_size.height=height*(data.tool_window.width/width);
+                                }
+                            }else {
+                                if height>data.tool_window.height{
+                                    data.tool_window.img_size.height=data.tool_window.height;
+                                    data.tool_window.img_size.width=width*(data.tool_window.height/height);
+                                }else {
+                                    if data.tool_window.height-height>data.tool_window.width-width{
+                                        data.tool_window.img_size.width=data.tool_window.width;
+                                        data.tool_window.img_size.height=height*(data.tool_window.width/width);
+                                    }else {
+                                        data.tool_window.img_size.height=data.tool_window.height;
+                                        data.tool_window.img_size.width=width*(data.tool_window.height/height);
+                                    }
+                                }
+                            }
+
+                            data.tool_window.origin=druid::Point::new(
+                                data.tool_window.center.x-(data.tool_window.img_size.width/2.),
+                                data.tool_window.center.y-(data.tool_window.img_size.height/2.),
+                            );
 
                         },
                         _=>{}
@@ -247,7 +305,10 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 Painter::new(|ctx,data:&AppState,env|{
                     let mut width=data.img.width() as f64;
                     let mut height=data.img.height() as f64;
+
+                    //println!("height:{},width:{}",height,width);
     
+    /*
                     if width>data.tool_window.width{
                         if height>data.tool_window.height{
                             if height-data.tool_window.height>width-data.tool_window.width{
@@ -267,14 +328,17 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             height=data.tool_window.height;
                         }else {
                             if data.tool_window.height-height>data.tool_window.width-width{
-                                width=width*(data.tool_window.height/height);
-                                height=data.tool_window.height;
-                            }else {
                                 height=height*(data.tool_window.width/width);
                                 width=data.tool_window.width;
+                            }else {
+                                width=width*(data.tool_window.height/height);
+                                height=data.tool_window.height;
                             }
                         }
                     }
+*/
+                    //println!("image:height:{},width:{}",height,width);
+
                     let image=ctx.make_image(
                         data.img.width(),
                         data.img.height(),
@@ -283,7 +347,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     
                     ctx.draw_image(
                         &image, 
-                        druid::Rect::from_center_size(druid::Point::new(250., 156.25),druid::Size::new(width, height)),
+                        druid::Rect::from_center_size(data.tool_window.center,data.tool_window.img_size),
                         druid_shell::piet::InterpolationMode::Bilinear)
                 })
             )
