@@ -15,6 +15,7 @@ use druid_widget_nursery::DropdownSelect;
 use imageproc::filter;
 use std::borrow::Cow;
 use image::{ImageBuffer, Rgba,GenericImage,SubImage};
+use rusttype::{Font};
 
 
 pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
@@ -131,6 +132,7 @@ pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
 
 pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img.clone());
+    let font=Font::try_from_vec(Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8])).unwrap();
     //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
 
     Flex::column()
@@ -194,8 +196,8 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 })
             )
             .with_child(
-                Button::new("altro").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
-                    data.tool_window.tool = Tools::Resize,
+                Button::new("highlight").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
+                    data.tool_window.tool = Tools::Highlight,
             ))
             .with_child(
                 Button::new("ellipse").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
@@ -206,8 +208,13 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     data.tool_window.tool = Tools::Arrow,
             ))
             .with_child(
-                Button::new("text").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
-                    data.tool_window.tool = Tools::Text,
+                Button::new("text").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| {
+                    data.tool_window.tool = Tools::Text;
+                }
+            ))
+            .with_child(
+                Button::new("redact").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
+                    data.tool_window.tool = Tools::Redact,
             )),
             Flex::row()
             .with_child(
@@ -285,6 +292,10 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         Tools::Ellipse=>{
                             data.img=data.tool_window.img.clone().unwrap();
                         }
+                        Tools::Text=>{
+                            data.img=data.tool_window.img.clone().unwrap();
+                            data.tool_window.text="".to_string();
+                        }
                         _=>{}
                     }
                     
@@ -301,10 +312,13 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             data.tool_window.rect_transparency=0.;
                         }
                         Tools::Ellipse=>{
-                            data.tool_window.img=Some(data.img.clone());
+                        }
+                        Tools::Text=>{
+                            data.tool_window.text="".to_string();
                         }
                         _=>{}
                     }
+                    data.tool_window.img=Some(data.img.clone());
                     data.tool_window.tool=Tools::No;
                 })))
             )
@@ -392,7 +406,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     
                 })
                 .center()
-        ).controller(ResizeController {}))
+        ).controller(ResizeController {text_font:font}))
 
 
             ////////////////////////roba di ciro

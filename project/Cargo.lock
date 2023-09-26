@@ -1886,6 +1886,7 @@ dependencies = [
  "imageproc",
  "native-dialog",
  "num-complex",
+ "rusttype",
  "scrap",
  "screenshots",
  "serde",
