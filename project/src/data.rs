@@ -108,6 +108,7 @@ pub struct AppState {
     pub resize: bool,
     pub annulla: bool,
     pub tool_window: AnnotationTools,
+    pub color: Color,
 }
 
 
@@ -140,6 +141,7 @@ impl AppState {
             resize: false,
             annulla: true,
             tool_window:AnnotationTools::default(),
+            color:Color::rgba(0.,0.,0.,1.),
         }
     }
 
@@ -352,7 +354,6 @@ pub struct AnnotationTools {
     pub rect_stroke: f64,
     pub rect_transparency: f64,
     pub ellipse: SelectionEllipse,
-    pub color: Color,
     pub img: Option<ImageBuf>,
     pub text: String,
     pub text_pos: druid::Point,
@@ -370,7 +371,6 @@ impl Default for AnnotationTools {
         rect_stroke:0.0,
         rect_transparency:0.0,
         ellipse:SelectionEllipse::default(),
-        color:Color::rgba(0.,0.,0.,1.),
         img:None,
         text:"".to_string(),
         text_pos:druid::Point::new(250.,156.25),
@@ -1012,13 +1012,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
 
 
+                        let color = data.color.as_rgba8();
                         let prova=imageproc::drawing::draw_filled_ellipse(
                             &mut image,
                             (((data.tool_window.ellipse.center.unwrap().x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as i32,
                                 ((data.tool_window.ellipse.center.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height))  as i32),
                             (data.tool_window.ellipse.radii.unwrap().x*(data.img.width() as f64/data.tool_window.img_size.width)) as i32,
                             (data.tool_window.ellipse.radii.unwrap().y*(data.img.height() as f64/data.tool_window.img_size.height)) as i32,
-                            Rgba([255,0,0,255]));
+                            Rgba([color.0, color.1, color.2, 255]));
 
                         data.tool_window.img=Some(ImageBuf::from_raw(
                             prova.clone().into_raw(),
@@ -1137,10 +1138,11 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             data.img.height() as u32,
                         data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
 
+                        let color = data.color.as_rgba8();
 
                         let prova=imageproc::drawing::draw_text(
                             &mut image,
-                            Rgba([255,0,0,255]),
+                            Rgba([color.0, color.1, color.2, 255]),
                             ((data.tool_window.text_pos.x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as i32,
                             ((data.tool_window.text_pos.y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)-20.) as i32,
                             rusttype::Scale{x:50.,y:25.},
@@ -1203,7 +1205,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                 }
             }
             Tools::Highlight=>{
-                
+
             }
             _=>{}
         }
@@ -1243,132 +1245,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
         child.update(ctx, old_data, data, env)
     }
 }
-
-/*
-pub struct CircleController;
-
-impl<W: Widget<AppState>> Controller<AppState, W> for CircleController {
-    fn event(
-        &mut self,
-        child: &mut W,
-        ctx: &mut EventCtx,
-        event: &druid::Event,
-        data: &mut AppState,
-        env: &Env,
-    ) {
-
-        println!("circle controller");
-        match event {
-            Event::MouseDown(mouse_button) => {
-                let mouse_down = MouseEvent {
-                    pos: mouse_button.pos,
-                    window_pos: mouse_button.window_pos,
-                    buttons: mouse_button.buttons,
-                    mods: mouse_button.mods,
-                    count: mouse_button.count,
-                    focus: mouse_button.focus,
-                    button: mouse_button.button,
-                    wheel_delta: mouse_button.wheel_delta,
-                };
-                data.tool_window.ellipse.start_point=Some(mouse_down.pos);
-                data.selection_transparency=1.;
-            }
-            Event::MouseMove(mouse_button)=>{
-                let mouse_move = MouseEvent {
-                    pos: mouse_button.pos,
-                    window_pos: mouse_button.window_pos,
-                    buttons: mouse_button.buttons,
-                    mods: mouse_button.mods,
-                    count: mouse_button.count,
-                    focus: mouse_button.focus,
-                    button: mouse_button.button,
-                    wheel_delta: mouse_button.wheel_delta,
-                };
-
-                data.tool_window.ellipse.end_point=Some(mouse_move.pos);
-                /*let radius1=(data.ellipse.end_point.unwrap().x-data.ellipse.start_point.unwrap().x).abs()/2.;
-                let radius2=(data.ellipse.end_point.unwrap().y-data.ellipse.start_point.unwrap().y).abs()/2.;
-                let c1=data.ellipse.start_point.unwrap().x+radius1;
-                let c2=data.ellipse.start_point.unwrap().y+radius2;
-                data.ellipse.center=Some(druid::Point::new(c1,c2));*/
-            }
-            Event::MouseUp(mouse_button)=>{
-                let mouse_up = MouseEvent {
-                    pos: mouse_button.pos,
-                    window_pos: mouse_button.window_pos,
-                    buttons: mouse_button.buttons,
-                    mods: mouse_button.mods,
-                    count: mouse_button.count,
-                    focus: mouse_button.focus,
-                    button: mouse_button.button,
-                    wheel_delta: mouse_button.wheel_delta,
-                };
-
-                data.tool_window.ellipse.end_point=Some(mouse_up.pos);
-                //let a=image_canvas::layout::CanvasLayout::with_plane(data.img);
-                let mut image2: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
-                    data.img.width() as u32,
-                    data.img.height() as u32,
-                data.img.raw_pixels().to_vec()).unwrap();
-
-                let prova=imageproc::drawing::draw_filled_ellipse(
-                    &mut image2,
-                    (mouse_up.pos.x as i32,mouse_up.pos.y as i32),
-                    100,
-                    100,
-                    Rgba([255,0,0,255]));
-
-                
-                
-                data.img=ImageBuf::from_raw(
-                    prova.clone().into_raw(),
-                    druid::piet::ImageFormat::RgbaPremul,
-                    prova.clone().width() as usize,
-                    prova.clone().height() as usize,
-                );
-                data.tool_window.tool=Tools::No;
-
-
-
-                /*let radius1=(data.ellipse.end_point.unwrap().x-data.ellipse.start_point.unwrap().x).abs()/2.;
-                let radius2=(data.ellipse.end_point.unwrap().y-data.ellipse.start_point.unwrap().y).abs()/2.;
-                let c1=data.ellipse.start_point.unwrap().x+radius1;
-                let c2=data.ellipse.start_point.unwrap().y+radius2;
-                data.ellipse.center=Some(druid::Point::new(c1,c2));*/
-            }
-            _ => {},
-        }
-
-        let a=ctx.window();
-        println!("{:?}",a.get_position());//da la posizione della finestra nello schermo
-        println!("{:?}",ctx.window_origin());//da la posizione del widget nella finestra credo
-
-        child.event(ctx, event, data, env)
-    }
-
-    fn lifecycle(
-        &mut self,
-        child: &mut W,
-        ctx: &mut druid::LifeCycleCtx,
-        event: &druid::LifeCycle,
-        data: &AppState,
-        env: &Env,
-    ) {
-        child.lifecycle(ctx, event, data, env)
-    }
-
-    fn update(
-        &mut self,
-        child: &mut W,
-        ctx: &mut druid::UpdateCtx,
-        old_data: &AppState,
-        data: &AppState,
-        env: &Env,
-    ) {
-        child.update(ctx, old_data, data, env)
-    }
-}
-*/
 pub struct Delegate; //vedi main.rs
 impl AppDelegate<AppState> for Delegate {
     //mi permette di gestire i comandi di show_save_panel e show_open_panel, rispettivamente infatti chiamano SAVE_FILE e OPEN_FILE

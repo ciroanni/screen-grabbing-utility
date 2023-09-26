@@ -215,7 +215,19 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
             .with_child(
                 Button::new("redact").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
                     data.tool_window.tool = Tools::Redact,
-            )),
+            ))
+            .with_child(
+                DropdownSelect::new(vec![
+                         ("Red", Color::RED),
+                         ("Green", Color::GREEN),
+                         ("Black", Color::BLACK),
+                         ("Blue", Color::BLUE),
+                         ("Orange", Color::rgb8(211, 84, 0)),
+                         ("Grey", Color::GRAY),
+                     ])
+                     .align_left()
+                     .lens(AppState::color)
+             ),
             Flex::row()
             .with_child(
                 Button::new("salva").on_click(|ctx,data: &mut AppState,env|{
@@ -385,19 +397,12 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         }
                         Tools::Ellipse=>{
                             if let (Some(center), Some(_end)) = (data.tool_window.ellipse.center, data.tool_window.ellipse.end_point) {
-                                /*
-                                let radius1 = (start.x - end.x) / 2.;
-                                let radius2 = (start.y - end.y) / 2.;
-                                let c1 = end.x + radius1;
-                                let c2 = end.y + radius2;
-                                let center = druid::Point::new(c1, c2);
-                                let radii = druid::Vec2::new(radius1.abs(), radius2.abs());
-                                */
 
+                                let color = data.color.as_rgba();
                                 let shape = druid::kurbo::Ellipse::new(center,data.tool_window.ellipse.radii.unwrap(), 0.0);
                                 ctx.fill(
                                     shape,
-                                    &Color::rgba(0.0, 255.0, 0.0, data.selection_transparency),
+                                    &Color::rgba(color.0, color.1, color.2, data.selection_transparency),
                                 );
                             }
                         }
