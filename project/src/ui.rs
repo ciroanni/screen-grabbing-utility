@@ -308,6 +308,9 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             data.img=data.tool_window.img.clone().unwrap();
                             data.tool_window.text="".to_string();
                         }
+                        Tools::Highlight=>{
+                            data.color = data.color.with_alpha(1.);
+                        }
                         _=>{}
                     }
                     
@@ -327,6 +330,9 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         }
                         Tools::Text=>{
                             data.tool_window.text="".to_string();
+                        }
+                        Tools::Highlight=>{
+                            data.color = data.color.with_alpha(1.);
                         }
                         _=>{}
                     }
@@ -396,14 +402,30 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             }
                         }
                         Tools::Ellipse=>{
-                            if let (Some(center), Some(_end)) = (data.tool_window.ellipse.center, data.tool_window.ellipse.end_point) {
+                            if let (Some(center), Some(_end)) = (data.tool_window.shape.center, data.tool_window.shape.end_point) {
 
                                 let color = data.color.as_rgba();
-                                let shape = druid::kurbo::Ellipse::new(center,data.tool_window.ellipse.radii.unwrap(), 0.0);
+                                let shape = druid::kurbo::Ellipse::new(center,data.tool_window.shape.radii.unwrap(), 0.0);
                                 ctx.fill(
                                     shape,
                                     &Color::rgba(color.0, color.1, color.2, data.selection_transparency),
                                 );
+                            }
+                        }
+                        Tools::Highlight=>{
+                            if let (Some(start), Some(end)) = (data.tool_window.shape.start_point, data.tool_window.shape.end_point) {
+
+                                //println!("highlight");
+                                let color = data.color.as_rgba();
+
+                                let shape = druid::kurbo::Line::new(start,end);
+                                
+                                ctx.stroke(
+                                    shape,
+                                    &Color::rgba(color.0, color.1, color.2, color.3),
+                                    10.,
+                                );
+
                             }
                         }
                         _=>{}
