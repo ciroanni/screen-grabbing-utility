@@ -136,6 +136,7 @@ pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
 pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img.clone());
     let font = Font::try_from_vec(Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8])).unwrap();
+    let points=Vec::<Point>::new();
     //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
 
     Flex::column()
@@ -149,36 +150,6 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         data.annulla = false;
                         let width = data.img.width() as f64;
                         let height = data.img.height() as f64;
-
-                        /*
-                        if width>=data.tool_window.width{
-                            if height>=data.tool_window.height{
-                                if height-data.tool_window.height>width-data.tool_window.width{
-                                    data.tool_window.img_size.height=data.tool_window.height;
-                                    data.tool_window.img_size.width=width*(data.tool_window.height/height);
-                                }else {
-                                    data.tool_window.img_size.width=data.tool_window.width;
-                                    data.tool_window.img_size.height=height*(data.tool_window.width/width);
-                                }
-                            }else {
-                                data.tool_window.img_size.width=data.tool_window.width;
-                                data.tool_window.img_size.height=height*(data.tool_window.width/width);
-                            }
-                        }else {
-                            if height>data.tool_window.height{
-                                data.tool_window.img_size.height=data.tool_window.height;
-                                data.tool_window.img_size.width=width*(data.tool_window.height/height);
-                            }else {
-                                if data.tool_window.height-height>data.tool_window.width-width{
-                                    data.tool_window.img_size.height=data.tool_window.height;
-                                    data.tool_window.img_size.width=width*(data.tool_window.height/height);
-                                }else {
-                                    data.tool_window.img_size.width=data.tool_window.width;
-                                    data.tool_window.img_size.height=height*(data.tool_window.width/width);
-                                }
-                            }
-                        }
-                        */
 
                         //println!("height:{},width:{}",height,width);
                         println!(
@@ -227,6 +198,11 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 .with_child(Button::new("redact").on_click(
                     |_ctx: &mut EventCtx, data: &mut AppState, _env| {
                         data.tool_window.tool = Tools::Redact
+                    },
+                ))
+                .with_child(Button::new("random").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
+                        data.tool_window.tool = Tools::Random
                     },
                 ))
                 .with_child(
@@ -292,56 +268,8 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
 
                                 data.img = data.tool_window.img.clone().unwrap();
 
-                                println!(
-                                    "img:width:{},height:{}",
-                                    data.img.width(),
-                                    data.img.height()
-                                );
-
                                 let width = data.img.width() as f64;
                                 let height = data.img.height() as f64;
-
-/*                                 if width >= data.tool_window.width {
-                                    if height >= data.tool_window.height {
-                                        if height - data.tool_window.height
-                                            > width - data.tool_window.width
-                                        {
-                                            data.tool_window.img_size.height =
-                                                data.tool_window.height;
-                                            data.tool_window.img_size.width =
-                                                width * (data.tool_window.height / height);
-                                        } else {
-                                            data.tool_window.img_size.width =
-                                                data.tool_window.width;
-                                            data.tool_window.img_size.height =
-                                                height * (data.tool_window.width / width);
-                                        }
-                                    } else {
-                                        data.tool_window.img_size.width = data.tool_window.width;
-                                        data.tool_window.img_size.height =
-                                            height * (data.tool_window.width / width);
-                                    }
-                                } else {
-                                    if height > data.tool_window.height {
-                                        data.tool_window.img_size.height = data.tool_window.height;
-                                        data.tool_window.img_size.width =
-                                            width * (data.tool_window.height / height);
-                                    } else {
-                                        if data.tool_window.height - height
-                                            > data.tool_window.width - width
-                                        {
-                                            data.tool_window.img_size.width =
-                                                data.tool_window.width;
-                                            data.tool_window.img_size.height =
-                                                height * (data.tool_window.width / width);
-                                        } else {
-                                            data.tool_window.img_size.height =
-                                                data.tool_window.height;
-                                            data.tool_window.img_size.width =
-                                                width * (data.tool_window.height / height);
-                                        }
-                                    }
-                                } */
 
                                 data.tool_window.img_size.width = data.tool_window.width;
                                 data.tool_window.img_size.height =
@@ -368,6 +296,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             }
                             Tools::Highlight => {
                                 data.color = data.color.with_alpha(1.);
+                                data.img = data.tool_window.img.clone().unwrap();
                             }
                             _ => {}
                         }
@@ -390,6 +319,9 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             }
                             Tools::Highlight => {
                                 data.color = data.color.with_alpha(1.);
+                            }
+                            Tools::Random=>{
+                                println!("random");
                             }
                             _ => {}
                         }
@@ -517,12 +449,25 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 );
                             }
                         }
+                        Tools::Random=>{
+
+                            if let Some(point)=data.tool_window.random_point{
+                                let color = data.color.as_rgba();
+                                let shape = druid::kurbo::Circle::new(point, 10.);
+    
+                                ctx.fill(
+                                    shape,
+                                    &Color::rgba(color.0, color.1, color.2, color.3),
+                                );
+                                ctx.fill_even_odd(shape, &Color::rgba(color.0, color.1, color.2, color.3),)
+                            }
+                        }
                         _ => {}
                     }
                 })
                 .center(),
             )
-            .controller(ResizeController { text_font: font }),
+            .controller(ResizeController { text_font: font ,points:points}),
         )
 
     ////////////////////////roba di ciro
@@ -556,42 +501,6 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
             ctx.new_window(new_win);
         },
     )*/
-
-    //toglie questa parentesi///////////////////////roba di giacomo
-
-    /*  .with_centered_child(Painter::new(|ctx, data: &AppState, _env| {
-            if let (Some(start), Some(end)) = (data.ellipse.start_point, data.ellipse.end_point)
-            {
-                let shape;
-                match data.tool {
-                    Tools::Ellipse => {
-                        let radius1 = (start.x - end.x) / 2.;
-                        let radius2 = (start.y - end.y) / 2.;
-                        let c1 = end.x + radius1;
-                        let c2 = end.y + radius2;
-                        let center = druid::Point::new(c1, c2);
-                        let radii = druid::Vec2::new(radius1.abs(), radius2.abs());
-                        shape = druid::kurbo::Ellipse::new(center, radii, 0.0);
-                        ctx.fill(
-                            shape,
-                            &Color::rgba(0.0, 255.0, 0.0, data.selection_transparency),
-                        );
-                    }
-                    Tools::Text => {
-                        //let c=ctx.draw_text("ok", druid::Point::new(0.,0.));
-                        //let d=druid::piet::Text::new_textlayout(&mut self, "ciao");
-                    }
-                    _ => {}
-                }
-                //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
-            }
-        }))
-        .controller(CircleController),
-    )
-    .with_child(
-        Flex::row()
-
-    ) */
 
     /* .with_child(
         Painter::new(|ctx, data: &AppState, _env| {

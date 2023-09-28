@@ -86,6 +86,7 @@ pub enum Tools{
     Text,
     Highlight,
     Redact,
+    Random,
 }
 
 #[derive(Clone, Data, Lens, Debug)]
@@ -381,6 +382,7 @@ pub struct AnnotationTools {
     pub img: Option<ImageBuf>,
     pub text: String,
     pub text_pos: druid::Point,
+    pub random_point:Option<Point>,
 }
 
 impl Default for AnnotationTools {
@@ -398,6 +400,7 @@ impl Default for AnnotationTools {
         img:None,
         text:"".to_string(),
         text_pos:druid::Point::new(250.,156.25),
+        random_point:None,
         //text_font:Font::try_from_vec(Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8])).unwrap(),
        }
    }
@@ -705,6 +708,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
 
 pub struct ResizeController{
     pub text_font:Font<'static>,
+    pub points:Vec<Point>,
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
@@ -717,6 +721,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
         env: &Env,
     ) {
 
+        //data.tool_window.points.push(data.rect.start_point.unwrap());
         /*
         println!("{:?}",event);
         if data.resize {
@@ -1204,7 +1209,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     _=>{}
                 }
             }
-            Tools::Highlight=>{////////////////////da finire
+            Tools::Highlight=>{
                 match event {
                     Event::MouseDown(mouse_button) => {
                         let mouse_down = MouseEvent {
@@ -1221,11 +1226,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         data.color = data.color.with_alpha(0.4);
                         data.tool_window.shape.start_point=Some(mouse_down.pos);
 
-                        //data.color=Color::rgba(color.0, color.1, color.2, 0.4);
-
-
-                        //println!("{:?}",data.tool_window.ellipse.end_point);
-                        
                     }
                     Event::MouseMove(mouse_button)=>{
                         let mouse_move = MouseEvent {
@@ -1241,33 +1241,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
 
                         data.tool_window.shape.end_point=Some(mouse_move.pos);
 
-                        /*
-                        if let(Some(start),Some(end))=(data.tool_window.shape.start_point,data.tool_window.shape.end_point){
-
-                            let mut image: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
-                                data.img.width() as u32,
-                                data.img.height() as u32,
-                            data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
-    
-                            let color = data.color.as_rgba8();
-                            let prova=imageproc::drawing::draw_line_segment(
-                                &mut image,
-                                (((start.x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
-                                    ((start.y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height))  as f32),
-                                (((end.x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
-                                    ((end.y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height))  as f32),
-                                Rgba([color.0, color.1, color.2, color.3])
-                            );
-    
-                            data.tool_window.img=Some(ImageBuf::from_raw(
-                                prova.clone().into_raw(),
-                                druid::piet::ImageFormat::RgbaPremul,
-                                prova.clone().width() as usize,
-                                prova.clone().height() as usize,
-                            ));
-                        }
-                        */
-                        
                     }
                     Event::MouseUp(_mouse_button)=>{
                         data.color=data.color.with_alpha(1.);
@@ -1279,21 +1252,90 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
 
                         let color = data.color.as_rgba8();
+                        let mut start=data.tool_window.shape.start_point.unwrap();
+                        let mut end=data.tool_window.shape.end_point.unwrap();
 
-                        //for i in -5..=5{
-                            imageproc::drawing::draw_cross_mut(
-                                &mut image,
-                                Rgba([color.0, color.1, color.2, 255]),
-                                500,
-                                500
-                                /*
-                                (((data.tool_window.shape.start_point.unwrap().x+(i as f64)-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
-                                    ((data.tool_window.shape.start_point.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height))  as f32),
-                                    (((data.tool_window.shape.end_point.unwrap().x+(i as f64)-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
-                                    ((data.tool_window.shape.end_point.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height))  as f32),
-                                */
-                            );
-                        //}
+                        let dx =  (end.x-start.x).abs();
+                        let sx;
+                        if start.x<end.x{
+                            sx=1;
+                        }else {
+                            sx=-1;
+                        }
+                        let dy = -(end.y-start.y).abs();
+                        let sy;
+                        if start.y<end.y{
+                            sy=1;
+                        }else {
+                            sy=-1;
+                        }
+                        let mut err = dx+dy;
+                        let mut e2; /* error value e_xy */
+                        
+                        if data.tool_window.shape.start_point.unwrap().x==data.tool_window.shape.end_point.unwrap().x &&
+                            data.tool_window.shape.start_point.unwrap().y==data.tool_window.shape.end_point.unwrap().y {
+                                imageproc::drawing::draw_line_segment_mut(
+                                    &mut image,
+                                    (((start.x+5.-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
+                                     ((start.y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as f32),
+                                     (((start.x-5.-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
+                                     ((start.y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as f32),
+                                    Rgba([color.0, color.1, color.2, 255])
+                                );
+                            }else {
+                                for _i in 0..=85{  /* loop */
+                                    e2 = err*2.;
+                                    if e2 >= dy {
+                                        err =err+dy; 
+                                        start.y = start.y-sy as f64/20.; 
+                                        end.y = end.y-sy as f64/20.;
+                                        
+                                    } /* e_xy+e_x > 0 */
+                                    if e2 <= dx {
+                                        err =err+dx; 
+                                        start.x = start.x+sx as f64/20.; 
+                                        end.x = end.x+sx as f64/20.;
+                                    } /* e_xy+e_y < 0 */
+
+                                    println!("{}",start);
+                                    imageproc::drawing::draw_line_segment_mut(
+                                        &mut image,
+                                        (((start.x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
+                                        ((start.y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as f32),
+                                        (((end.x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
+                                        ((end.y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as f32),
+                                        Rgba([color.0, color.1, color.2, 255])
+                                    );
+                                }
+
+                                start=data.tool_window.shape.start_point.unwrap();
+                                end=data.tool_window.shape.end_point.unwrap();
+
+                                for _i in 0..=85{  /* loop */
+                                    e2 = err*2.;
+                                    if e2 >= dy {
+                                        err =err+dy; 
+                                        start.y = start.y+sy as f64/20.; 
+                                        end.y = end.y+sy as f64/20.;
+                                        
+                                    } /* e_xy+e_x > 0 */
+                                    if e2 <= dx {
+                                        err =err+dx; 
+                                        start.x = start.x-sx as f64/20.; 
+                                        end.x = end.x-sx as f64/20.;
+                                    } /* e_xy+e_y < 0 */
+
+                                    println!("{}",start);
+                                    imageproc::drawing::draw_line_segment_mut(
+                                        &mut image,
+                                        (((start.x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
+                                        ((start.y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as f32),
+                                        (((end.x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as f32,
+                                        ((end.y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as f32),
+                                        Rgba([color.0, color.1, color.2, 255])
+                                    );
+                                }
+                            }
 
                         data.tool_window.img=Some(ImageBuf::from_raw(
                             image.clone().into_raw(),
@@ -1302,9 +1344,74 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             image.clone().height() as usize,
                         ));
                         
-
                         data.tool_window.shape.start_point=None;
                         data.tool_window.shape.end_point=None;
+                    },
+                    _=>{}
+                }
+            
+            }
+            Tools::Random=>{/////////////da non usare
+                match event {
+                    Event::MouseDown(mouse_button) => {
+                        let mouse_down = MouseEvent {
+                            pos: mouse_button.pos,
+                            window_pos: mouse_button.window_pos,
+                            buttons: mouse_button.buttons,
+                            mods: mouse_button.mods,
+                            count: mouse_button.count,
+                            focus: mouse_button.focus,
+                            button: mouse_button.button,
+                            wheel_delta: mouse_button.wheel_delta,
+                        };
+
+                        data.color = data.color.with_alpha(1.);
+                    }
+                    Event::MouseMove(mouse_button)=>{
+                        let mouse_move = MouseEvent {
+                            pos: mouse_button.pos,
+                            window_pos: mouse_button.window_pos,
+                            buttons: mouse_button.buttons,
+                            mods: mouse_button.mods,
+                            count: mouse_button.count,
+                            focus: mouse_button.focus,
+                            button: mouse_button.button,
+                            wheel_delta: mouse_button.wheel_delta,
+                        };
+
+                        self.points.push(mouse_move.pos);
+                        data.tool_window.random_point=Some(mouse_move.pos);
+
+                    }
+                    Event::MouseUp(_mouse_button)=>{
+                        data.color=data.color.with_alpha(1.);
+
+                        let mut image: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
+                            data.img.width() as u32,
+                            data.img.height() as u32,
+                        data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
+
+                        let color = data.color.as_rgba8();
+                        
+                        for p in self.points.clone(){  /* loop */
+                            imageproc::drawing::draw_filled_circle_mut(
+                                &mut image,
+                                (p.x as i32,p.y as i32),
+                                10,
+                                Rgba([color.0, color.1, color.2, 255])
+                            );
+                        }
+
+
+                        data.tool_window.img=Some(ImageBuf::from_raw(
+                            image.clone().into_raw(),
+                            druid::piet::ImageFormat::RgbaPremul,
+                            image.clone().width() as usize,
+                            image.clone().height() as usize,
+                        ));
+
+                        data.tool_window.random_point=None;
+                        data.color=data.color.with_alpha(0.0);
                     },
                     _=>{}
                 }
