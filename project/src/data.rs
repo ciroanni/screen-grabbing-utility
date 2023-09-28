@@ -183,8 +183,8 @@ impl AppState {
 
         let width = self.img.width() as f64;
         let height = self.img.height() as f64;
-
-        if width>=self.tool_window.width{
+        println!("w: {}, h: {}", width, height);
+        /* if width>=self.tool_window.width{
             if height>=self.tool_window.height{
                 if height-self.tool_window.height>width-self.tool_window.width{
                     self.tool_window.img_size.height=self.tool_window.height;
@@ -210,7 +210,31 @@ impl AppState {
                     self.tool_window.img_size.width=width*(self.tool_window.height/height);
                 }
             }
+        } */
+
+        self.tool_window.img_size.width = self.tool_window.width;
+        self.tool_window.img_size.height = height / (width / self.tool_window.width);
+        if self.tool_window.img_size.height > self.tool_window.height {
+            self.tool_window.img_size.height = self.tool_window.height;
+            self.tool_window.img_size.width = width / (height / self.tool_window.height);
         }
+
+        /* if width >= self.tool_window.width {
+            if height >= self.tool_window.height {
+                self.tool_window.img_size.width = self.tool_window.width;
+                self.tool_window.img_size.height = height / (width / self.tool_window.width);
+                if self.tool_window.img_size.height > self.tool_window.height {
+                    self.tool_window.img_size.height = self.tool_window.height;
+                    self.tool_window.img_size.width = width / (height / self.tool_window.height);
+                }
+            } else {
+                self.tool_window.img_size.width = self.tool_window.width;
+                self.tool_window.img_size.height = height / (width / self.tool_window.width);
+            }
+        } else {
+            self.tool_window.img_size.height = 312.5;
+            self.tool_window.img_size.width = width / (height / self.tool_window.height);
+        } */
 
         //println!("inizializzazione altezza:{},{}",self.tool_window.img_size.height,self.img.height());
         //println!("inizializzazione larghezza:{},{}",self.tool_window.img_size.width,self.img.width());
@@ -280,7 +304,7 @@ impl AppState {
             )
             .expect("Error saving");
         self.name = "".to_string();
-        self.rect = SelectionRectangle::default();
+        //self.rect = SelectionRectangle::default();
     }
 
     pub fn save_as(&mut self, path: &Path) {
@@ -293,7 +317,7 @@ impl AppState {
         image
             .save_with_format(path, image::ImageFormat::Png)
             .expect("Error saving");
-        self.rect = SelectionRectangle::default();
+        //self.rect = SelectionRectangle::default();
     }
 }
 
@@ -637,7 +661,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                 _ => {
                     data.is_full_screen = true;
                     match data.delay {
-                        Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(100)),
+                        Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(500)),
                         _ => {
                             self.id_t =
                                 ctx.request_timer(Duration::from_secs(data.delay.set_timer()))

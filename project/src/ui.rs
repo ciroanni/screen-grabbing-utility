@@ -12,11 +12,10 @@ use druid::{
 use druid_shell::keyboard_types::Modifiers;
 use druid_shell::TimerToken;
 use druid_widget_nursery::DropdownSelect;
+use image::{GenericImage, ImageBuffer, Rgba, SubImage};
 use imageproc::filter;
+use rusttype::Font;
 use std::borrow::Cow;
-use image::{ImageBuffer, Rgba,GenericImage,SubImage};
-use rusttype::{Font};
-
 
 pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
     let display_info = screenshots::DisplayInfo::all().expect("Err");
@@ -30,9 +29,11 @@ pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
             Flex::row()
                 .with_child(
                     Button::new("Nuovo")
-                        .on_click(move |ctx: &mut EventCtx, _data, _env| {
+                        .on_click(move |ctx: &mut EventCtx, data: &mut AppState, _env| {
                             let current = ctx.window().clone();
                             current.close();
+                            data.rect.start_point = Some(Point::new(0., 0.));
+                            data.rect.end_point = Some(data.size);
                             let new_win = WindowDesc::new(drag_motion_ui(true))
                                 .show_titlebar(false)
                                 .transparent(true)
@@ -110,14 +111,16 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
 }
 
 pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
-    let paint = Painter::new(|ctx, data: &AppState, _env| {
-        if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
-            let rect = druid::Rect::from_points(start, end);
-            ctx.fill(
-                rect,
-                &Color::rgba(0.0, 0.0, 0.0, data.selection_transparency),
-            );
-            //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
+    let paint = Painter::new(move |ctx, data: &AppState, _env| {
+        if !is_full {
+            if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
+                let rect = druid::Rect::from_points(start, end);
+                ctx.fill(
+                    rect,
+                    &Color::rgba(0.0, 0.0, 0.0, data.selection_transparency),
+                );
+                //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
+            }
         }
     })
     .controller(AreaController {
@@ -132,378 +135,463 @@ pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
 
 pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img.clone());
-    let font=Font::try_from_vec(Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8])).unwrap();
+    let font = Font::try_from_vec(Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8])).unwrap();
     //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
 
     Flex::column()
-    .with_child(
-        Either::new(|data,_env|{data.tool_window.tool==Tools::No},
+        .with_child(Either::new(
+            |data, _env| data.tool_window.tool == Tools::No,
             Flex::row()
-            .with_child(
-                Button::new("Resize").on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
-                    data.tool_window.tool=Tools::Resize;
-                    data.resize = true;
-                    data.annulla = false;
-                    let width = data.img.width() as f64;
-                    let height = data.img.height() as f64;
+                .with_child(Button::new("Resize").on_click(
+                    |ctx: &mut EventCtx, data: &mut AppState, _env| {
+                        data.tool_window.tool = Tools::Resize;
+                        data.resize = true;
+                        data.annulla = false;
+                        let width = data.img.width() as f64;
+                        let height = data.img.height() as f64;
 
-                    /*
-                    if width>=data.tool_window.width{
-                        if height>=data.tool_window.height{
-                            if height-data.tool_window.height>width-data.tool_window.width{
-                                data.tool_window.img_size.height=data.tool_window.height;
-                                data.tool_window.img_size.width=width*(data.tool_window.height/height);
-                            }else {
-                                data.tool_window.img_size.width=data.tool_window.width;
-                                data.tool_window.img_size.height=height*(data.tool_window.width/width);
-                            }
-                        }else {
-                            data.tool_window.img_size.width=data.tool_window.width;
-                            data.tool_window.img_size.height=height*(data.tool_window.width/width);
-                        }
-                    }else {
-                        if height>data.tool_window.height{
-                            data.tool_window.img_size.height=data.tool_window.height;
-                            data.tool_window.img_size.width=width*(data.tool_window.height/height);
-                        }else {
-                            if data.tool_window.height-height>data.tool_window.width-width{
-                                data.tool_window.img_size.height=data.tool_window.height;
-                                data.tool_window.img_size.width=width*(data.tool_window.height/height);
-                            }else {
-                                data.tool_window.img_size.width=data.tool_window.width;
-                                data.tool_window.img_size.height=height*(data.tool_window.width/width);
-                            }
-                        }
-                    }
-                    */
-
-                    //println!("height:{},width:{}",height,width);
-                    println!("height:{},width:{}",data.tool_window.img_size.height,data.tool_window.img_size.width);
-
-
-
-                    let rect = druid::Rect::from_center_size(data.tool_window.center, data.tool_window.img_size);
-                    data.rect.size=data.tool_window.img_size;
-                    data.rect.start_point.replace(rect.origin());
-                    data.rect.end_point.replace(Point::new(rect.max_x(), rect.max_y()));
-                    data.tool_window.rect_stroke=2.0;
-                    data.tool_window.rect_transparency=0.4;
-
-                    //println!("rect start:{:?}",data.rect.start_point);
-                    //ctx.children_changed();
-                            //data.rect.start_point=None;
-                            //data.rect.end_point=None;
-                })
-            )
-            .with_child(
-                Button::new("highlight").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
-                    data.tool_window.tool = Tools::Highlight,
-            ))
-            .with_child(
-                Button::new("ellipse").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
-                    data.tool_window.tool = Tools::Ellipse,
-            ))
-            .with_child(
-                Button::new("arrow").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
-                    data.tool_window.tool = Tools::Arrow,
-            ))
-            .with_child(
-                Button::new("text").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| {
-                    data.tool_window.tool = Tools::Text;
-                }
-            ))
-            .with_child(
-                Button::new("redact").on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| 
-                    data.tool_window.tool = Tools::Redact,
-            ))
-            .with_child(
-                DropdownSelect::new(vec![
-                         ("Red", Color::RED),
-                         ("Green", Color::GREEN),
-                         ("Black", Color::BLACK),
-                         ("Blue", Color::BLUE),
-                         ("Orange", Color::rgb8(211, 84, 0)),
-                         ("Grey", Color::GRAY),
-                     ])
-                     .align_left()
-                     .lens(AppState::color)
-             ),
-            Flex::row()
-            .with_child(
-                Button::new("salva").on_click(|ctx,data: &mut AppState,env|{
-                    match data.tool_window.tool {
-                        Tools::Resize=>{
-                            let mut image: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
-                                data.img.width() as u32,
-                                data.img.height() as u32,
-                            data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
-/*
-                            println!("rect:start:{},end{}",data.rect.start_point.unwrap(),data.rect.end_point.unwrap());
-                            println!("tool_window{}",data.tool_window.origin);
-                            println!("img:width:{},height:{}",data.img.width(),data.img.height());
-                            println!("start point:x:{},y:{}",((data.rect.start_point.unwrap().x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as u32,((data.rect.start_point.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as u32);
-                            println!("subimage dimensions:width:{},height:{}",(data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width) as u32,(data.rect.size.height*data.img.height() as f64/data.tool_window.img_size.height) as u32);
-                            //println!("x:{},width:{}",(data.rect.start_point.unwrap().x-data.tool_window.origin.x),(data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width));
-                            */
-                            let im=image.sub_image(
-                                ((data.rect.start_point.unwrap().x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as u32,
-                                ((data.rect.start_point.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as u32,
-                                (data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width) as u32,
-                                (data.rect.size.height*data.img.height() as f64/data.tool_window.img_size.height) as u32,);
-                            let imm=im.to_image();
-
-                            data.tool_window.img=Some(ImageBuf::from_raw(
-                                imm.clone().into_raw(),
-                                druid::piet::ImageFormat::RgbaPremul,
-                                (data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width) as usize,
-                                (data.rect.size.height*data.img.height() as f64/data.tool_window.img_size.height)  as usize,));
-
-                            data.img=data.tool_window.img.clone().unwrap();
-
-                            println!("img:width:{},height:{}",data.img.width(),data.img.height());
-
-                            let width = data.img.width() as f64;
-                            let height = data.img.height() as f64;
-
-                            if width>=data.tool_window.width{
-                                if height>=data.tool_window.height{
-                                    if height-data.tool_window.height>width-data.tool_window.width{
-                                        data.tool_window.img_size.height=data.tool_window.height;
-                                        data.tool_window.img_size.width=width*(data.tool_window.height/height);
-                                    }else {
-                                        data.tool_window.img_size.width=data.tool_window.width;
-                                        data.tool_window.img_size.height=height*(data.tool_window.width/width);
-                                    }
+                        /*
+                        if width>=data.tool_window.width{
+                            if height>=data.tool_window.height{
+                                if height-data.tool_window.height>width-data.tool_window.width{
+                                    data.tool_window.img_size.height=data.tool_window.height;
+                                    data.tool_window.img_size.width=width*(data.tool_window.height/height);
                                 }else {
                                     data.tool_window.img_size.width=data.tool_window.width;
                                     data.tool_window.img_size.height=height*(data.tool_window.width/width);
                                 }
                             }else {
-                                if height>data.tool_window.height{
+                                data.tool_window.img_size.width=data.tool_window.width;
+                                data.tool_window.img_size.height=height*(data.tool_window.width/width);
+                            }
+                        }else {
+                            if height>data.tool_window.height{
+                                data.tool_window.img_size.height=data.tool_window.height;
+                                data.tool_window.img_size.width=width*(data.tool_window.height/height);
+                            }else {
+                                if data.tool_window.height-height>data.tool_window.width-width{
                                     data.tool_window.img_size.height=data.tool_window.height;
                                     data.tool_window.img_size.width=width*(data.tool_window.height/height);
                                 }else {
-                                    if data.tool_window.height-height>data.tool_window.width-width{
-                                        data.tool_window.img_size.width=data.tool_window.width;
-                                        data.tool_window.img_size.height=height*(data.tool_window.width/width);
-                                    }else {
-                                        data.tool_window.img_size.height=data.tool_window.height;
-                                        data.tool_window.img_size.width=width*(data.tool_window.height/height);
-                                    }
+                                    data.tool_window.img_size.width=data.tool_window.width;
+                                    data.tool_window.img_size.height=height*(data.tool_window.width/width);
                                 }
                             }
+                        }
+                        */
 
-                            data.tool_window.origin=druid::Point::new(
-                                data.tool_window.center.x-(data.tool_window.img_size.width/2.),
-                                data.tool_window.center.y-(data.tool_window.img_size.height/2.),
-                            );
+                        //println!("height:{},width:{}",height,width);
+                        println!(
+                            "height:{},width:{}",
+                            data.tool_window.img_size.height, data.tool_window.img_size.width
+                        );
 
-                            
+                        let rect = druid::Rect::from_center_size(
+                            data.tool_window.center,
+                            data.tool_window.img_size,
+                        );
+                        data.rect.size = data.tool_window.img_size;
+                        data.rect.start_point.replace(rect.origin());
+                        data.rect
+                            .end_point
+                            .replace(Point::new(rect.max_x(), rect.max_y()));
+                        data.tool_window.rect_stroke = 2.0;
+                        data.tool_window.rect_transparency = 0.4;
 
-                        },
-                        Tools::Ellipse=>{
-                            data.img=data.tool_window.img.clone().unwrap();
+                        //println!("rect start:{:?}",data.rect.start_point);
+                        //ctx.children_changed();
+                        //data.rect.start_point=None;
+                        //data.rect.end_point=None;
+                    },
+                ))
+                .with_child(Button::new("highlight").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
+                        data.tool_window.tool = Tools::Highlight
+                    },
+                ))
+                .with_child(Button::new("ellipse").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
+                        data.tool_window.tool = Tools::Ellipse
+                    },
+                ))
+                .with_child(Button::new("arrow").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
+                        data.tool_window.tool = Tools::Arrow
+                    },
+                ))
+                .with_child(Button::new("text").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
+                        data.tool_window.tool = Tools::Text;
+                    },
+                ))
+                .with_child(Button::new("redact").on_click(
+                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
+                        data.tool_window.tool = Tools::Redact
+                    },
+                ))
+                .with_child(
+                    DropdownSelect::new(vec![
+                        ("Red", Color::RED),
+                        ("Green", Color::GREEN),
+                        ("Black", Color::BLACK),
+                        ("Blue", Color::BLUE),
+                        ("Orange", Color::rgb8(211, 84, 0)),
+                        ("Grey", Color::GRAY),
+                    ])
+                    .align_left()
+                    .lens(AppState::color),
+                ),
+            Flex::row()
+                .with_child(
+                    Button::new("salva").on_click(|ctx, data: &mut AppState, env| {
+                        match data.tool_window.tool {
+                            Tools::Resize => {
+                                let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> =
+                                    ImageBuffer::from_vec(
+                                        data.img.width() as u32,
+                                        data.img.height() as u32,
+                                        data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
+                                    )
+                                    .unwrap();
+                                /*
+                                println!("rect:start:{},end{}",data.rect.start_point.unwrap(),data.rect.end_point.unwrap());
+                                println!("tool_window{}",data.tool_window.origin);
+                                println!("img:width:{},height:{}",data.img.width(),data.img.height());
+                                println!("start point:x:{},y:{}",((data.rect.start_point.unwrap().x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as u32,((data.rect.start_point.unwrap().y-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as u32);
+                                println!("subimage dimensions:width:{},height:{}",(data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width) as u32,(data.rect.size.height*data.img.height() as f64/data.tool_window.img_size.height) as u32);
+                                //println!("x:{},width:{}",(data.rect.start_point.unwrap().x-data.tool_window.origin.x),(data.rect.size.width*data.img.width() as f64/data.tool_window.img_size.width));
+                                */
+                                let im = image.sub_image(
+                                    ((data.rect.start_point.unwrap().x - data.tool_window.origin.x)
+                                        * (data.img.width() as f64
+                                            / data.tool_window.img_size.width))
+                                        as u32,
+                                    ((data.rect.start_point.unwrap().y - data.tool_window.origin.y)
+                                        * (data.img.height() as f64
+                                            / data.tool_window.img_size.height))
+                                        as u32,
+                                    (data.rect.size.width * data.img.width() as f64
+                                        / data.tool_window.img_size.width)
+                                        as u32,
+                                    (data.rect.size.height * data.img.height() as f64
+                                        / data.tool_window.img_size.height)
+                                        as u32,
+                                );
+                                let imm = im.to_image();
+
+                                data.tool_window.img = Some(ImageBuf::from_raw(
+                                    imm.clone().into_raw(),
+                                    druid::piet::ImageFormat::RgbaPremul,
+                                    (data.rect.size.width * data.img.width() as f64
+                                        / data.tool_window.img_size.width)
+                                        as usize,
+                                    (data.rect.size.height * data.img.height() as f64
+                                        / data.tool_window.img_size.height)
+                                        as usize,
+                                ));
+
+                                data.img = data.tool_window.img.clone().unwrap();
+
+                                println!(
+                                    "img:width:{},height:{}",
+                                    data.img.width(),
+                                    data.img.height()
+                                );
+
+                                let width = data.img.width() as f64;
+                                let height = data.img.height() as f64;
+
+/*                                 if width >= data.tool_window.width {
+                                    if height >= data.tool_window.height {
+                                        if height - data.tool_window.height
+                                            > width - data.tool_window.width
+                                        {
+                                            data.tool_window.img_size.height =
+                                                data.tool_window.height;
+                                            data.tool_window.img_size.width =
+                                                width * (data.tool_window.height / height);
+                                        } else {
+                                            data.tool_window.img_size.width =
+                                                data.tool_window.width;
+                                            data.tool_window.img_size.height =
+                                                height * (data.tool_window.width / width);
+                                        }
+                                    } else {
+                                        data.tool_window.img_size.width = data.tool_window.width;
+                                        data.tool_window.img_size.height =
+                                            height * (data.tool_window.width / width);
+                                    }
+                                } else {
+                                    if height > data.tool_window.height {
+                                        data.tool_window.img_size.height = data.tool_window.height;
+                                        data.tool_window.img_size.width =
+                                            width * (data.tool_window.height / height);
+                                    } else {
+                                        if data.tool_window.height - height
+                                            > data.tool_window.width - width
+                                        {
+                                            data.tool_window.img_size.width =
+                                                data.tool_window.width;
+                                            data.tool_window.img_size.height =
+                                                height * (data.tool_window.width / width);
+                                        } else {
+                                            data.tool_window.img_size.height =
+                                                data.tool_window.height;
+                                            data.tool_window.img_size.width =
+                                                width * (data.tool_window.height / height);
+                                        }
+                                    }
+                                } */
+
+                                data.tool_window.img_size.width = data.tool_window.width;
+                                data.tool_window.img_size.height =
+                                    height / (width / data.tool_window.width);
+                                if data.tool_window.img_size.height > data.tool_window.height {
+                                    data.tool_window.img_size.height = data.tool_window.height;
+                                    data.tool_window.img_size.width =
+                                        width / (height / data.tool_window.height);
+                                }
+
+                                data.tool_window.origin = druid::Point::new(
+                                    data.tool_window.center.x
+                                        - (data.tool_window.img_size.width / 2.),
+                                    data.tool_window.center.y
+                                        - (data.tool_window.img_size.height / 2.),
+                                );
+                            }
+                            Tools::Ellipse => {
+                                data.img = data.tool_window.img.clone().unwrap();
+                            }
+                            Tools::Text => {
+                                data.img = data.tool_window.img.clone().unwrap();
+                                data.tool_window.text = "".to_string();
+                            }
+                            Tools::Highlight => {
+                                data.color = data.color.with_alpha(1.);
+                            }
+                            _ => {}
                         }
-                        Tools::Text=>{
-                            data.img=data.tool_window.img.clone().unwrap();
-                            data.tool_window.text="".to_string();
+
+                        data.tool_window.rect_stroke = 0.0;
+                        data.tool_window.rect_transparency = 0.;
+                        data.tool_window.tool = Tools::No;
+                    }),
+                )
+                .with_child(
+                    Button::new("annulla").on_click(|ctx, data: &mut AppState, env| {
+                        match data.tool_window.tool {
+                            Tools::Resize => {
+                                data.tool_window.rect_stroke = 0.;
+                                data.tool_window.rect_transparency = 0.;
+                            }
+                            Tools::Ellipse => {}
+                            Tools::Text => {
+                                data.tool_window.text = "".to_string();
+                            }
+                            Tools::Highlight => {
+                                data.color = data.color.with_alpha(1.);
+                            }
+                            _ => {}
                         }
-                        Tools::Highlight=>{
-                            data.color = data.color.with_alpha(1.);
+                        data.tool_window.img = Some(data.img.clone());
+                        data.tool_window.tool = Tools::No;
+                    }),
+                ),
+        ))
+        .with_child(
+            ZStack::new(
+                SizedBox::new(
+                    //image
+                    Painter::new(|ctx, data: &AppState, env| {
+                        //println!("height:{},width:{}",height,width);
+                        //println!("image:height:{},width:{}",height,width);
+
+                        let image = ctx
+                            .make_image(
+                                data.img.width(),
+                                data.img.height(),
+                                data.tool_window.img.clone().unwrap().raw_pixels(),
+                                druid_shell::piet::ImageFormat::RgbaPremul,
+                            )
+                            .unwrap();
+
+                        ctx.draw_image(
+                            &image,
+                            druid::Rect::from_center_size(
+                                data.tool_window.center,
+                                data.tool_window.img_size,
+                            ),
+                            druid_shell::piet::InterpolationMode::Bilinear,
+                        );
+
+                        let start = data.rect.start_point.unwrap();
+                        let end = data.rect.end_point.unwrap();
+                        let diff_x = end.x - start.x;
+                        let diff_y = end.y - start.y;
+
+                        let grid1 = druid::Rect::from_points(
+                            Point::new(start.x + diff_x / 3.0, start.y),
+                            Point::new(start.x + diff_x / 3.0 * 2.0, end.y),
+                        );
+                        let grid2 = druid::Rect::from_points(
+                            Point::new(start.x, start.y + diff_y / 3.0),
+                            Point::new(end.x, start.y + diff_y / 3.0 * 2.0),
+                        );
+                        if data.tool_window.rect_stroke != 0.0 {
+                            ctx.stroke(grid1, &druid::Color::WHITE, 0.5);
+                            ctx.stroke(grid2, &druid::Color::WHITE, 0.5);
                         }
-                        _=>{}
-                    }
-                    
-                    data.tool_window.rect_stroke=0.0;
-                    data.tool_window.rect_transparency=0.;
-                    data.tool_window.tool=Tools::No;
-                    
-                }))
-            .with_child(
-                Button::new("annulla").on_click(|ctx,data: &mut AppState,env|{
-                    match data.tool_window.tool {
-                        Tools::Resize=>{
-                            data.tool_window.rect_stroke=0.;
-                            data.tool_window.rect_transparency=0.;
-                        }
-                        Tools::Ellipse=>{
-                        }
-                        Tools::Text=>{
-                            data.tool_window.text="".to_string();
-                        }
-                        Tools::Highlight=>{
-                            data.color = data.color.with_alpha(1.);
-                        }
-                        _=>{}
-                    }
-                    data.tool_window.img=Some(data.img.clone());
-                    data.tool_window.tool=Tools::No;
-                })))
+                    }),
+                )
+                .width(500.)
+                .height(312.5)
+                .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
             )
-    .with_child(
-        ZStack::new(
-            SizedBox::new(
-
-                //image
-
-                Painter::new(|ctx,data:&AppState,env|{
-
-                    //println!("height:{},width:{}",height,width);
-                    //println!("image:height:{},width:{}",height,width);
-
-                    let image=ctx.make_image(
-                        data.img.width(),
-                        data.img.height(),
-                        data.tool_window.img.clone().unwrap().raw_pixels(),
-                        druid_shell::piet::ImageFormat::RgbaPremul).unwrap();
-    
-                    ctx.draw_image(
-                        &image, 
-                        druid::Rect::from_center_size(data.tool_window.center,data.tool_window.img_size),
-                        druid_shell::piet::InterpolationMode::Bilinear);
-
-                    let start = data.rect.start_point.unwrap();
-                    let end = data.rect.end_point.unwrap();
-                    let diff_x = end.x-start.x;
-                    let diff_y = end.y-start.y;
-
-                    let grid1 = druid::Rect::from_points(
-                        Point::new(start.x+diff_x/3.0, start.y),
-                        Point::new(start.x+diff_x/3.0*2.0, end.y)
-                    );
-                    let grid2 = druid::Rect::from_points(
-                        Point::new(start.x, start.y+diff_y/3.0),
-                        Point::new(end.x, start.y+diff_y/3.0*2.0)
-                    );
-                    if data.tool_window.rect_stroke != 0.0{
-                        ctx.stroke(grid1, &druid::Color::WHITE, 0.5);
-                        ctx.stroke(grid2, &druid::Color::WHITE, 0.5);
-                    }
-                })
-            )
-            .width(500.)
-            .height(312.5)
-            .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.)))
-
-        )
-        .with_centered_child(
+            .with_centered_child(
                 Painter::new(|ctx, data: &AppState, _env| {
                     match data.tool_window.tool {
-                        Tools::Resize=>{
-                            if let (Some(start), Some(end)) = (data.rect.start_point, data.rect.end_point) {
-                                if data.rect.size.width <= data.tool_window.width && data.rect.size.height <= data.tool_window.height {
+                        Tools::Resize => {
+                            if let (Some(start), Some(end)) =
+                                (data.rect.start_point, data.rect.end_point)
+                            {
+                                if data.rect.size.width <= data.tool_window.width
+                                    && data.rect.size.height <= data.tool_window.height
+                                {
                                     let shape = druid::Rect::from_points(
                                         data.rect.start_point.unwrap(),
                                         data.rect.end_point.unwrap(),
                                     );
-                                    ctx.fill(shape, &Color::rgba(0.0, 0.0, 0.0, data.tool_window.rect_transparency));
-                                    ctx.stroke(shape, &druid::Color::WHITE, data.tool_window.rect_stroke);
+                                    ctx.fill(
+                                        shape,
+                                        &Color::rgba(
+                                            0.0,
+                                            0.0,
+                                            0.0,
+                                            data.tool_window.rect_transparency,
+                                        ),
+                                    );
+                                    ctx.stroke(
+                                        shape,
+                                        &druid::Color::WHITE,
+                                        data.tool_window.rect_stroke,
+                                    );
                                 }
                             }
                         }
-                        Tools::Ellipse=>{
-                            if let (Some(center), Some(_end)) = (data.tool_window.shape.center, data.tool_window.shape.end_point) {
-
+                        Tools::Ellipse => {
+                            if let (Some(center), Some(_end)) = (
+                                data.tool_window.shape.center,
+                                data.tool_window.shape.end_point,
+                            ) {
                                 let color = data.color.as_rgba();
-                                let shape = druid::kurbo::Ellipse::new(center,data.tool_window.shape.radii.unwrap(), 0.0);
+                                let shape = druid::kurbo::Ellipse::new(
+                                    center,
+                                    data.tool_window.shape.radii.unwrap(),
+                                    0.0,
+                                );
                                 ctx.fill(
                                     shape,
-                                    &Color::rgba(color.0, color.1, color.2, data.selection_transparency),
+                                    &Color::rgba(
+                                        color.0,
+                                        color.1,
+                                        color.2,
+                                        data.selection_transparency,
+                                    ),
                                 );
                             }
                         }
-                        Tools::Highlight=>{
-                            if let (Some(start), Some(end)) = (data.tool_window.shape.start_point, data.tool_window.shape.end_point) {
-
+                        Tools::Highlight => {
+                            if let (Some(start), Some(end)) = (
+                                data.tool_window.shape.start_point,
+                                data.tool_window.shape.end_point,
+                            ) {
                                 //println!("highlight");
                                 let color = data.color.as_rgba();
 
-                                let shape = druid::kurbo::Line::new(start,end);
-                                
+                                let shape = druid::kurbo::Line::new(start, end);
+
                                 ctx.stroke(
                                     shape,
                                     &Color::rgba(color.0, color.1, color.2, color.3),
                                     10.,
                                 );
-
                             }
-                        }
-                        _=>{}
-                    }
-                    
-                })
-                .center()
-        ).controller(ResizeController {text_font:font}))
-
-
-            ////////////////////////roba di ciro
-            /*let new_win = WindowDesc::new(
-                            //Flex::column()
-                            /*.with_child(
-                                Button::new("Ok").on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
-                                    data.rect.size = druid::Rect::from_points(data.rect.start_point.unwrap(), data.rect.end_point.unwrap()).size();
-                                    data.screen(ctx);
-                                }),
-                            )
-                            .with_child(
-                                Button::new("Annulla").on_click(|ctx: &mut EventCtx, _data, _env| {
-                                    ctx.window().close();
-                                }),
-                            ) */
-                            //.with_child(paint)
-                            paint.controller(Enter {
-                                id_t: TimerToken::next(),
-                                id_t2: TimerToken::next(),
-                            }),
-                        )
-                        .show_titlebar(false)
-                        .transparent(true)
-                        .window_size((
-                            data.rect.size.width * data.scale as f64,
-                            data.rect.size.height * data.scale as f64,
-                        ))
-                        .resizable(false)
-                        .set_position((0., 0.));
-                        ctx.new_window(new_win);
-                    },
-                )*/
-            
-                    
-         //toglie questa parentesi///////////////////////roba di giacomo
-
-           /*  .with_centered_child(Painter::new(|ctx, data: &AppState, _env| {
-                if let (Some(start), Some(end)) = (data.ellipse.start_point, data.ellipse.end_point)
-                {
-                    let shape;
-                    match data.tool {
-                        Tools::Ellipse => {
-                            let radius1 = (start.x - end.x) / 2.;
-                            let radius2 = (start.y - end.y) / 2.;
-                            let c1 = end.x + radius1;
-                            let c2 = end.y + radius2;
-                            let center = druid::Point::new(c1, c2);
-                            let radii = druid::Vec2::new(radius1.abs(), radius2.abs());
-                            shape = druid::kurbo::Ellipse::new(center, radii, 0.0);
-                            ctx.fill(
-                                shape,
-                                &Color::rgba(0.0, 255.0, 0.0, data.selection_transparency),
-                            );
-                        }
-                        Tools::Text => {
-                            //let c=ctx.draw_text("ok", druid::Point::new(0.,0.));
-                            //let d=druid::piet::Text::new_textlayout(&mut self, "ciao");
                         }
                         _ => {}
                     }
-                    //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
-                }
-            }))
-            .controller(CircleController),
+                })
+                .center(),
+            )
+            .controller(ResizeController { text_font: font }),
         )
-        .with_child(
-            Flex::row()
-                
-        ) */
+
+    ////////////////////////roba di ciro
+    /*let new_win = WindowDesc::new(
+                //Flex::column()
+                /*.with_child(
+                    Button::new("Ok").on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
+                        data.rect.size = druid::Rect::from_points(data.rect.start_point.unwrap(), data.rect.end_point.unwrap()).size();
+                        data.screen(ctx);
+                    }),
+                )
+                .with_child(
+                    Button::new("Annulla").on_click(|ctx: &mut EventCtx, _data, _env| {
+                        ctx.window().close();
+                    }),
+                ) */
+                //.with_child(paint)
+                paint.controller(Enter {
+                    id_t: TimerToken::next(),
+                    id_t2: TimerToken::next(),
+                }),
+            )
+            .show_titlebar(false)
+            .transparent(true)
+            .window_size((
+                data.rect.size.width * data.scale as f64,
+                data.rect.size.height * data.scale as f64,
+            ))
+            .resizable(false)
+            .set_position((0., 0.));
+            ctx.new_window(new_win);
+        },
+    )*/
+
+    //toglie questa parentesi///////////////////////roba di giacomo
+
+    /*  .with_centered_child(Painter::new(|ctx, data: &AppState, _env| {
+            if let (Some(start), Some(end)) = (data.ellipse.start_point, data.ellipse.end_point)
+            {
+                let shape;
+                match data.tool {
+                    Tools::Ellipse => {
+                        let radius1 = (start.x - end.x) / 2.;
+                        let radius2 = (start.y - end.y) / 2.;
+                        let c1 = end.x + radius1;
+                        let c2 = end.y + radius2;
+                        let center = druid::Point::new(c1, c2);
+                        let radii = druid::Vec2::new(radius1.abs(), radius2.abs());
+                        shape = druid::kurbo::Ellipse::new(center, radii, 0.0);
+                        ctx.fill(
+                            shape,
+                            &Color::rgba(0.0, 255.0, 0.0, data.selection_transparency),
+                        );
+                    }
+                    Tools::Text => {
+                        //let c=ctx.draw_text("ok", druid::Point::new(0.,0.));
+                        //let d=druid::piet::Text::new_textlayout(&mut self, "ciao");
+                    }
+                    _ => {}
+                }
+                //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
+            }
+        }))
+        .controller(CircleController),
+    )
+    .with_child(
+        Flex::row()
+
+    ) */
 
     /* .with_child(
         Painter::new(|ctx, data: &AppState, _env| {
