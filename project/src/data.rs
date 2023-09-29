@@ -8,6 +8,7 @@ use druid::{
 use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use druid_shell::piet::d2d::Bitmap;
 use image::{ImageBuffer, Rgba};
+use num_complex::ComplexFloat;
 use std::path::Path;
 use std::time::Duration;
 use rusttype::{Scale,Font};
@@ -430,6 +431,7 @@ pub enum Direction {
     UpRight,
     DownLeft,
     DownRight,
+    All,
 }
 
 //Controller to take screen after the custom shortcut
@@ -460,15 +462,20 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                     is_composing: true,
                 };
 
+                println!("{:?} {:?}", keyboard_event.modifiers, keyboard_event.key);
+
                 ShortcutMatcher::from_event(keyboard_event).shortcut(
                     Modifiers::from_bits(data.mods).expect("Not a modifier"),
                     Key::Character(char::from_u32(data.key).expect("Not a char").to_string()),
                     || {
                         println!("shortcut matcher");
+                        data.is_full_screen=true;
                         self.id_t = ctx.request_timer(Duration::from_millis(100));
+                        /*
                         ctx.window()
                             .clone()
                             .set_window_state(WindowState::Minimized);
+                        */
                     },
                 );
             }
@@ -532,7 +539,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
                 repeat: key.repeat,
                 is_composing: true,
             };
-            println!("{:?} {:?}", keyboard_event.modifiers, keyboard_event.key);
+            println!("{:?}", keyboard_event.key);
+            println!("{:?}",keyboard_event.modifiers);
 
             data.mods = keyboard_event.modifiers.bits();
             data.key = keyboard_event.key.legacy_charcode();
@@ -597,10 +605,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                     };
                     data.from = mouse_down.pos;
                     data.rect.start_point = Some(mouse_button.pos);
-                    data.rect.end_point = None;
+                    data.rect.end_point = Some(mouse_button.pos);
                 }
                 Event::MouseUp(mouse_button) => {
-                    let mouse_up = MouseEvent {
+                    let _mouse_up = MouseEvent {
                         pos: mouse_button.pos,
                         window_pos: mouse_button.window_pos,
                         buttons: mouse_button.buttons,
@@ -624,12 +632,11 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                     match data.delay {
                         Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(100)),
                         _ => {
-                            self.id_t =
-                                ctx.request_timer(Duration::from_secs(data.delay.set_timer()))
+                            self.id_t =ctx.request_timer(Duration::from_secs(data.delay.set_timer()))
                         }
                     }
 
-                    //ctx.window().clone().hide();
+                    ctx.window().clone().hide();
                 }
                 Event::MouseMove(mouse_button) => {
                     if !data.rect.start_point.is_none() {
@@ -638,7 +645,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                 }
                 Event::Timer(id) => {
                     if self.id_t == *id {
-                        //ctx.window().clone().show();
+                        ctx.window().clone().show();
                         self.id_t2 = ctx.request_timer(Duration::from_millis(100));
                         self.id_t = TimerToken::next();
                     } else if self.id_t2 == *id {
@@ -653,7 +660,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
             match event {
                 Event::Timer(id) => {
                     if self.id_t == *id {
-                        ctx.window().clone().set_window_state(WindowState::Restored);
+                        //ctx.window().clone().set_window_state(WindowState::Restored);
+                        ctx.window().clone().show();
                         self.id_t2 = ctx.request_timer(Duration::from_millis(100));
                         self.id_t = TimerToken::next();
                     } else if self.id_t2 == *id {
@@ -664,16 +672,18 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                 _ => {
                     data.is_full_screen = true;
                     match data.delay {
-                        Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(500)),
+                        Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(100)),
                         _ => {
                             self.id_t =
                                 ctx.request_timer(Duration::from_secs(data.delay.set_timer()))
                         }
                     }
 
-                    ctx.window()
+                    ctx.window().clone().hide();
+                    /*ctx.window()
                         .clone()
                         .set_window_state(WindowState::Minimized)
+                        */
                 }
             }
         }
@@ -721,37 +731,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
         env: &Env,
     ) {
 
-        //data.tool_window.points.push(data.rect.start_point.unwrap());
-        /*
-        println!("{:?}",event);
-        if data.resize {
-            let width = data.rect.size.width;
-            let height = data.rect.size.height;
-            if data.rect.size.width > 500. {
-                if data.rect.size.height > 312.5 {
-                    data.rect.size.width = 500.;
-                    data.rect.size.height = height / (width / 500.);
-                    if data.rect.size.height > 312.5 {
-                        data.rect.size.height = 312.5;
-                        data.rect.size.width = width / (height / 312.5);
-                    }
-                } else {
-                    data.rect.size.width = 500.;
-                    data.rect.size.height = height / (width / 500.);
-                }
-            } else {
-                data.rect.size.height = 312.5;
-                data.rect.size.width = data.rect.size.width / (height / 312.5);
-            }
-            let rect = druid::Rect::from_center_size(Point::new(250., 156.25), data.rect.size);
-            data.rect.start_point.replace(rect.origin());
-            data.rect
-                .end_point
-                .replace(Point::new(rect.max_x(), rect.max_y()));
-            data.resize = false;
-        }
-        */
-
         match data.tool_window.tool {
             Tools::Resize=>{
                 if let Event::MouseDown(_mouse_button) = event {
@@ -789,7 +768,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         Point::new(250., 156.25),
                         Size::new(data.rect.size.width, data.rect.size.height),
                     ); */
-        
                     //sposto senza premere
                     if data.cursor.down == false {
                         // cambia cursore -> diagonale
@@ -839,6 +817,12 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                 data.cursor.typ = Cursor::ResizeUpDown;
                                 data.cursor.over = Some(Direction::Up);
                             }
+                        } else if (mouse_button.pos.x<=(rect.min_x()+(rect.max_x()-rect.min_x())*0.6))
+                            && (mouse_button.pos.x>=(rect.min_x()+(rect.max_x()-rect.min_x())*0.4))
+                            && (mouse_button.pos.y<=(rect.min_y()+(rect.max_y()-rect.min_y())*0.6))
+                            && (mouse_button.pos.y>=(rect.min_y()+(rect.max_y()-rect.min_y())*0.4)){
+                                data.cursor.typ=Cursor::Crosshair;
+                                data.cursor.over=Some(Direction::All);
                         } else {
                             data.cursor.typ = Cursor::Arrow;
                             data.cursor.over = None;
@@ -972,6 +956,19 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                     data.rect
                                         .p3
                                         .replace(Point::new(data.rect.p3.unwrap().x, mouse_button.pos.y));
+                                }
+                            }
+                            Some(Direction::All)=>{
+                                if mouse_button.pos.x>(data.tool_window.origin.x+data.rect.size.width/2.) 
+                                && (mouse_button.pos.x<data.tool_window.origin.x+data.tool_window.img_size.width-data.rect.size.width/2.)
+                                && mouse_button.pos.y>(data.tool_window.origin.y+data.rect.size.height/2.) 
+                                && (mouse_button.pos.y<data.tool_window.origin.y+data.tool_window.img_size.height-data.rect.size.height/2.){
+                                    let rect2=druid::Rect::from_center_size(mouse_button.pos, data.rect.size);
+
+                                    data.rect.start_point.replace(rect2.origin());
+                                    data.rect.end_point.replace(Point::new(rect2.max_x(), rect2.max_y()));
+                                    data.rect.p2=Some(Point::new(0., rect2.max_y()));
+                                    data.rect.p3=Some(Point::new(rect2.max_x(), 0.));
                                 }
                             }
                             None => return, // non è sopra il bordo

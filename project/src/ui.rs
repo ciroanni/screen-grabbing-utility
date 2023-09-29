@@ -34,6 +34,8 @@ pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
                             current.close();
                             data.rect.start_point = Some(Point::new(0., 0.));
                             data.rect.end_point = Some(data.size);
+                            data.rect.p2=Some(Point::new(0., data.size.y));
+                            data.rect.p3=Some(Point::new(data.size.x, 0.));
                             let new_win = WindowDesc::new(drag_motion_ui(true))
                                 .show_titlebar(false)
                                 .transparent(true)
@@ -166,6 +168,8 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         data.rect
                             .end_point
                             .replace(Point::new(rect.max_x(), rect.max_y()));
+                        data.rect.p2=Some(Point::new(0., rect.max_y()));
+                        data.rect.p3=Some(Point::new(rect.max_x(), 0.));
                         data.tool_window.rect_stroke = 2.0;
                         data.tool_window.rect_transparency = 0.4;
 
@@ -355,24 +359,6 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             ),
                             druid_shell::piet::InterpolationMode::Bilinear,
                         );
-
-                        let start = data.rect.start_point.unwrap();
-                        let end = data.rect.end_point.unwrap();
-                        let diff_x = end.x - start.x;
-                        let diff_y = end.y - start.y;
-
-                        let grid1 = druid::Rect::from_points(
-                            Point::new(start.x + diff_x / 3.0, start.y),
-                            Point::new(start.x + diff_x / 3.0 * 2.0, end.y),
-                        );
-                        let grid2 = druid::Rect::from_points(
-                            Point::new(start.x, start.y + diff_y / 3.0),
-                            Point::new(end.x, start.y + diff_y / 3.0 * 2.0),
-                        );
-                        if data.tool_window.rect_stroke != 0.0 {
-                            ctx.stroke(grid1, &druid::Color::WHITE, 0.5);
-                            ctx.stroke(grid2, &druid::Color::WHITE, 0.5);
-                        }
                     }),
                 )
                 .width(500.)
@@ -393,6 +379,24 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                         data.rect.start_point.unwrap(),
                                         data.rect.end_point.unwrap(),
                                     );
+                                    let start = data.rect.start_point.unwrap();
+                                    let end = data.rect.end_point.unwrap();
+                                    let diff_x = end.x - start.x;
+                                    let diff_y = end.y - start.y;
+
+                                    let grid1 = druid::Rect::from_points(
+                                        Point::new(start.x + diff_x / 3.0, start.y),
+                                        Point::new(start.x + diff_x / 3.0 * 2.0, end.y),
+                                    );
+                                    let grid2 = druid::Rect::from_points(
+                                        Point::new(start.x, start.y + diff_y / 3.0),
+                                        Point::new(end.x, start.y + diff_y / 3.0 * 2.0),
+                                    );
+                                    if data.tool_window.rect_stroke != 0.0 {
+                                        ctx.stroke(grid1, &druid::Color::WHITE, 0.5);
+                                        ctx.stroke(grid2, &druid::Color::WHITE, 0.5);
+                                    }
+
                                     ctx.fill(
                                         shape,
                                         &Color::rgba(
@@ -421,6 +425,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                     data.tool_window.shape.radii.unwrap(),
                                     0.0,
                                 );
+
                                 ctx.fill(
                                     shape,
                                     &Color::rgba(
