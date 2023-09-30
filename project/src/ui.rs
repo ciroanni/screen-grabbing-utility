@@ -81,6 +81,7 @@ pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
                 .controller(Enter {
                     id_t: TimerToken::next(),
                     id_t2: TimerToken::next(),
+                    locks: [false;5],
                 }),
         )
         .with_spacer(50.)
@@ -108,7 +109,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                 .with_placeholder("es. press ALT+S")
                 .expand_width()
                 .lens(AppState::shortcut)
-                .controller(ShortcutController {}),
+                .controller(ShortcutController{locks: [false;5]}),
         )
 }
 

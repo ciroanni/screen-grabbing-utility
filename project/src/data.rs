@@ -111,15 +111,46 @@ pub struct AppState {
     pub annulla: bool,
     pub tool_window: AnnotationTools,
     pub color: Color,
+    pub screen_min_x: u32,
+    pub screen_min_y: u32,
 }
 
 
 impl AppState {
     pub fn new(scale: f32, img: ImageBuf) -> Self {
         let display_info = screenshots::DisplayInfo::all().expect("Err");
+        let mut min_x=0;
+        let mut min_y=0;
+        let mut width = display_info[0].width as f32 * display_info[0].scale_factor;
+        let mut height = display_info[0].height as f32 * display_info[0].scale_factor;
 
-        let width = display_info[0].width as f32 * display_info[0].scale_factor;
-        let height = display_info[0].height as f32 * display_info[0].scale_factor;
+        //completamente da rivedere
+        /*
+        if display_info.len()>1{
+            for i in 1..display_info.len(){
+                if display_info[i].x<min_x{
+
+                    if display_info[i].x+(display_info[i].width as f32*display_info[i].scale_factor) as i32<=min_x{//verifico se la coordinata x dello schermo è minore solo perchè è uno schermo più grande
+                        width=width+display_info[i].width as f32*display_info[i].scale_factor;
+                    }else {
+                        width=display_info[i].width as f32*display_info[i].scale_factor;
+                    }
+                    width=width+(min_x-display_info[i].x) as f32;
+                    min_x=display_info[i].x;
+                    if display_info[i].height as f32>height{
+                        height=display_info[i].height as f32;
+                    }
+                }
+                if display_info[i].y<min_y{
+                    min_y=display_info[i].y;
+                    height=height+display_info[i].height as f32*display_info[i].scale_factor;
+                    if display_info[i].width as f32>width{
+                        width=display_info[i].width as f32;
+                    }
+                }
+            }
+        }
+        */
 
         AppState {
             name: "".to_string(),
@@ -144,6 +175,8 @@ impl AppState {
             annulla: true,
             tool_window:AnnotationTools::default(),
             color:Color::rgba(0.,0.,0.,1.),
+            screen_min_x:0,
+            screen_min_y:0,
         }
     }
 
@@ -186,33 +219,6 @@ impl AppState {
         let width = self.img.width() as f64;
         let height = self.img.height() as f64;
         println!("w: {}, h: {}", width, height);
-        /* if width>=self.tool_window.width{
-            if height>=self.tool_window.height{
-                if height-self.tool_window.height>width-self.tool_window.width{
-                    self.tool_window.img_size.height=self.tool_window.height;
-                    self.tool_window.img_size.width=width*(self.tool_window.height/height);
-                }else {
-                    self.tool_window.img_size.width=self.tool_window.width;
-                    self.tool_window.img_size.height=height*(self.tool_window.width/width);
-                }
-            }else {
-                self.tool_window.img_size.width=self.tool_window.width;
-                self.tool_window.img_size.height=height*(self.tool_window.width/width);
-            }
-        }else {
-            if height>self.tool_window.height{
-                self.tool_window.img_size.height=self.tool_window.height;
-                self.tool_window.img_size.width=width*(self.tool_window.height/height);
-            }else {
-                if self.tool_window.height-height>self.tool_window.width-width{
-                    self.tool_window.img_size.width=self.tool_window.width;
-                    self.tool_window.img_size.height=height*(self.tool_window.width/width);
-                }else {
-                    self.tool_window.img_size.height=self.tool_window.height;
-                    self.tool_window.img_size.width=width*(self.tool_window.height/height);
-                }
-            }
-        } */
 
         self.tool_window.img_size.width = self.tool_window.width;
         self.tool_window.img_size.height = height / (width / self.tool_window.width);
@@ -220,23 +226,6 @@ impl AppState {
             self.tool_window.img_size.height = self.tool_window.height;
             self.tool_window.img_size.width = width / (height / self.tool_window.height);
         }
-
-        /* if width >= self.tool_window.width {
-            if height >= self.tool_window.height {
-                self.tool_window.img_size.width = self.tool_window.width;
-                self.tool_window.img_size.height = height / (width / self.tool_window.width);
-                if self.tool_window.img_size.height > self.tool_window.height {
-                    self.tool_window.img_size.height = self.tool_window.height;
-                    self.tool_window.img_size.width = width / (height / self.tool_window.height);
-                }
-            } else {
-                self.tool_window.img_size.width = self.tool_window.width;
-                self.tool_window.img_size.height = height / (width / self.tool_window.width);
-            }
-        } else {
-            self.tool_window.img_size.height = 312.5;
-            self.tool_window.img_size.width = width / (height / self.tool_window.height);
-        } */
 
         //println!("inizializzazione altezza:{},{}",self.tool_window.img_size.height,self.img.height());
         //println!("inizializzazione larghezza:{},{}",self.tool_window.img_size.width,self.img.width());
@@ -438,6 +427,7 @@ pub enum Direction {
 pub struct Enter {
     pub id_t: TimerToken,
     pub id_t2: TimerToken,
+    pub locks: [bool;5],
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
@@ -452,7 +442,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
         ctx.request_focus();
         match event {
             Event::KeyDown(key) => {
-                let keyboard_event = KeyboardEvent {
+                let mut keyboard_event = KeyboardEvent {
                     state: key.state,
                     key: key.key.clone(),
                     code: key.code,
@@ -462,8 +452,92 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                     is_composing: true,
                 };
 
-                println!("{:?} {:?}", keyboard_event.modifiers, keyboard_event.key);
+                //println!("{:?} {:?}", keyboard_event.modifiers, keyboard_event.key);
 
+                match keyboard_event.key {
+                    druid::keyboard_types::Key::CapsLock=>{
+                        println!("capslock");
+                        self.locks[0]=true;
+                    }
+                    druid::keyboard_types::Key::FnLock=>{
+                        self.locks[1]=true;
+                    }
+                    druid::keyboard_types::Key::NumLock=>{
+                        self.locks[2]=true;
+                    }
+                    druid::keyboard_types::Key::ScrollLock=>{
+                        self.locks[3]=true;
+                    }
+                    druid::keyboard_types::Key::SymbolLock=>{
+                        self.locks[4]=true;
+                    }
+                    _=>{}
+                }
+
+                let mut ind=0;
+                for i in self.locks{
+                    //println!("{:?}",i);
+                    match ind {
+                        0=>{
+                            if i{
+                                keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::CAPS_LOCK);
+                            }else {
+                                keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::CAPS_LOCK);
+                            }
+                        },
+                        1=>{
+                            if i{
+                                keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::FN_LOCK);
+                            }else {
+                                keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::FN_LOCK);
+                            }                    
+                        },
+                        2=>{
+                            if i{
+                                keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::NUM_LOCK);
+                            }else {
+                                keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::NUM_LOCK);
+                            }                    
+                        },
+                        3=>{
+                            if i{
+                                keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::SCROLL_LOCK);
+                            }else {
+                                keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::SCROLL_LOCK);
+                            }                    
+                        },
+                        4=>{
+                            if i{
+                                keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::SYMBOL_LOCK);
+                            }else {
+                                keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::SYMBOL_LOCK);
+                            }                    
+                        },
+                        _=>{}
+                    }
+                    ind=ind+1;
+                }
+
+                //println!("mods:{:?}",keyboard_event.modifiers);
+                //println!("saved:{:?}",Modifiers::from_bits(data.mods));
+
+                /*
+                if keyboard_event.modifiers==druid::keyboard_types::Modifiers::from_bits(data.mods).unwrap(){
+                    println!("sono uguali");
+                }
+                */
+
+                let k=char::from_u32(data.key).unwrap();
+
+                if keyboard_event.modifiers==druid::keyboard_types::Modifiers::from_bits(data.mods).unwrap() 
+                && (keyboard_event.key==Key::Character(k.to_lowercase().to_string()) || keyboard_event.key==Key::Character(k.to_uppercase().to_string())){
+                    println!("shortcut matcher");
+                    data.is_full_screen=true;
+                    self.id_t = ctx.request_timer(Duration::from_millis(100));
+                    self.locks=[false;5];
+                }
+
+                /*
                 ShortcutMatcher::from_event(keyboard_event).shortcut(
                     Modifiers::from_bits(data.mods).expect("Not a modifier"),
                     Key::Character(char::from_u32(data.key).expect("Not a char").to_string()),
@@ -471,6 +545,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                         println!("shortcut matcher");
                         data.is_full_screen=true;
                         self.id_t = ctx.request_timer(Duration::from_millis(100));
+                        self.locks=[false;5];
                         /*
                         ctx.window()
                             .clone()
@@ -478,6 +553,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                         */
                     },
                 );
+                */
             }
             Event::Timer(id) => {
                 if self.id_t == *id {
@@ -518,7 +594,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
 }
 
 //Controller to save custom shortcut
-pub struct ShortcutController;
+
+pub struct ShortcutController{
+    pub locks:[bool;5],
+}
 
 impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
     fn event(
@@ -530,7 +609,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
         env: &Env,
     ) {
         if let Event::KeyDown(key) = event {
-            let keyboard_event = KeyboardEvent {
+            let mut keyboard_event = KeyboardEvent {
                 state: key.state,
                 key: key.key.clone(),
                 code: key.code,
@@ -539,8 +618,79 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
                 repeat: key.repeat,
                 is_composing: true,
             };
+            
             println!("{:?}", keyboard_event.key);
-            println!("{:?}",keyboard_event.modifiers);
+            /*println!("{:?}",keyboard_event.modifiers);
+            println!("{:?}",keyboard_event.state);
+            println!("{:?}",keyboard_event.repeat);
+            println!("{:?}",self.locks);*/
+
+            match keyboard_event.key {
+                druid::keyboard_types::Key::CapsLock=>{
+                    println!("capslock");
+                    self.locks[0]=true;
+                }
+                druid::keyboard_types::Key::FnLock=>{
+                    self.locks[1]=true;
+                }
+                druid::keyboard_types::Key::NumLock=>{
+                    self.locks[2]=true;
+                }
+                druid::keyboard_types::Key::ScrollLock=>{
+                    self.locks[3]=true;
+                }
+                druid::keyboard_types::Key::SymbolLock=>{
+                    self.locks[4]=true;
+                }
+                _=>{}
+            }
+
+            println!("prima:{:?}",keyboard_event.modifiers);
+            let mut ind=0;
+            for i in self.locks{
+                //println!("{:?}",i);
+                match ind {
+                    0=>{
+                        if i{
+                            keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::CAPS_LOCK);
+                        }else {
+                            keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::CAPS_LOCK);
+                        }
+                    },
+                    1=>{
+                        if i{
+                            keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::FN_LOCK);
+                        }else {
+                            keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::FN_LOCK);
+                        }                    
+                    },
+                    2=>{
+                        if i{
+                            keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::NUM_LOCK);
+                        }else {
+                            keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::NUM_LOCK);
+                        }                    
+                    },
+                    3=>{
+                        if i{
+                            keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::SCROLL_LOCK);
+                        }else {
+                            keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::SCROLL_LOCK);
+                        }                    
+                    },
+                    4=>{
+                        if i{
+                            keyboard_event.modifiers.insert(druid::keyboard_types::Modifiers::SYMBOL_LOCK);
+                        }else {
+                            keyboard_event.modifiers.remove(druid::keyboard_types::Modifiers::SYMBOL_LOCK);
+                        }                    
+                    },
+                    _=>{}
+                }
+                ind=ind+1;
+            }
+
+            println!("dopo:{:?}",keyboard_event.modifiers);
 
             data.mods = keyboard_event.modifiers.bits();
             data.key = keyboard_event.key.legacy_charcode();
