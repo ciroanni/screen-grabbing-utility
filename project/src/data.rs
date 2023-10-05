@@ -207,8 +207,8 @@ impl AppState {
         } else {
             //prendo lo start point x e sommo il pos x poi prendi display x e sottrai/sommi pos e poi quella la sottrai a quella che hai ottenuto prima funziona
             c = b.capture_area(
-                (self.rect.start_point.unwrap().x * self.scale as f64 - (display.x as f32 * display.scale_factor) as f64 - (self.pos.x.abs() * self.scale as f64)) as i32,
-                (self.rect.start_point.unwrap().y * self.scale as f64 - (display.y as f32 * display.scale_factor) as f64 - (self.pos.y.abs() * self.scale as f64)) as i32,
+                (self.rect.start_point.unwrap().x * self.scale as f64 - (display.x as f32 * display.scale_factor) as f64 + (self.pos.x * self.scale as f64)) as i32,
+                (self.rect.start_point.unwrap().y * self.scale as f64 - (display.y as f32 * display.scale_factor) as f64 + (self.pos.y * self.scale as f64)) as i32,
                 (self.rect.size.width as f32 * self.scale) as u32,
                 (self.rect.size.height as f32 * self.scale) as u32,
             );
