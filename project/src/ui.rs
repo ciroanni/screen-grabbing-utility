@@ -17,11 +17,48 @@ use imageproc::filter;
 use rusttype::Font;
 use std::borrow::Cow;
 
-pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
+pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
     let display_info = screenshots::DisplayInfo::all().expect("Err");
+    //let scale = display_info[0].scale_factor;
+    let mut width = (display_info[0].width as f32 * display_info[0].scale_factor) as u32;
+    let mut height = (display_info[0].height as f32 * display_info[0].scale_factor) as u32;
+    let mut pos = Point::new(0., 0.);
+    
+    for display in display_info.iter() {
+        if display.x < 0 {
+            if display.x + display.width as i32 == 0 {
+                width += (display.width as f32 * display.scale_factor) as u32;
+            } else {
+                width = (width as i32 - display.x) as u32
+            }
+            pos.x = ((display.x as f32 / scale ) * display.scale_factor as f32) as f64;
+        } else if display.x as f32/ scale  >= display_info[0].width as f32 {
+            width += (display.width as f32 * display.scale_factor) as u32;
+        }else{
+            if (display.x as f32/ scale) + (display.width as f32 / scale) 
+                > display_info[0].width as f32
+            {
+                width += (display.width as f32 * display.scale_factor) as u32 - (display_info[0].width as f32 * scale  - display.x as f32) as u32;
+            }
+        }
 
-    let width = display_info[0].width as f64;
-    let height = display_info[0].height as f64;
+        if display.y < 0 { 
+            if display.y + display.height as i32 == 0 {
+                height += (display.height as f32 * display.scale_factor) as u32;
+            } else {
+                height = (height as i32 - display.y) as u32
+            }
+            pos.y = ((display.y as f32 / scale) * display.scale_factor as f32) as f64;
+        } else if display.y as f32/ scale >= display_info[0].height as f32{
+            height += (display.height as f32 * display.scale_factor) as u32;
+        } else {
+            if (display.y as f32/ scale ) + (display.height as f32 / scale)
+                > display_info[0].height as f32
+            {
+                height += (display.height as f32 * display.scale_factor) as u32 - (display_info[0].height as f32 * scale - display.y as f32) as u32;
+            }
+        }
+    }
 
     let flex_col = Flex::column();
     flex_col
@@ -34,14 +71,14 @@ pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
                             current.close();
                             data.rect.start_point = Some(Point::new(0., 0.));
                             data.rect.end_point = Some(data.size);
-                            data.rect.p2=Some(Point::new(0., data.size.y));
-                            data.rect.p3=Some(Point::new(data.size.x, 0.));
+                            data.rect.p2 = Some(Point::new(0., data.size.y));
+                            data.rect.p3 = Some(Point::new(data.size.x, 0.));
                             let new_win = WindowDesc::new(drag_motion_ui(true))
                                 .show_titlebar(false)
                                 .transparent(true)
-                                .window_size((width, height))
+                                .window_size((width as f64, height as f64))
                                 .resizable(false)
-                                .set_position((0.0, 0.0));
+                                .set_position(pos);
                             ctx.new_window(new_win);
                         })
                         .fix_width(100.0)
@@ -67,12 +104,13 @@ pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
                             data.rect = SelectionRectangle::default();
                             let current = ctx.window().clone();
                             current.close();
+                            println!("wid: {}, hei: {}, pos: {}", width, height, pos);
                             let new_win = WindowDesc::new(drag_motion_ui(false))
                                 .show_titlebar(false)
                                 .transparent(true)
-                                .window_size((width, height))
+                                .window_size((width as f64, height as f64))
                                 .resizable(false)
-                                .set_position((0.0, 0.0));
+                                .set_position(pos);
                             ctx.new_window(new_win);
                         })
                         .fix_width(100.0)
@@ -81,7 +119,7 @@ pub fn build_ui(img: ImageBuf) -> impl Widget<AppState> {
                 .controller(Enter {
                     id_t: TimerToken::next(),
                     id_t2: TimerToken::next(),
-                    locks: [false;5],
+                    locks: [false; 5],
                 }),
         )
         .with_spacer(50.)
@@ -109,7 +147,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                 .with_placeholder("es. press ALT+S")
                 .expand_width()
                 .lens(AppState::shortcut)
-                .controller(ShortcutController{locks: [false;5]}),
+                .controller(ShortcutController { locks: [false; 5] }),
         )
 }
 
@@ -139,7 +177,7 @@ pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
 pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img.clone());
     let font = Font::try_from_vec(Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8])).unwrap();
-    let points=Vec::<Point>::new();
+    let points = Vec::<Point>::new();
     //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
 
     Flex::column()
@@ -169,8 +207,8 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         data.rect
                             .end_point
                             .replace(Point::new(rect.max_x(), rect.max_y()));
-                        data.rect.p2=Some(Point::new(0., rect.max_y()));
-                        data.rect.p3=Some(Point::new(rect.max_x(), 0.));
+                        data.rect.p2 = Some(Point::new(0., rect.max_y()));
+                        data.rect.p3 = Some(Point::new(rect.max_x(), 0.));
                         data.tool_window.rect_stroke = 2.0;
                         data.tool_window.rect_transparency = 0.4;
 
@@ -325,7 +363,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             Tools::Highlight => {
                                 data.color = data.color.with_alpha(1.);
                             }
-                            Tools::Random=>{
+                            Tools::Random => {
                                 println!("random");
                             }
                             _ => {}
@@ -455,17 +493,16 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 );
                             }
                         }
-                        Tools::Random=>{
-
-                            if let Some(point)=data.tool_window.random_point{
+                        Tools::Random => {
+                            if let Some(point) = data.tool_window.random_point {
                                 let color = data.color.as_rgba();
                                 let shape = druid::kurbo::Circle::new(point, 10.);
-    
-                                ctx.fill(
+
+                                ctx.fill(shape, &Color::rgba(color.0, color.1, color.2, color.3));
+                                ctx.fill_even_odd(
                                     shape,
                                     &Color::rgba(color.0, color.1, color.2, color.3),
-                                );
-                                ctx.fill_even_odd(shape, &Color::rgba(color.0, color.1, color.2, color.3),)
+                                )
                             }
                         }
                         _ => {}
@@ -473,7 +510,10 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 })
                 .center(),
             )
-            .controller(ResizeController { text_font: font ,points:points}),
+            .controller(ResizeController {
+                text_font: font,
+                points: points,
+            }),
         )
 
     ////////////////////////roba di ciro
