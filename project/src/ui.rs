@@ -259,8 +259,166 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     ])
                     .align_left()
                     .lens(AppState::color),
-                ),
-            Flex::row()
+                ),Either::new(|data, _env| data.tool_window.tool == Tools::Text, 
+                    Flex::row()
+                        .with_child(
+                            Button::new("salva").on_click(move |_ctx, data: &mut AppState, _env| {
+
+                                if let Some(point)=data.tool_window.text_pos{
+
+                                    let mut image: ImageBuffer<Rgba<u8>, Vec<u8>>=ImageBuffer::from_vec(
+                                        data.img.width() as u32,
+                                        data.img.height() as u32,
+                                    data.tool_window.img.clone().unwrap().raw_pixels().to_vec()).unwrap();
+            
+                                    let color = data.color.as_rgba8();
+            
+                                    let strings=data.text.lines();
+            
+                                    let mut deref=5.;
+                                    for s in strings{
+                                        imageproc::drawing::draw_text_mut(
+                                            &mut image,
+                                            Rgba([color.0, color.1, color.2, 255]),
+                                            ((point.x-data.tool_window.origin.x)*(data.img.width() as f64/data.tool_window.img_size.width)) as i32,
+                                            ((point.y+deref-data.tool_window.origin.y)*(data.img.height() as f64/data.tool_window.img_size.height)) as i32,
+                                            rusttype::Scale{x:21.*(data.img.width() as f64/data.tool_window.img_size.width) as f32,y:22.*(data.img.height() as f64/data.tool_window.img_size.height) as f32},
+                                            &font.clone(),
+                                            s,
+                                        );
+    
+                                        deref=deref+25.;
+                                    }
+                                    
+                                    data.tool_window.img=Some(ImageBuf::from_raw(
+                                        image.clone().into_raw(),
+                                        druid::piet::ImageFormat::RgbaPremul,
+                                        image.clone().width() as usize,
+                                        image.clone().height() as usize,
+                                    ));
+                                    data.img = data.tool_window.img.clone().unwrap();
+                                    data.tool_window.text_pos=None;
+                                }
+                                
+                                data.text = "".to_string();
+                                data.tool_window.tool = Tools::No;
+                            }),
+                        )
+                        .with_child(
+                            Button::new("annulla").on_click(|_ctx, data: &mut AppState, _env| {
+                                data.text="".to_string();
+                                data.tool_window.text_pos=None;
+                                data.tool_window.img = Some(data.img.clone());
+                                data.tool_window.tool = Tools::No;
+                            }),
+                        )
+                        .with_child(
+                            TextBox::multiline()
+                                .with_placeholder("scrivi qui")
+                                .fix_width(300.)
+                                .fix_height(50.)
+                                .lens(AppState::text)
+                        ),
+                        Flex::row()
+                        .with_child( 
+                            Button::new("salva").on_click(move |ctx, data: &mut AppState, env| {
+                                match data.tool_window.tool {
+                                    Tools::Resize => {
+                                    let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> =
+                                        ImageBuffer::from_vec(
+                                            data.img.width() as u32,
+                                            data.img.height() as u32,
+                                            data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
+                                        )
+                                        .unwrap();
+                                    let im = image.sub_image(
+                                        ((data.rect.start_point.unwrap().x - data.tool_window.origin.x)
+                                            * (data.img.width() as f64
+                                                / data.tool_window.img_size.width))
+                                            as u32,
+                                        ((data.rect.start_point.unwrap().y - data.tool_window.origin.y)
+                                            * (data.img.height() as f64
+                                                / data.tool_window.img_size.height))
+                                            as u32,
+                                        (data.rect.size.width * data.img.width() as f64
+                                            / data.tool_window.img_size.width)
+                                            as u32,
+                                        (data.rect.size.height * data.img.height() as f64
+                                            / data.tool_window.img_size.height)
+                                            as u32,
+                                    );
+                                    let imm = im.to_image();
+
+                                    data.tool_window.img = Some(ImageBuf::from_raw(
+                                        imm.clone().into_raw(),
+                                        druid::piet::ImageFormat::RgbaPremul,
+                                        (data.rect.size.width * data.img.width() as f64
+                                            / data.tool_window.img_size.width)
+                                            as usize,
+                                        (data.rect.size.height * data.img.height() as f64
+                                            / data.tool_window.img_size.height)
+                                            as usize,
+                                    ));
+
+                                    data.img = data.tool_window.img.clone().unwrap();
+
+                                    let width = data.img.width() as f64;
+                                    let height = data.img.height() as f64;
+
+                                    data.tool_window.img_size.width = data.tool_window.width;
+                                    data.tool_window.img_size.height =
+                                        height / (width / data.tool_window.width);
+                                    if data.tool_window.img_size.height > data.tool_window.height {
+                                        data.tool_window.img_size.height = data.tool_window.height;
+                                        data.tool_window.img_size.width =
+                                            width / (height / data.tool_window.height);
+                                    }
+
+                                    data.tool_window.origin = druid::Point::new(
+                                        data.tool_window.center.x
+                                            - (data.tool_window.img_size.width / 2.),
+                                        data.tool_window.center.y
+                                            - (data.tool_window.img_size.height / 2.),
+                                    );
+                                    }
+                                    Tools::Ellipse => {
+                                        data.img = data.tool_window.img.clone().unwrap();
+                                    }
+                                    Tools::Highlight => {
+                                        data.color = data.color.with_alpha(1.);
+                                        data.img = data.tool_window.img.clone().unwrap();
+                                    }
+                                    _ => {}
+                                }
+
+                                data.tool_window.rect_stroke = 0.0;
+                                data.tool_window.rect_transparency = 0.;
+                                data.tool_window.tool = Tools::No;
+                            })
+                        )
+                        .with_child(
+                            Button::new("annulla").on_click(|ctx, data: &mut AppState, env| {
+                                match data.tool_window.tool {
+                                    Tools::Resize => {
+                                        data.tool_window.rect_stroke = 0.;
+                                        data.tool_window.rect_transparency = 0.;
+                                    }
+                                    Tools::Ellipse => {}
+                                    Tools::Highlight => {
+                                        data.color = data.color.with_alpha(1.);
+                                    }
+                                    Tools::Random=>{
+                                        println!("random");
+                                    }
+                                    _ => {}
+                                }
+                                data.tool_window.img = Some(data.img.clone());
+                                data.tool_window.tool = Tools::No;
+                            })
+                        )
+                        
+                )
+            /*Flex::row()
                 .with_child(
                     Button::new("salva").on_click(|ctx, data: &mut AppState, env| {
                         match data.tool_window.tool {
@@ -371,7 +529,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         data.tool_window.img = Some(data.img.clone());
                         data.tool_window.tool = Tools::No;
                     }),
-                ),
+                ),*/
         ))
         .with_child(
             ZStack::new(
@@ -405,7 +563,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
             )
             .with_centered_child(
-                Painter::new(|ctx, data: &AppState, _env| {
+                Painter::new(|ctx, data: &AppState, env| {
                     match data.tool_window.tool {
                         Tools::Resize => {
                             if let (Some(start), Some(end)) =
@@ -476,6 +634,80 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 );
                             }
                         }
+                        Tools::Arrow=>{
+                            if let(Some(start),Some(end))=(data.tool_window.shape.start_point,data.tool_window.shape.end_point){
+                                
+                                let color = data.color.as_rgba();
+
+                                let body = druid::kurbo::Line::new(start, end);
+
+                                ctx.stroke(
+                                    body,
+                                    &Color::rgba(color.0, color.1, color.2, data.tool_window.rect_transparency),
+                                    10.,
+                                );
+
+                                let cos = 0.866;
+                                let sin = 0.500;
+                                let dx=end.x-start.x;
+                                let dy=end.y-start.y;
+                                let end1=druid::Point::new(end.x-(dx*cos+dy*-sin)*2./5.,end.y-(dx*sin+dy*cos)*2./5.);
+                                let end2=druid::Point::new(end.x-(dx*cos+dy*sin)*2./5.,end.y-(dx*-sin+dy*cos)*2./5.);
+
+                                ctx.stroke(
+                                    druid::kurbo::Line::new(end,end1),
+                                    &Color::rgba(color.0, color.1, color.2, data.tool_window.rect_transparency),
+                                    10.,
+                                );
+
+                                ctx.stroke(
+                                    druid::kurbo::Line::new(end,end2),
+                                    &Color::rgba(color.0, color.1, color.2, data.tool_window.rect_transparency),
+                                    10.,
+                                );
+
+                                /*
+                                let h=((end.x-start.x).powi(2)+(end.y-start.y).powi(2)).sqrt();
+
+                                let x=h*((2. as f64).sqrt()/2.);
+
+                                let y=h*((2. as f64).sqrt()/2.);
+                                */
+
+                                /*
+                                if start.x>end.x{
+                                    if start.x-end.x<20.{
+                                        ctx.stroke(
+                                            druid::kurbo::Line::new(end,druid::Point::new(end.x-start.x, end.y)),
+                                            &Color::rgba(color.0, color.1, color.2, color.3),
+                                            10.,
+                                        );
+                                    }else {
+                                        ctx.stroke(
+                                            druid::kurbo::Line::new(end,druid::Point::new(end.x-20., end.y)),
+                                            &Color::rgba(color.0, color.1, color.2, color.3),
+                                            10.,
+                                        );
+                                    }
+                                }else {
+                                    if start.x-end.x<20.{
+                                        ctx.stroke(
+                                            druid::kurbo::Line::new(end,druid::Point::new(end.x-start.x, end.y)),
+                                            &Color::rgba(color.0, color.1, color.2, color.3),
+                                            10.,
+                                        );
+                                    }else {
+                                        ctx.stroke(
+                                            druid::kurbo::Line::new(end,druid::Point::new(end.x-20., end.y)),
+                                            &Color::rgba(color.0, color.1, color.2, color.3),
+                                            10.,
+                                        );
+                                    }
+                                }
+                                */
+                                
+                            }
+                        }
                         Tools::Highlight => {
                             if let (Some(start), Some(end)) = (
                                 data.tool_window.shape.start_point,
@@ -505,13 +737,35 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 )
                             }
                         }
+                        Tools::Text=>{
+
+                            if let Some(point) =data.tool_window.text_pos {
+
+                                let mut a=druid::text::TextLayout::new();
+
+                                a.set_text_color(data.color);
+                                a.set_font(
+                                    druid::text::FontDescriptor{family:druid::text::FontFamily::SANS_SERIF,
+                                        size:20.,
+                                        weight:druid::text::FontWeight::NORMAL,
+                                        style:druid::text::FontStyle::Regular,
+                                });
+
+                                a.set_text(data.text.clone());
+
+                                a.rebuild_if_needed(ctx.text(), env);
+
+                                a.draw(ctx, point);
+                            }
+                            
+
+                        }
                         _ => {}
                     }
                 })
                 .center(),
             )
             .controller(ResizeController {
-                text_font: font,
                 points: points,
             }),
         )
