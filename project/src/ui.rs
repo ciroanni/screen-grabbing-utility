@@ -178,6 +178,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img.clone());
     let font = Font::try_from_vec(Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8])).unwrap();
     let points = Vec::<Point>::new();
+    let mut path=druid::kurbo::BezPath::new();
     //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
 
     Flex::column()
@@ -563,7 +564,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
             )
             .with_centered_child(
-                Painter::new(|ctx, data: &AppState, env| {
+                Painter::new(move|ctx, data: &AppState, env| {
                     match data.tool_window.tool {
                         Tools::Resize => {
                             if let (Some(start), Some(end)) =
@@ -728,13 +729,37 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         Tools::Random => {
                             if let Some(point) = data.tool_window.random_point {
                                 let color = data.color.as_rgba();
-                                let shape = druid::kurbo::Circle::new(point, 10.);
+                                if path.is_empty(){
+                                    path.push(druid::kurbo::PathEl::MoveTo(point));
+                                    path.push(druid::kurbo::PathEl::LineTo(point));
+                                }else {
+                                    path.push(druid::kurbo::PathEl::LineTo(point));
+                                }
+                                
 
-                                ctx.fill(shape, &Color::rgba(color.0, color.1, color.2, color.3));
-                                ctx.fill_even_odd(
+                                if path.is_empty(){
+                                    //println!("vuoto");
+                                }
+                                if path.is_finite(){
+                                    //println!("finite");
+                                }
+                                if path.is_nan(){
+                                    println!("nan");
+                                }
+
+                                //println!("{:?}",path);
+
+                                //ctx.fill(path.clone(), &Color::rgba(color.0, color.1, color.2, color.3));
+                                ctx.stroke(path.clone(), &Color::rgba(color.0, color.1, color.2, color.3), 10.);
+                                //ctx.fill(druid::kurbo::Circle::new(point, 10.),&Color::rgba(color.0, color.1, color.2, color.3));
+                                /*ctx.fill_even_odd(
                                     shape,
                                     &Color::rgba(color.0, color.1, color.2, color.3),
-                                )
+                                )*/
+
+                                if color.3==0.0{
+                                    path=druid::kurbo::BezPath::new();
+                                }
                             }
                         }
                         Tools::Text=>{
