@@ -113,8 +113,8 @@ pub struct AppState {
     pub tool_window: AnnotationTools,
     pub color: Color,
     pub text: String,
-    pub display_index: usize,
-    pub pos: Point
+    pub pos: Point,
+    pub num_display: usize,
 }
 
 impl AppState {
@@ -185,33 +185,46 @@ impl AppState {
             tool_window: AnnotationTools::default(),
             color: Color::rgba(0., 0., 0., 1.),
             text: "".to_string(),
-            display_index: 0,
-            pos
+            pos,
+            num_display: display_info.len(),
         }
     }
 
-    pub fn screen(&mut self, ctx: &mut EventCtx) {
+    pub fn screen(&mut self, ctx: &mut EventCtx, full_screen: Option<screenshots::DisplayInfo>) {
         let a = screenshots::DisplayInfo::all();
 
         let display_info = match a {
             Err(why) => return println!("{}", why),
             Ok(info) => info,
         };
-        println!("start point: {:?}", self.rect.start_point);
-        let display = screenshots::DisplayInfo::from_point(((self.rect.start_point.unwrap().x - self.pos.x.abs()) * self.scale as f64) as i32, ((self.rect.start_point.unwrap().y - self.pos.y.abs()) * self.scale as f64) as i32).unwrap();
-        let b = screenshots::Screen::new(&display);
+        println!("{:?}", full_screen);
+        let mut b;
+        let mut display = display_info[0];
 
-        println!("SCREEN: {:?}", &screenshots::DisplayInfo::from_point(((self.rect.start_point.unwrap().x - self.pos.x.abs()) * self.scale as f64) as i32, ((self.rect.start_point.unwrap().y - self.pos.y.abs()) * self.scale as f64) as i32).unwrap());
-        println!("CAPUTRE: {:?}", (self.rect.start_point.unwrap().x * self.scale as f64 - (display.x as f32 * display.scale_factor) as f64) as i32);
-        println!("DATA POS: {:?}", self.pos);
+        if full_screen.is_none() {
+            display = screenshots::DisplayInfo::from_point(
+                ((self.rect.start_point.unwrap().x - self.pos.x.abs()) * self.scale as f64) as i32,
+                ((self.rect.start_point.unwrap().y - self.pos.y.abs()) * self.scale as f64) as i32,
+            )
+            .unwrap();
+
+            b = screenshots::Screen::new(&display);
+        }else{
+            b = screenshots::Screen::new(&(full_screen.unwrap()));
+        }
+
         let c;
         if self.is_full_screen {
             c = b.capture();
         } else {
             //prendo lo start point x e sommo il pos x poi prendi display x e sottrai/sommi pos e poi quella la sottrai a quella che hai ottenuto prima funziona
             c = b.capture_area(
-                (self.rect.start_point.unwrap().x * self.scale as f64 - (display.x as f32 * display.scale_factor) as f64 + (self.pos.x * self.scale as f64)) as i32,
-                (self.rect.start_point.unwrap().y * self.scale as f64 - (display.y as f32 * display.scale_factor) as f64 + (self.pos.y * self.scale as f64)) as i32,
+                (self.rect.start_point.unwrap().x * self.scale as f64
+                    - (display.x as f32 * display.scale_factor) as f64
+                    + (self.pos.x * self.scale as f64)) as i32,
+                (self.rect.start_point.unwrap().y * self.scale as f64
+                    - (display.y as f32 * display.scale_factor) as f64
+                    + (self.pos.y * self.scale as f64)) as i32,
                 (self.rect.size.width as f32 * self.scale) as u32,
                 (self.rect.size.height as f32 * self.scale) as u32,
             );
@@ -234,7 +247,6 @@ impl AppState {
 
         let width = self.img.width() as f64;
         let height = self.img.height() as f64;
-        println!("w: {}, h: {}", width, height);
 
         self.tool_window.img_size.width = self.tool_window.width;
         self.tool_window.img_size.height = height / (width / self.tool_window.width);
@@ -242,9 +254,6 @@ impl AppState {
             self.tool_window.img_size.height = self.tool_window.height;
             self.tool_window.img_size.width = width / (height / self.tool_window.height);
         }
-
-        //println!("inizializzazione altezza:{},{}",self.tool_window.img_size.height,self.img.height());
-        //println!("inizializzazione larghezza:{},{}",self.tool_window.img_size.width,self.img.width());
 
         self.tool_window.origin = druid::Point::new(
             self.tool_window.center.x - (self.tool_window.img_size.width / 2.),
@@ -460,6 +469,7 @@ pub struct Enter {
     pub id_t: TimerToken,
     pub id_t2: TimerToken,
     pub locks: [bool; 5],
+    pub display: Option<screenshots::DisplayInfo>
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
@@ -586,9 +596,17 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                     && (keyboard_event.key == Key::Character(k.to_lowercase().to_string())
                         || keyboard_event.key == Key::Character(k.to_uppercase().to_string()))
                 {
-                    println!("shortcut matcher");
                     data.is_full_screen = true;
-                    self.id_t = ctx.request_timer(Duration::from_millis(100));
+                    match data.delay {
+                        Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(100)),
+                        _ => {
+                            self.id_t =
+                                ctx.request_timer(Duration::from_secs(data.delay.set_timer()))
+                        }
+                    }
+    
+                    ctx.window().clone().hide();
+                    //self.id_t = ctx.request_timer(Duration::from_millis(100));
                     self.locks = [false; 5];
                 }
 
@@ -615,7 +633,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                     self.id_t2 = ctx.request_timer(Duration::from_millis(100));
                     self.id_t = TimerToken::next();
                 } else if self.id_t2 == *id {
-                    data.screen(ctx);
+                    data.screen(ctx, self.display);
                     ctx.window().close();
                 }
             }
@@ -624,6 +642,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
 
         child.event(ctx, event, data, env)
     }
+
 
     fn lifecycle(
         &mut self,
@@ -802,6 +821,7 @@ pub struct AreaController {
     pub id_t: TimerToken,
     pub id_t2: TimerToken,
     pub flag: bool,
+    pub display: Option<screenshots::DisplayInfo>
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
@@ -895,7 +915,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                         self.id_t2 = ctx.request_timer(Duration::from_millis(100));
                         self.id_t = TimerToken::next();
                     } else if self.id_t2 == *id {
-                        data.screen(ctx);
+                        data.screen(ctx, self.display);
                         //data.resize = true;
                         ctx.window().close();
                     }
@@ -903,19 +923,16 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                 _ => child.event(ctx, event, data, env),
             }
         } else {
+            data.cursor.typ = Cursor::Crosshair;
+            ctx.set_cursor(&data.cursor.typ);
             match event {
-                Event::Timer(id) => {
-                    if self.id_t == *id {
-                        //ctx.window().clone().set_window_state(WindowState::Restored);
-                        ctx.window().clone().show();
-                        self.id_t2 = ctx.request_timer(Duration::from_millis(100));
-                        self.id_t = TimerToken::next();
-                    } else if self.id_t2 == *id {
-                        data.screen(ctx);
-                        ctx.window().close();
-                    }
-                }
-                _ => {
+                Event::MouseUp(mouse_button) => {
+                    self.display = Some(screenshots::DisplayInfo::from_point(
+                        ((mouse_button.pos.x - data.pos.x.abs()) * data.scale as f64) as i32,
+                        ((mouse_button.pos.y - data.pos.y.abs()) * data.scale as f64) as i32,
+                    )
+                    .unwrap());
+
                     data.is_full_screen = true;
                     match data.delay {
                         Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(100)),
@@ -926,16 +943,42 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                     }
 
                     ctx.window().clone().hide();
-                    /*ctx.window()
-                    .clone()
-                    .set_window_state(WindowState::Minimized)
-                    */
+                }
+                Event::Timer(id) => {
+                    if self.id_t == *id {
+                        //ctx.window().clone().set_window_state(WindowState::Restored);
+                        ctx.window().clone().show();
+                        self.id_t2 = ctx.request_timer(Duration::from_millis(100));
+                        self.id_t = TimerToken::next();
+                    } else if self.id_t2 == *id {
+                        data.screen(ctx, self.display);
+                        data.cursor.typ = Cursor::Arrow;
+                        ctx.set_cursor(&data.cursor.typ);
+                        ctx.window().close();
+                    }
+                }
+                _ => {
+                    if data.num_display == 1 {
+                        data.is_full_screen = true;
+                        match data.delay {
+                            Timer::Zero => {
+                                self.id_t = ctx.request_timer(Duration::from_millis(200))
+                            }
+                            _ => {
+                                self.id_t =
+                                    ctx.request_timer(Duration::from_secs(data.delay.set_timer()))
+                            }
+                        }
+
+                        ctx.window().clone().hide();
+                    }
                 }
             }
         }
         //}
         child.event(ctx, event, data, env)
     }
+
 
     fn lifecycle(
         &mut self,

@@ -120,6 +120,7 @@ pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
                     id_t: TimerToken::next(),
                     id_t2: TimerToken::next(),
                     locks: [false; 5],
+                    display: Some(display_info[0])
                 }),
         )
         .with_spacer(50.)
@@ -168,6 +169,7 @@ pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
         id_t: TimerToken::next(),
         id_t2: TimerToken::next(),
         flag: is_full,
+        display: None
     })
     .center();
 
