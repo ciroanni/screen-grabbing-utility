@@ -1,7 +1,7 @@
 # PDS project 2023
 ## Rust code for a screen grabbing utility capable of acquiring what is currently shown in a display, post-process it and make it available in one or more formats.
 
-:bangbang: v1.2.4: Almost all features implemented, resize bug fixed. Working in progress for annotation tools.
+:bangbang: v1.2.4: Almost all features implemented, resize bug fixed and shortcuts added. Working in progress for annotation tools.
 
 
 v1.1.0: Fixed some bugs and improving ui... 
@@ -48,10 +48,5 @@ v1.0.1: Makes a screenshot of the entire main display. Feature 1 & 2 & 5 partial
 
 
 ToDo
-1) Come gestisco i monitor? Faccio scegliere o in base a dove clicco?
-3) Shortcut (Malnati dove sei????)
-4) Bordino al rettangolo per resize se vogliamo
-5) ANNOTATION TOOLS??????????????????????????????????????
-6) Screen dopo resize
-7) Cambia cursore per lo screen 
-8) Modo per fare lo screen del tool?, lo screen con lo shortcut va fatta con o senza la finestra dello screengrabber?
+1) Aggiustare interfaccia shortcut 
+2) Fixare annotation tools

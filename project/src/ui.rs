@@ -10,7 +10,7 @@ use druid::{
     WindowDesc, WindowId, WindowLevel, WindowState,
 };
 use druid_shell::keyboard_types::Modifiers;
-use druid_shell::TimerToken;
+use druid_shell::{TimerToken, SysMods};
 use druid_widget_nursery::DropdownSelect;
 use image::{GenericImage, ImageBuffer, Rgba, SubImage};
 use imageproc::filter;
@@ -865,12 +865,14 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
                         data.save();
                     },
                 )
-                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty()),
+                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty())
+                .hotkey(SysMods::Cmd, "s"),
         )
         .entry(
             MenuItem::new(LocalizedString::new("Salva come")) //posso scegliere il path
                 .command(commands::SHOW_SAVE_PANEL.with(save_dialog))
-                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty()),
+                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty())
+                .hotkey(SysMods::AltCmd, "s"),
         )
         .entry(
             MenuItem::new(LocalizedString::new("Copia"))
@@ -884,7 +886,8 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
                     let mut clip = Clipboard::new().unwrap();
                     clip.set_image(img).unwrap();
                 })
-                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty()),
+                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty())
+                .hotkey(SysMods::Cmd, "c"),
         );
 
     let mut modifica = Menu::new(LocalizedString::new("Modifica"));
