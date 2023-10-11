@@ -1,7 +1,10 @@
 # PDS project 2023
 ## Rust code for a screen grabbing utility capable of acquiring what is currently shown in a display, post-process it and make it available in one or more formats.
 
-:bangbang:v1.1.0: Fixed some bugs and improving ui... 
+:bangbang: v1.2.4: Almost all features implemented, resize bug fixed. Working in progress for annotation tools.
+
+
+v1.1.0: Fixed some bugs and improving ui... 
 
 
 v1.0.9: You can now have a delay.
