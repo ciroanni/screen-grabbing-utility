@@ -737,27 +737,13 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 }else {
                                     path.push(druid::kurbo::PathEl::LineTo(point));
                                 }
-                                
 
-                                if path.is_empty(){
-                                    //println!("vuoto");
-                                }
-                                if path.is_finite(){
-                                    //println!("finite");
-                                }
-                                if path.is_nan(){
-                                    println!("nan");
-                                }
+                                println!("{:?}",color);
 
-                                //println!("{:?}",path);
+                                let circle=druid::kurbo::Circle::new(point, 5.);
 
-                                //ctx.fill(path.clone(), &Color::rgba(color.0, color.1, color.2, color.3));
+                                ctx.fill(circle, &Color::rgba(color.0, color.1, color.2, color.3));
                                 ctx.stroke(path.clone(), &Color::rgba(color.0, color.1, color.2, color.3), 10.);
-                                //ctx.fill(druid::kurbo::Circle::new(point, 10.),&Color::rgba(color.0, color.1, color.2, color.3));
-                                /*ctx.fill_even_odd(
-                                    shape,
-                                    &Color::rgba(color.0, color.1, color.2, color.3),
-                                )*/
 
                                 if color.3==0.0{
                                     path=druid::kurbo::BezPath::new();
