@@ -71,8 +71,8 @@ pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
                             current.close();
                             data.rect.start_point = Some(Point::new(0., 0.));
                             data.rect.end_point = Some(data.size);
-                            data.rect.p2 = Some(Point::new(0., data.size.y));
-                            data.rect.p3 = Some(Point::new(data.size.x, 0.));
+                            data.rect.p2 = Some(Point::new(data.size.x, 0.));
+                            data.rect.p3 = Some(Point::new(0., data.size.y));
                             let new_win = WindowDesc::new(drag_motion_ui(true))
                                 .show_titlebar(false)
                                 .transparent(true)
@@ -210,8 +210,8 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         data.rect
                             .end_point
                             .replace(Point::new(rect.max_x(), rect.max_y()));
-                        data.rect.p2 = Some(Point::new(0., rect.max_y()));
-                        data.rect.p3 = Some(Point::new(rect.max_x(), 0.));
+                        data.rect.p2 = Some(Point::new(rect.max_x(),0.));
+                        data.rect.p3 = Some(Point::new(0., rect.max_y()));
                         data.tool_window.rect_stroke = 2.0;
                         data.tool_window.rect_transparency = 0.4;
 

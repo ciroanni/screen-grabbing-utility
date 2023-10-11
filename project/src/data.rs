@@ -1131,12 +1131,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     }
                     //sposto premendo
                     else if data.cursor.down == true {
+                        println!("{:?}, p3: {:?}, mouse: {:?}, calcolo: {:?}", data.tool_window.img_size, data.rect, mouse_button.pos.y, 156.25 - data.tool_window.img_size.height / 2.);
                         match data.cursor.over {
                             Some(Direction::Up) => {
                                 if mouse_button.pos.y < data.rect.p3.unwrap().y - 10.
                                     && mouse_button.pos.y
                                         > (156.25 - data.tool_window.img_size.height / 2.)
                                 {
+                                    println!("Entrato");
                                     data.rect.start_point.replace(Point::new(
                                         data.rect.start_point.unwrap().x,
                                         mouse_button.pos.y,
