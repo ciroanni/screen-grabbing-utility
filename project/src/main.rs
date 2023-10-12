@@ -9,7 +9,6 @@ use data::{AppState, Delegate};
 
 fn main() -> Result<(), PlatformError> {
     let display_info = screenshots::DisplayInfo::all().expect("Err");
-    println!("{:?}", display_info);
     let app_state = AppState::new(display_info[0].scale_factor, ImageBuf::empty());
 
     let main_window = WindowDesc::new(build_ui(display_info[0].scale_factor, app_state.img.clone()))
