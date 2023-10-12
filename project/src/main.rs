@@ -13,8 +13,8 @@ fn main() -> Result<(), PlatformError> {
 
     let main_window = WindowDesc::new(build_ui(display_info[0].scale_factor, app_state.img.clone()))
     .menu(make_menu)
-        .title(LocalizedString::new("Screen grabbing"))
-        .window_size((1000.0, 500.0));
+    .title(LocalizedString::new("Screen grabbing"))
+    .window_size((1000.0, 500.0));
 
     AppLauncher::with_window(main_window)
         .delegate(Delegate) //per far funzionare il delegate
