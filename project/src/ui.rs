@@ -182,7 +182,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
         .with_child(Either::new(
             |data, _env| data.tool_window.tool == Tools::No,
             Flex::row()
-                .with_child(Button::new("Resize").on_click(
+                .with_child(Button::new("✂️")/* Image::new(ImageBuf::from_file("./icons/crop.png").unwrap()) */.on_click(
                     |ctx: &mut EventCtx, data: &mut AppState, _env| {
                         data.tool_window.tool = Tools::Resize;
                         data.resize = true;
@@ -219,6 +219,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 ))
                 .with_child(Button::new("arrow").on_click(
                     |_ctx: &mut EventCtx, data: &mut AppState, _env| {
+                        data.color = data.color.with_alpha(1.);
                         data.tool_window.tool = Tools::Arrow
                     },
                 ))
@@ -309,12 +310,14 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             }
 
                             data.text = "".to_string();
+                            data.color = Color::TRANSPARENT;
                             data.tool_window.tool = Tools::No;
                         },
                     ))
                     .with_child(Button::new("annulla").on_click(
                         |_ctx, data: &mut AppState, _env| {
                             data.text = "".to_string();
+                            data.color = Color::TRANSPARENT;
                             data.tool_window.text_pos = None;
                             data.tool_window.img = Some(data.img.clone());
                             data.tool_window.tool = Tools::No;
@@ -397,14 +400,19 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                     );
                                 }
                                 Tools::Ellipse => {
+                                    data.color = Color::TRANSPARENT;
                                     data.img = data.tool_window.img.clone().unwrap();
                                 }
                                 Tools::Highlight => {
-                                    data.color = data.color.with_alpha(1.);
+                                    data.color = Color::TRANSPARENT;
+                                    data.img = data.tool_window.img.clone().unwrap();
+                                }
+                                Tools::Arrow => {
+                                    data.color = Color::TRANSPARENT;
                                     data.img = data.tool_window.img.clone().unwrap();
                                 }
                                 Tools::Random => {
-                                    data.color = data.color.with_alpha(1.);
+                                    data.color = Color::TRANSPARENT;
                                     data.img = data.tool_window.img.clone().unwrap();
                                 }
                                 _ => {}
@@ -424,10 +432,13 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 }
                                 Tools::Ellipse => {}
                                 Tools::Highlight => {
-                                    data.color = data.color.with_alpha(1.);
+                                    data.color = Color::TRANSPARENT;
+                                }
+                                Tools::Arrow => {                                    
+                                    data.color = Color::TRANSPARENT;
                                 }
                                 Tools::Random => {
-                                    data.color = data.color.with_alpha(1.);
+                                    data.color = Color::TRANSPARENT;
                                 }
                                 _ => {}
                             }
@@ -548,7 +559,6 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 let color = data.color.as_rgba();
 
                                 let body = druid::kurbo::Line::new(start, end);
-
                                 ctx.stroke(
                                     body,
                                     &Color::rgba(
@@ -595,7 +605,6 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                     10.,
                                 );
 
-                                
                             }
                         }
                         Tools::Highlight => {
