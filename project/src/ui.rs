@@ -1,8 +1,8 @@
 use crate::data::*;
 use arboard::{Clipboard, ImageData};
 use druid::widget::{
-    BackgroundBrush, Button, Either, FillStrat, Flex, Image, Label, Painter, SizedBox, TextBox,
-    ZStack,
+    BackgroundBrush, Button, DisabledIf, Either, FillStrat, Flex, Image, Label, Painter, SizedBox,
+    Switch, TextBox, ViewSwitcher, ZStack,Container
 };
 use druid::{
     commands, Color, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString, Menu,
@@ -182,75 +182,218 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
         .with_child(Either::new(
             |data, _env| data.tool_window.tool == Tools::No,
             Flex::row()
-                .with_child(Button::new("✂️")/* Image::new(ImageBuf::from_file("./icons/crop.png").unwrap()) */.on_click(
-                    |ctx: &mut EventCtx, data: &mut AppState, _env| {
-                        data.tool_window.tool = Tools::Resize;
-                        data.resize = true;
-                        data.annulla = false;
-                        let width = data.img.width() as f64;
-                        let height = data.img.height() as f64;
-
-
-                        let rect = druid::Rect::from_center_size(
-                            data.tool_window.center,
-                            data.tool_window.img_size,
-                        );
-                        data.rect.size = data.tool_window.img_size;
-                        data.rect.start_point.replace(rect.origin());
-                        data.rect
-                            .end_point
-                            .replace(Point::new(rect.max_x(), rect.max_y()));
-                        data.rect.p2 = Some(Point::new(rect.max_x(), 0.));
-                        data.rect.p3 = Some(Point::new(0., rect.max_y()));
-                        data.tool_window.rect_stroke = 2.0;
-                        data.tool_window.rect_transparency = 0.4;
-
-                    },
-                ))
-                .with_child(Button::new("highlight").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
-                        data.tool_window.tool = Tools::Highlight
-                    },
-                ))
-                .with_child(Button::new("ellipse").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
-                        data.tool_window.tool = Tools::Ellipse
-                    },
-                ))
-                .with_child(Button::new("arrow").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
-                        data.color = data.color.with_alpha(1.);
-                        data.tool_window.tool = Tools::Arrow
-                    },
-                ))
-                .with_child(Button::new("text").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
-                        data.tool_window.tool = Tools::Text;
-                    },
-                ))
-                .with_child(Button::new("redact").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
-                        data.tool_window.tool = Tools::Redact
-                    },
-                ))
-                .with_child(Button::new("random").on_click(
-                    |_ctx: &mut EventCtx, data: &mut AppState, _env| {
-                        data.color = data.color.with_alpha(0.);
-                        data.tool_window.tool = Tools::Random
-                    },
-                ))
                 .with_child(
-                    DropdownSelect::new(vec![
-                        ("Red", Color::RED),
-                        ("Green", Color::GREEN),
-                        ("Black", Color::TRANSPARENT),
-                        ("Blue", Color::BLUE),
-                        ("Orange", Color::rgb8(211, 84, 0)),
-                        ("Grey", Color::GRAY),
-                    ])
-                    .align_left()
-                    .lens(AppState::color),
-                ),
+                    Image::new(ImageBuf::from_file("./icon/crop.png").unwrap())
+                        .fix_size(20., 20.)
+                        .on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
+                            data.tool_window.tool = Tools::Resize;
+                            data.resize = true;
+                            data.annulla = false;
+                            let width = data.img.width() as f64;
+                            let height = data.img.height() as f64;
+
+                            let rect = druid::Rect::from_center_size(
+                                data.tool_window.center,
+                                data.tool_window.img_size,
+                            );
+                            data.rect.size = data.tool_window.img_size;
+                            data.rect.start_point.replace(rect.origin());
+                            data.rect
+                                .end_point
+                                .replace(Point::new(rect.max_x(), rect.max_y()));
+                            data.rect.p2 = Some(Point::new(rect.max_x(), 0.));
+                            data.rect.p3 = Some(Point::new(0., rect.max_y()));
+                            data.tool_window.rect_stroke = 2.0;
+                            data.tool_window.rect_transparency = 0.4;
+                        })
+                        .border(Color::WHITE, 1.)
+                        .background(Color::rgb8(0, 0, 0))
+                        .padding(5.),
+                )
+                .with_child(
+                    Image::new(ImageBuf::from_data(include_bytes!("../icon/marker.png")).unwrap())
+                        .fix_size(20., 20.)
+                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                            data.tool_window.tool = Tools::Highlight
+                            //data.line_thickness = 10.;s
+                        })
+                        .border(Color::WHITE, 1.)
+                        .background(Color::rgb8(0, 0, 0))
+                        .padding(5.),
+                )
+                .with_child(
+                    Image::new(ImageBuf::from_data(include_bytes!("../icon/ellipse.png")).unwrap())
+                        .fix_size(20., 20.)
+                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                            data.tool_window.tool = Tools::HollowEllipse;
+                            //data.line_thickness = 10.;s
+                        })
+                        .border(Color::WHITE, 1.)
+                        .background(Color::rgb8(0, 0, 0))
+                        .padding(5.),
+                )
+                .with_child(
+                    Image::new(
+                        ImageBuf::from_data(include_bytes!("../icon/right-arrow.png")).unwrap(),
+                    )
+                    .fix_size(20., 20.)
+                    .on_click(|ctx, data: &mut AppState, _: &Env| {
+                        data.tool_window.tool = Tools::Arrow
+                        //data.line_thickness = 10.;s
+                    })
+                    .border(Color::WHITE, 1.)
+                    .background(Color::rgb8(0, 0, 0))
+                    .padding(5.),
+                )
+                .with_child(
+                    Image::new(ImageBuf::from_data(include_bytes!("../icon/text.png")).unwrap())
+                        .fix_size(20., 20.)
+                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                            data.tool_window.tool = Tools::Text
+                            //data.line_thickness = 10.;s
+                        })
+                        .border(Color::WHITE, 1.)
+                        .background(Color::rgb8(0, 0, 0))
+                        .padding(5.),
+                )
+                .with_child(
+                    Image::new(ImageBuf::from_data(include_bytes!("../icon/pencil.png")).unwrap())
+                        .fix_size(20., 20.)
+                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                            data.color = data.color.with_alpha(0.);
+                            data.tool_window.tool = Tools::Random
+                            //data.line_thickness = 10.;s
+                        })
+                        .border(Color::WHITE, 1.)
+                        .background(Color::rgb8(0, 0, 0))
+                        .padding(5.),
+                )
+                .with_child(ViewSwitcher::new(|data: &AppState, _env| data.color, |_ctx, data: &AppState, _env| match data.color{
+                    Color::RED => {Box::new(Image::new(
+                        ImageBuf::from_data(include_bytes!("../icon/circle_red.png")).unwrap(),
+                    )
+                    .fix_size(30., 30.))}
+                    Color::BLACK => {Box::new(Image::new(
+                        ImageBuf::from_data(include_bytes!("../icon/circle_black.png")).unwrap(),
+                    )
+                    .fix_size(30., 30.))}
+                    Color::GREEN => {Box::new(Image::new(
+                        ImageBuf::from_data(include_bytes!("../icon/circle_green.png")).unwrap(),
+                    )
+                    .fix_size(30., 30.))}
+                    Color::GRAY => {Box::new(Image::new(
+                        ImageBuf::from_data(include_bytes!("../icon/circle_grey.png")).unwrap(),
+                    )
+                    .fix_size(30., 30.))}
+                    Color::WHITE => {Box::new(Image::new(
+                        ImageBuf::from_data(include_bytes!("../icon/circle_white.png")).unwrap(),
+                    )
+                    .fix_size(30., 30.))}
+                    Color::BLUE => {Box::new(Image::new(
+                        ImageBuf::from_data(include_bytes!("../icon/circle_blue.png")).unwrap(),
+                    )
+                    .fix_size(30., 30.))}
+                    Color::YELLOW => {Box::new(Image::new(
+                        ImageBuf::from_data(include_bytes!("../icon/circle_yellow.png")).unwrap(),
+                    )
+                    .fix_size(30., 30.))}
+                    _ => {Box::new(Label::new("Altro"))}
+                } ))
+                .with_child(Either::new(
+                    |data: &AppState, _env| !data.color_picker,
+                    Image::new(
+                        ImageBuf::from_data(include_bytes!("../icon/color-wheel.png")).unwrap(),
+                    )
+                    .fix_size(30., 30.)
+                    .on_click(|ctx, data: &mut AppState, _: &Env| {
+                        data.color_picker = true;
+                    }),
+                    Container::new(Flex::row()
+                        .with_child(
+                            Image::new(
+                                ImageBuf::from_data(include_bytes!("../icon/circle_black.png"))
+                                    .unwrap(),
+                            )
+                            .fix_size(20., 20.)
+                            .on_click(|ctx, data: &mut AppState, _: &Env| {
+                                data.color = Color::BLACK;
+                                data.color_picker = false;
+                            })
+                            .padding(5.),
+                        )
+                        .with_child(
+                            Image::new(
+                                ImageBuf::from_data(include_bytes!("../icon/circle_blue.png"))
+                                    .unwrap(),
+                            )
+                            .fix_size(20., 20.)
+                            .on_click(|ctx, data: &mut AppState, _: &Env| {
+                                data.color = Color::BLUE;
+                                data.color_picker = false;
+                            })
+                            .padding(5.),
+                        )
+                        .with_child(
+                            Image::new(
+                                ImageBuf::from_data(include_bytes!("../icon/circle_green.png"))
+                                    .unwrap(),
+                            )
+                            .fix_size(20., 20.)
+                            .on_click(|ctx, data: &mut AppState, _: &Env| {
+                                data.color = Color::GREEN;
+                                data.color_picker = false;
+                            })
+                            .padding(5.),
+                        )
+                        .with_child(
+                            Image::new(
+                                ImageBuf::from_data(include_bytes!("../icon/circle_grey.png"))
+                                    .unwrap(),
+                            )
+                            .fix_size(20., 20.)
+                            .on_click(|ctx, data: &mut AppState, _: &Env| {
+                                data.color = Color::GRAY;
+                                data.color_picker = false;
+                            })
+                            .padding(5.),
+                        )
+                        .with_child(
+                            Image::new(
+                                ImageBuf::from_data(include_bytes!("../icon/circle_red.png"))
+                                    .unwrap(),
+                            )
+                            .fix_size(20., 20.)
+                            .on_click(|ctx, data: &mut AppState, _: &Env| {
+                                data.color = Color::RED;
+                                data.color_picker = false;
+                            })
+                            .padding(5.),
+                        )
+                        .with_child(
+                            Image::new(
+                                ImageBuf::from_data(include_bytes!("../icon/circle_white.png"))
+                                    .unwrap(),
+                            )
+                            .fix_size(20., 20.)
+                            .on_click(|ctx, data: &mut AppState, _: &Env| {
+                                data.color = Color::WHITE;
+                                data.color_picker = false;
+                            })
+                            .padding(5.),
+                        )
+                        .with_child(
+                            Image::new(
+                                ImageBuf::from_data(include_bytes!("../icon/circle_yellow.png"))
+                                    .unwrap(),
+                            )
+                            .fix_size(20., 20.)
+                            .on_click(|ctx, data: &mut AppState, _: &Env| {
+                                data.color = Color::YELLOW;
+                                data.color_picker = false;
+                            })
+                            .padding(5.),
+                        ))
+                )),
             Either::new(
                 |data, _env| data.tool_window.tool == Tools::Text,
                 Flex::row()
@@ -310,14 +453,12 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             }
 
                             data.text = "".to_string();
-                            data.color = Color::TRANSPARENT;
                             data.tool_window.tool = Tools::No;
                         },
                     ))
                     .with_child(Button::new("annulla").on_click(
                         |_ctx, data: &mut AppState, _env| {
                             data.text = "".to_string();
-                            data.color = Color::TRANSPARENT;
                             data.tool_window.text_pos = None;
                             data.tool_window.img = Some(data.img.clone());
                             data.tool_window.tool = Tools::No;
@@ -399,20 +540,18 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                             - (data.tool_window.img_size.height / 2.),
                                     );
                                 }
-                                Tools::Ellipse => {
-                                    data.color = Color::TRANSPARENT;
+                                Tools::HollowEllipse => {
                                     data.img = data.tool_window.img.clone().unwrap();
                                 }
                                 Tools::Highlight => {
-                                    data.color = Color::TRANSPARENT;
                                     data.img = data.tool_window.img.clone().unwrap();
                                 }
                                 Tools::Arrow => {
-                                    data.color = Color::TRANSPARENT;
                                     data.img = data.tool_window.img.clone().unwrap();
                                 }
                                 Tools::Random => {
-                                    data.color = Color::TRANSPARENT;
+                                    data.color = data.color.with_alpha(1.);
+
                                     data.img = data.tool_window.img.clone().unwrap();
                                 }
                                 _ => {}
@@ -423,36 +562,54 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             data.tool_window.tool = Tools::No;
                         },
                     ))
-                    .with_child(Button::new("annulla").on_click(
-                        |ctx, data: &mut AppState, env| {
-                            match data.tool_window.tool {
-                                Tools::Resize => {
-                                    data.tool_window.rect_stroke = 0.;
-                                    data.tool_window.rect_transparency = 0.;
+                    .with_child(
+                        Button::new("annulla")
+                            .on_click(|ctx, data: &mut AppState, env| {
+                                match data.tool_window.tool {
+                                    Tools::Resize => {
+                                        data.tool_window.rect_stroke = 0.;
+                                        data.tool_window.rect_transparency = 0.;
+                                    }
+                                    Tools::Ellipse => {}
+                                    Tools::Highlight => {}
+                                    Tools::Arrow => {}
+                                    Tools::Random => {
+                                        data.color = data.color.with_alpha(1.);
+                                    }
+                                    _ => {}
                                 }
-                                Tools::Ellipse => {}
-                                Tools::Highlight => {
-                                    data.color = Color::TRANSPARENT;
-                                }
-                                Tools::Arrow => {                                    
-                                    data.color = Color::TRANSPARENT;
-                                }
-                                Tools::Random => {
-                                    data.color = Color::TRANSPARENT;
-                                }
-                                _ => {}
-                            }
-                            data.tool_window.img = Some(data.img.clone());
-                            data.tool_window.tool = Tools::No;
+                                data.tool_window.img = Some(data.img.clone());
+                                data.tool_window.tool = Tools::No;
+                            })
+                            .padding(5.),
+                    )
+                    .with_child(Either::new(
+                        |data: &AppState, _env| {
+                            data.tool_window.tool == Tools::HollowEllipse
+                                || data.tool_window.tool == Tools::HollowRectangle
                         },
+                        Either::new(
+                            |data: &AppState, _env| data.fill_shape,
+                            Label::new("Pieno"),
+                            Label::new("Vuoto"),
+                        ),
+                        Label::new(""),
+                    ))
+                    .with_child(Either::new(
+                        |data: &AppState, _env| {
+                            data.tool_window.tool == Tools::HollowEllipse
+                                || data.tool_window.tool == Tools::HollowRectangle
+                        },
+                        Switch::new().lens(AppState::fill_shape),
+                        Label::new(""),
                     )),
-            ), ))
+            ),
+        ))
         .with_child(
             ZStack::new(
                 SizedBox::new(
                     //image
                     Painter::new(|ctx, data: &AppState, env| {
-
                         let image = ctx
                             .make_image(
                                 data.img.width(),
@@ -472,13 +629,13 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         );
                     }),
                 )
-                .width(500.)
-                .height(312.5)
-                .background(BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.))),
+                .width(800.)
+                .height(500.)
+                .background(BackgroundBrush::Color(druid::Color::rgb(0., 0., 0.))),
             )
             .with_centered_child(
-                Painter::new(move |ctx, data: &AppState, env| {
-                    match data.tool_window.tool {
+                Painter::new(
+                    move |ctx, data: &AppState, env| match data.tool_window.tool {
                         Tools::Resize => {
                             if let (Some(start), Some(end)) =
                                 (data.rect.start_point, data.rect.end_point)
@@ -525,7 +682,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 }
                             }
                         }
-                        Tools::Ellipse => {
+                        Tools::HollowEllipse => {
                             if let (Some(center), Some(_end)) = (
                                 data.tool_window.shape.center,
                                 data.tool_window.shape.end_point,
@@ -537,18 +694,16 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                     0.0,
                                 );
 
-                                ctx.fill(shape, &Color::rgba(color.0, color.1, color.2, 0.));
-
-                                ctx.stroke(
-                                    shape,
-                                    &Color::rgba(
-                                        color.0,
-                                        color.1,
-                                        color.2,
-                                        data.selection_transparency,
-                                    ),
-                                    5.,
-                                )
+                                if !data.fill_shape {
+                                    ctx.fill(shape, &Color::rgba(color.0, color.1, color.2, 0.));
+                                    ctx.stroke(
+                                        shape,
+                                        &Color::rgba(color.0, color.1, color.2, 1.),
+                                        5.,
+                                    )
+                                } else {
+                                    ctx.fill(shape, &Color::rgba(color.0, color.1, color.2, 1.));
+                                }
                             }
                         }
                         Tools::Arrow => {
@@ -567,7 +722,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                         color.2,
                                         data.tool_window.rect_transparency,
                                     ),
-                                    10.,
+                                    6.75,
                                 );
 
                                 let cos = 0.866;
@@ -591,7 +746,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                         color.2,
                                         data.tool_window.rect_transparency,
                                     ),
-                                    10.,
+                                    6.75,
                                 );
 
                                 ctx.stroke(
@@ -602,9 +757,8 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                         color.2,
                                         data.tool_window.rect_transparency,
                                     ),
-                                    10.,
+                                    6.75,
                                 );
-
                             }
                         }
                         Tools::Highlight => {
@@ -663,12 +817,12 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
 
                                 a.rebuild_if_needed(ctx.text(), env);
 
-                                a.draw(ctx, point);
+                                a.draw(ctx, druid::Point::new(point.x, point.y - 20.));
                             }
                         }
                         _ => {}
-                    }
-                })
+                    },
+                )
                 .center(),
             )
             .controller(ResizeController { points: points }),
@@ -698,7 +852,9 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
                         data.save();
                     },
                 )
-                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty())
+                .enabled_if(move |data: &AppState, _env| {
+                    !data.img.size().is_empty() && data.tool_window.tool == Tools::No
+                })
                 .hotkey(SysMods::Cmd, "s"),
         )
         .entry(
@@ -719,7 +875,9 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
                     let mut clip = Clipboard::new().unwrap();
                     clip.set_image(img).unwrap();
                 })
-                .enabled_if(move |data: &AppState, _env| !data.img.size().is_empty())
+                .enabled_if(move |data: &AppState, _env| {
+                    !data.img.size().is_empty() && data.tool_window.tool == Tools::No
+                })
                 .hotkey(SysMods::Cmd, "c"),
         );
 

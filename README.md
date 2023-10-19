@@ -48,5 +48,7 @@ v1.0.1: Makes a screenshot of the entire main display. Feature 1 & 2 & 5 partial
 
 
 ToDo
-1) Aggiustare interfaccia shortcut 
-2) Fixare annotation tools
+1) Velocizzare il tutto (provare variabili per immagini e pensare ad altro che possa aiutare)
+2) Settare cursori custom a seconda del tool
+3) Screen shortcut multi-monitor
+4) LA CHICCA: icona del programma
