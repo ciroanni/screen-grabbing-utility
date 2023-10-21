@@ -323,15 +323,17 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     }),
                     Container::new(Flex::row()
                         .with_child(
-                            Image::new(
+                            /* Image::new(
                                 ImageBuf::from_data(include_bytes!("../icon/circle_black.png"))
                                     .unwrap(),
                             )
-                            .fix_size(20., 20.)
+                            .fix_size(20., 20.) */
+                            Button::new("")
                             .on_click(|ctx, data: &mut AppState, _: &Env| {
                                 data.color = Color::BLACK;
                                 data.color_picker = false;
                             })
+                            .background(BackgroundBrush::Color(druid::Color::rgb(0., 0., 255.)))
                             .padding(5.),
                         )
                         .with_child(
