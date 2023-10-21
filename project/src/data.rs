@@ -83,8 +83,7 @@ pub enum Tools {
     No,
     Resize,
     Ellipse,
-    HollowEllipse,
-    HollowRectangle,
+    Rectangle,
     Arrow,
     Text,
     Highlight,
@@ -848,9 +847,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                     data.rect.end_point = Some(mouse_button.pos);
                     let x = (mouse_button.pos.x - data.pos.x.abs()) * data.scale as f64;
                     let y = (mouse_button.pos.y - data.pos.y.abs()) * data.scale as f64;
+                    data.selection_transparency=0.4;
                 }
                 Event::MouseUp(mouse_button) => {
-                    let mut mouse_up = MouseEvent {
+                    let mouse_up = MouseEvent {
                         pos: mouse_button.pos,
                         window_pos: mouse_button.window_pos,
                         buttons: mouse_button.buttons,
@@ -1017,6 +1017,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
         data: &mut AppState,
         env: &Env,
     ) {
+        
         match data.tool_window.tool {
             Tools::Resize => {
                 if let Event::MouseDown(_mouse_button) = event {
@@ -1397,30 +1398,83 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     .unwrap();
 
                     let color = data.color.as_rgba8();
-                    let prova = imageproc::drawing::draw_filled_ellipse(
-                        &mut image,
-                        (
-                            ((data.tool_window.shape.center.unwrap().x - data.tool_window.origin.x)
+
+                    if !data.fill_shape {
+                        for i in -50..50 {
+                            imageproc::drawing::draw_hollow_ellipse_mut(
+                                &mut image,
+                                (
+                                    ((data.tool_window.shape.center.unwrap().x
+                                        - data.tool_window.origin.x)
+                                        * (data.img.width() as f64
+                                            / data.tool_window.img_size.width))
+                                        as i32,
+                                    ((data.tool_window.shape.center.unwrap().y
+                                        - data.tool_window.origin.y)
+                                        * (data.img.height() as f64
+                                            / data.tool_window.img_size.height))
+                                        as i32,
+                                ),
+                                ((data.tool_window.shape.radii.unwrap().x - i as f64 / 20.)
+                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    as i32,
+                                ((data.tool_window.shape.radii.unwrap().y - i as f64 / 20.)
+                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    as i32,
+                                Rgba([color.0, color.1, color.2, 255]),
+                            );
+                            /*
+                            imageproc::drawing::draw_hollow_ellipse_mut(
+                                &mut image,
+                                (
+                                    ((data.tool_window.shape.center.unwrap().x
+                                        - data.tool_window.origin.x)
+                                        * (data.img.width() as f64
+                                            / data.tool_window.img_size.width))
+                                        as i32,
+                                    ((data.tool_window.shape.center.unwrap().y
+                                        - data.tool_window.origin.y)
+                                        * (data.img.height() as f64
+                                            / data.tool_window.img_size.height))
+                                        as i32,
+                                ),
+                                ((data.tool_window.shape.radii.unwrap().x + i as f64 / 20.)
+                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    as i32,
+                                ((data.tool_window.shape.radii.unwrap().y + i as f64 / 20.)
+                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    as i32,
+                                Rgba([color.0, color.1, color.2, 255]),
+                            );
+                            */
+                        }
+                    }else{
+                        imageproc::drawing::draw_filled_ellipse_mut(
+                            &mut image,
+                            (
+                                ((data.tool_window.shape.center.unwrap().x - data.tool_window.origin.x)
+                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    as i32,
+                                ((data.tool_window.shape.center.unwrap().y - data.tool_window.origin.y)
+                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    as i32,
+                            ),
+                            (data.tool_window.shape.radii.unwrap().x
                                 * (data.img.width() as f64 / data.tool_window.img_size.width))
                                 as i32,
-                            ((data.tool_window.shape.center.unwrap().y - data.tool_window.origin.y)
+                            (data.tool_window.shape.radii.unwrap().y
                                 * (data.img.height() as f64 / data.tool_window.img_size.height))
                                 as i32,
-                        ),
-                        (data.tool_window.shape.radii.unwrap().x
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
-                            as i32,
-                        (data.tool_window.shape.radii.unwrap().y
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
-                            as i32,
-                        Rgba([color.0, color.1, color.2, 255]),
-                    );
+                            Rgba([color.0, color.1, color.2, 255]),
+                        );
+    
+                    }
 
                     data.tool_window.img = Some(ImageBuf::from_raw(
-                        prova.clone().into_raw(),
+                        image.clone().into_raw(),
                         druid::piet::ImageFormat::RgbaPremul,
-                        prova.clone().width() as usize,
-                        prova.clone().height() as usize,
+                        image.clone().width() as usize,
+                        image.clone().height() as usize,
                     ));
 
                     data.tool_window.shape.start_point = None;
@@ -1430,7 +1484,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                 }
                 _ => {}
             },
-            Tools::HollowEllipse => match event {
+            Tools::Rectangle=>match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
                         pos: mouse_button.pos,
@@ -1460,21 +1514,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     };
 
                     data.tool_window.shape.end_point = Some(mouse_move.pos);
-                    if let (Some(start), Some(end)) = (
-                        data.tool_window.shape.start_point,
-                        data.tool_window.shape.end_point,
-                    ) {
-                        let radius1 = (start.x - end.x) / 2.;
-                        let radius2 = (start.y - end.y) / 2.;
-                        let c1 = end.x + radius1;
-                        let c2 = end.y + radius2;
-                        data.tool_window.shape.center = Some(druid::Point::new(c1, c2));
-                        data.tool_window.shape.radii =
-                            Some(druid::Vec2::new(radius1.abs(), radius2.abs()));
-                    }
                 }
                 Event::MouseUp(mouse_button) => {
-                    let mouse_up = MouseEvent {
+                    let _mouse_up = MouseEvent {
                         pos: mouse_button.pos,
                         window_pos: mouse_button.window_pos,
                         buttons: mouse_button.buttons,
@@ -1497,69 +1539,36 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     let color = data.color.as_rgba8();
 
                     if !data.fill_shape {
-                        for i in 0..50 {
-                            imageproc::drawing::draw_hollow_ellipse_mut(
+
+                        for i in -20..20 {
+                            imageproc::drawing::draw_hollow_rect_mut(
                                 &mut image,
-                                (
-                                    ((data.tool_window.shape.center.unwrap().x
-                                        - data.tool_window.origin.x)
-                                        * (data.img.width() as f64
-                                            / data.tool_window.img_size.width))
-                                        as i32,
-                                    ((data.tool_window.shape.center.unwrap().y
-                                        - data.tool_window.origin.y)
-                                        * (data.img.height() as f64
-                                            / data.tool_window.img_size.height))
-                                        as i32,
-                                ),
-                                ((data.tool_window.shape.radii.unwrap().x - i as f64 / 20.)
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
-                                    as i32,
-                                ((data.tool_window.shape.radii.unwrap().y - i as f64 / 20.)
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
-                                    as i32,
-                                Rgba([color.0, color.1, color.2, 255]),
-                            );
-                            imageproc::drawing::draw_hollow_ellipse_mut(
-                                &mut image,
-                                (
-                                    ((data.tool_window.shape.center.unwrap().x
-                                        - data.tool_window.origin.x)
-                                        * (data.img.width() as f64
-                                            / data.tool_window.img_size.width))
-                                        as i32,
-                                    ((data.tool_window.shape.center.unwrap().y
-                                        - data.tool_window.origin.y)
-                                        * (data.img.height() as f64
-                                            / data.tool_window.img_size.height))
-                                        as i32,
-                                ),
-                                ((data.tool_window.shape.radii.unwrap().x + i as f64 / 20.)
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
-                                    as i32,
-                                ((data.tool_window.shape.radii.unwrap().y + i as f64 / 20.)
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
-                                    as i32,
+                                imageproc::rect::Rect::at(
+                                    ((data.tool_window.shape.start_point.unwrap().x.min(data.tool_window.shape.end_point.unwrap().x)+i as f64/10. - data.tool_window.origin.x)
+                                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                            as i32,
+                                    ((data.tool_window.shape.start_point.unwrap().y.min(data.tool_window.shape.end_point.unwrap().y)+i as f64/10. - data.tool_window.origin.y)
+                                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                            as i32,
+                                    )
+                                    .of_size(((((data.tool_window.shape.start_point.unwrap().x-data.tool_window.shape.end_point.unwrap().x).abs()-2.*i as f64/10.)* (data.img.width() as f64 / data.tool_window.img_size.width)) as u32).max(1),
+                                    ((((data.tool_window.shape.start_point.unwrap().y-data.tool_window.shape.end_point.unwrap().y).abs()-2.*i as f64/10.)* (data.img.height() as f64 / data.tool_window.img_size.height)) as u32).max(1)),
                                 Rgba([color.0, color.1, color.2, 255]),
                             );
                         }
                     }else{
-                        imageproc::drawing::draw_filled_ellipse_mut(
+                        imageproc::drawing::draw_filled_rect_mut(
                             &mut image,
-                            (
-                                ((data.tool_window.shape.center.unwrap().x - data.tool_window.origin.x)
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
-                                    as i32,
-                                ((data.tool_window.shape.center.unwrap().y - data.tool_window.origin.y)
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
-                                    as i32,
-                            ),
-                            (data.tool_window.shape.radii.unwrap().x
-                                * (data.img.width() as f64 / data.tool_window.img_size.width))
-                                as i32,
-                            (data.tool_window.shape.radii.unwrap().y
-                                * (data.img.height() as f64 / data.tool_window.img_size.height))
-                                as i32,
+                            imageproc::rect::Rect::at(
+                                ((data.tool_window.shape.start_point.unwrap().x.min(data.tool_window.shape.end_point.unwrap().x)- data.tool_window.origin.x)
+                                        * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                        as i32,
+                                ((data.tool_window.shape.start_point.unwrap().y.min(data.tool_window.shape.end_point.unwrap().y)- data.tool_window.origin.y)
+                                        * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                        as i32,
+                                )
+                                .of_size((((data.tool_window.shape.start_point.unwrap().x-data.tool_window.shape.end_point.unwrap().x).abs())* (data.img.width() as f64 / data.tool_window.img_size.width)) as u32,
+                                (((data.tool_window.shape.start_point.unwrap().y-data.tool_window.shape.end_point.unwrap().y).abs())* (data.img.height() as f64 / data.tool_window.img_size.height)) as u32),
                             Rgba([color.0, color.1, color.2, 255]),
                         );
     

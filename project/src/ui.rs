@@ -82,6 +82,7 @@ pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
                                 .resizable(false)
                                 .set_position(pos);
                             ctx.new_window(new_win);
+                            data.tool_window=AnnotationTools::default();
                         })
                         .fix_width(100.0)
                         .fix_height(30.0),
@@ -113,6 +114,7 @@ pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
                                 .resizable(false)
                                 .set_position(pos);
                             ctx.new_window(new_win);
+                            data.tool_window=AnnotationTools::default();                            
                         })
                         .fix_width(100.0)
                         .fix_height(30.0),
@@ -225,7 +227,18 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     Image::new(ImageBuf::from_data(include_bytes!("../icon/ellipse.png")).unwrap())
                         .fix_size(20., 20.)
                         .on_click(|ctx, data: &mut AppState, _: &Env| {
-                            data.tool_window.tool = Tools::HollowEllipse;
+                            data.tool_window.tool = Tools::Ellipse;
+                            //data.line_thickness = 10.;s
+                        })
+                        .border(Color::WHITE, 1.)
+                        .background(Color::rgb8(0, 0, 0))
+                        .padding(5.),
+                )
+                .with_child(
+                    Image::new(ImageBuf::from_data(include_bytes!("../icon/square.png")).unwrap())
+                        .fix_size(20., 20.)
+                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                            data.tool_window.tool = Tools::Rectangle;
                             //data.line_thickness = 10.;s
                         })
                         .border(Color::WHITE, 1.)
@@ -394,83 +407,6 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             .padding(5.),
                         ))
                 )),
-            Either::new(
-                |data, _env| data.tool_window.tool == Tools::Text,
-                Flex::row()
-                    .with_child(Button::new("salva").on_click(
-                        move |_ctx, data: &mut AppState, _env| {
-                            if let Some(point) = data.tool_window.text_pos {
-                                let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> =
-                                    ImageBuffer::from_vec(
-                                        data.img.width() as u32,
-                                        data.img.height() as u32,
-                                        data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
-                                    )
-                                    .unwrap();
-
-                                let color = data.color.as_rgba8();
-
-                                let strings = data.text.lines();
-
-                                let mut deref = 5.;
-                                for s in strings {
-                                    imageproc::drawing::draw_text_mut(
-                                        &mut image,
-                                        Rgba([color.0, color.1, color.2, 255]),
-                                        ((point.x - data.tool_window.origin.x)
-                                            * (data.img.width() as f64
-                                                / data.tool_window.img_size.width))
-                                            as i32,
-                                        ((point.y + deref - data.tool_window.origin.y)
-                                            * (data.img.height() as f64
-                                                / data.tool_window.img_size.height))
-                                            as i32,
-                                        rusttype::Scale {
-                                            x: 21.
-                                                * (data.img.width() as f64
-                                                    / data.tool_window.img_size.width)
-                                                    as f32,
-                                            y: 22.
-                                                * (data.img.height() as f64
-                                                    / data.tool_window.img_size.height)
-                                                    as f32,
-                                        },
-                                        &font.clone(),
-                                        s,
-                                    );
-
-                                    deref = deref + 25.;
-                                }
-
-                                data.tool_window.img = Some(ImageBuf::from_raw(
-                                    image.clone().into_raw(),
-                                    druid::piet::ImageFormat::RgbaPremul,
-                                    image.clone().width() as usize,
-                                    image.clone().height() as usize,
-                                ));
-                                data.img = data.tool_window.img.clone().unwrap();
-                                data.tool_window.text_pos = None;
-                            }
-
-                            data.text = "".to_string();
-                            data.tool_window.tool = Tools::No;
-                        },
-                    ))
-                    .with_child(Button::new("annulla").on_click(
-                        |_ctx, data: &mut AppState, _env| {
-                            data.text = "".to_string();
-                            data.tool_window.text_pos = None;
-                            data.tool_window.img = Some(data.img.clone());
-                            data.tool_window.tool = Tools::No;
-                        },
-                    ))
-                    .with_child(
-                        TextBox::multiline()
-                            .with_placeholder("scrivi qui")
-                            .fix_width(300.)
-                            .fix_height(50.)
-                            .lens(AppState::text),
-                    ),
                 Flex::row()
                     .with_child(Button::new("salva").on_click(
                         move |ctx, data: &mut AppState, env| {
@@ -540,14 +476,71 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                             - (data.tool_window.img_size.height / 2.),
                                     );
                                 }
-                                Tools::HollowEllipse => {
+                                Tools::Highlight => {
                                     data.img = data.tool_window.img.clone().unwrap();
                                 }
-                                Tools::Highlight => {
+                                Tools::Ellipse => {
+                                    data.img = data.tool_window.img.clone().unwrap();
+                                }
+                                Tools::Rectangle => {
                                     data.img = data.tool_window.img.clone().unwrap();
                                 }
                                 Tools::Arrow => {
                                     data.img = data.tool_window.img.clone().unwrap();
+                                }
+                                Tools::Text=>{
+                                    if let Some(point) = data.tool_window.text_pos {
+                                        let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> =
+                                            ImageBuffer::from_vec(
+                                                data.img.width() as u32,
+                                                data.img.height() as u32,
+                                                data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
+                                            )
+                                            .unwrap();
+        
+                                        let color = data.color.as_rgba8();
+        
+                                        let strings = data.text.lines();
+        
+                                        let mut deref = -16.;
+                                        for s in strings {
+                                            imageproc::drawing::draw_text_mut(
+                                                &mut image,
+                                                Rgba([color.0, color.1, color.2, 255]),
+                                                ((point.x - data.tool_window.origin.x)* (data.img.width() as f64/ data.tool_window.img_size.width))as i32,
+                                                ((point.y + deref - data.tool_window.origin.y)
+                                                    * (data.img.height() as f64
+                                                        / data.tool_window.img_size.height))
+                                                    as i32,
+                                                rusttype::Scale {
+                                                    x: 21.
+                                                        * (data.img.width() as f64
+                                                            / data.tool_window.img_size.width)
+                                                            as f32,
+                                                    y: 22.
+                                                        * (data.img.height() as f64
+                                                            / data.tool_window.img_size.height)
+                                                            as f32,
+                                                },
+                                                &font.clone(),
+                                                s,
+                                            );
+        
+                                            deref = deref + 25.;
+                                        }
+        
+                                        data.tool_window.img = Some(ImageBuf::from_raw(
+                                            image.clone().into_raw(),
+                                            druid::piet::ImageFormat::RgbaPremul,
+                                            image.clone().width() as usize,
+                                            image.clone().height() as usize,
+                                        ));
+                                        data.img = data.tool_window.img.clone().unwrap();
+                                        data.tool_window.text_pos = None;
+                                    }
+        
+                                    data.text = "".to_string();
+                                    data.tool_window.tool = Tools::No;
                                 }
                                 Tools::Random => {
                                     data.color = data.color.with_alpha(1.);
@@ -562,8 +555,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                             data.tool_window.tool = Tools::No;
                         },
                     ))
-                    .with_child(
-                        Button::new("annulla")
+                    .with_child(Button::new("annulla")
                             .on_click(|ctx, data: &mut AppState, env| {
                                 match data.tool_window.tool {
                                     Tools::Resize => {
@@ -571,8 +563,13 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                         data.tool_window.rect_transparency = 0.;
                                     }
                                     Tools::Ellipse => {}
+                                    Tools::Rectangle=>{}
                                     Tools::Highlight => {}
                                     Tools::Arrow => {}
+                                    Tools::Text=>{
+                                        data.text = "".to_string();
+                                        data.tool_window.text_pos = None;
+                                    }
                                     Tools::Random => {
                                         data.color = data.color.with_alpha(1.);
                                     }
@@ -585,8 +582,8 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                     )
                     .with_child(Either::new(
                         |data: &AppState, _env| {
-                            data.tool_window.tool == Tools::HollowEllipse
-                                || data.tool_window.tool == Tools::HollowRectangle
+                            data.tool_window.tool == Tools::Ellipse
+                                || data.tool_window.tool == Tools::Rectangle
                         },
                         Either::new(
                             |data: &AppState, _env| data.fill_shape,
@@ -596,19 +593,27 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         Label::new(""),
                     ))
                     .with_child(Either::new(
+                        |data:&AppState,_env| data.tool_window.tool==Tools::Text,
+                        TextBox::multiline()
+                            .with_placeholder("scrivi qui")
+                            .fix_width(300.)
+                            .fix_height(50.)
+                            .lens(AppState::text),
+                            Label::new("")
+                    ))
+                    .with_child(Either::new(
                         |data: &AppState, _env| {
-                            data.tool_window.tool == Tools::HollowEllipse
-                                || data.tool_window.tool == Tools::HollowRectangle
+                            data.tool_window.tool == Tools::Ellipse
+                                || data.tool_window.tool == Tools::Rectangle
                         },
                         Switch::new().lens(AppState::fill_shape),
                         Label::new(""),
                     )),
             ),
-        ))
+        )
         .with_child(
             ZStack::new(
                 SizedBox::new(
-                    //image
                     Painter::new(|ctx, data: &AppState, env| {
                         let image = ctx
                             .make_image(
@@ -682,7 +687,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 }
                             }
                         }
-                        Tools::HollowEllipse => {
+                        Tools::Ellipse => {
                             if let (Some(center), Some(_end)) = (
                                 data.tool_window.shape.center,
                                 data.tool_window.shape.end_point,
@@ -692,6 +697,28 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                     center,
                                     data.tool_window.shape.radii.unwrap(),
                                     0.0,
+                                );
+
+                                if !data.fill_shape {
+                                    ctx.fill(shape, &Color::rgba(color.0, color.1, color.2, 0.));
+                                    ctx.stroke(
+                                        shape,
+                                        &Color::rgba(color.0, color.1, color.2, 1.),
+                                        5.,
+                                    )
+                                } else {
+                                    ctx.fill(shape, &Color::rgba(color.0, color.1, color.2, 1.));
+                                }
+                            }
+                        }
+                        Tools::Rectangle=>{
+                            if let (Some(start), Some(end)) = (data.tool_window.shape.start_point,data.tool_window.shape.end_point,) {
+                                let color = data.color.as_rgba();
+                                let shape = druid::kurbo::Rect::new(
+                                    start.x,
+                                    start.y,
+                                    end.x,
+                                    end.y,
                                 );
 
                                 if !data.fill_shape {
