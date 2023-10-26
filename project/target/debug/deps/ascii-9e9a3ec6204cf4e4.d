@@ -1,0 +1,11 @@
+C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\deps\ascii-9e9a3ec6204cf4e4.rmeta: C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\lib.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_char.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_str.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_string.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\free_functions.rs
+
+C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\deps\libascii-9e9a3ec6204cf4e4.rlib: C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\lib.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_char.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_str.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_string.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\free_functions.rs
+
+C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\deps\ascii-9e9a3ec6204cf4e4.d: C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\lib.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_char.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_str.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_string.rs C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\free_functions.rs
+
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\lib.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_char.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_str.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\ascii_string.rs:
+C:\Users\Ciro\.cargo\registry\src\github.com-1ecc6299db9ec823\ascii-1.1.0\src\free_functions.rs:

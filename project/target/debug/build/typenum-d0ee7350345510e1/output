@@ -1,0 +1,3 @@
+cargo:rerun-if-changed=build/main.rs
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\build\typenum-d0ee7350345510e1\out\consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=C:\Users\Ciro\Desktop\rust_folder\pds_project\screen-grabbing-utility\project\target\debug\build\typenum-d0ee7350345510e1\out\op.rs
