@@ -2088,22 +2088,29 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         && data.color.as_rgba8().3 == 255
                     {
                         self.points.push(mouse_move.pos);
+                    }else
+                    {
+                        if !self.points.is_empty(){
+                            self.points=Vec::new();
+                        }
                     }
                     data.tool_window.random_point = Some(mouse_move.pos);
+
                 }
-                Event::MouseUp(_mouse_button) => {
+                Event::MouseUp(mouse_button) => {
                     data.color = data.color.with_alpha(1.);
                     let color = data.color.as_rgba8();
 
-                    if !self.points.is_empty() {
-                        let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
-                            data.img.width() as u32,
-                            data.img.height() as u32,
-                            data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
-                        )
-                        .unwrap();
+                    let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
+                        data.img.width() as u32,
+                        data.img.height() as u32,
+                        data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
+                    )
+                    .unwrap();
+                    if !self.points.is_empty()&&self.points.len()>=2 {
+                        
 
-                        for i in 0..self.points.len() - 3 {
+                        for i in 0..self.points.len() - 2 {
                             let mut line = FreeRect::new(
                                 self.points[i],
                                 self.points[i],
@@ -2128,7 +2135,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             let mut err = dx + dy;
                             let mut e2;
 
-                            for _i in 0..=4 {
+                            for _i in 0..=1 {
                                 e2 = err * 2.;
                                 if e2 >= dy {
                                     err = err + dy;
@@ -2178,7 +2185,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                     Rgba([color.0, color.1, color.2, color.3]),
                                 );
                             }
-
+                            /*
                             imageproc::drawing::draw_filled_circle_mut(
                                 &mut image,
                                 (
@@ -2191,10 +2198,11 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                             / data.tool_window.img_size.height))
                                         as i32,
                                 ),
-                                5 * (data.img.height() as f64 / data.tool_window.img_size.height)
+                                1 * (data.img.height() as f64 / data.tool_window.img_size.height)
                                     as i32,
                                 Rgba([color.0, color.1, color.2, color.3]),
                             );
+                            */
                         }
 
                         imageproc::drawing::draw_filled_circle_mut(
@@ -2207,19 +2215,38 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                     * (data.img.height() as f64 / data.tool_window.img_size.height))
                                     as i32,
                             ),
-                            5 * (data.img.height() as f64 / data.tool_window.img_size.height)
+                            3 * (data.img.height() as f64 / data.tool_window.img_size.height)
                                 as i32,
                             Rgba([color.0, color.1, color.2, color.3]),
                         );
 
-                        data.tool_window.img = Some(ImageBuf::from_raw(
-                            image.clone().into_raw(),
-                            druid::piet::ImageFormat::RgbaPremul,
-                            image.clone().width() as usize,
-                            image.clone().height() as usize,
-                        ));
+                        
                         self.points = Vec::new();
+                    }else
+                    {
+                        imageproc::drawing::draw_filled_circle_mut(
+                            &mut image,
+                            (
+                                ((mouse_button.pos.x - data.tool_window.origin.x)
+                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    as i32,
+                                ((mouse_button.pos.y - data.tool_window.origin.y)
+                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    as i32,
+                            ),
+                            3 * (data.img.height() as f64 / data.tool_window.img_size.height)
+                                as i32,
+                            Rgba([color.0, color.1, color.2, color.3]),
+                        );
                     }
+
+                    data.tool_window.img = Some(ImageBuf::from_raw(
+                        image.clone().into_raw(),
+                        druid::piet::ImageFormat::RgbaPremul,
+                        image.clone().width() as usize,
+                        image.clone().height() as usize,
+                    ));
+
 
                     data.color = data.color.with_alpha(0.);
                 }

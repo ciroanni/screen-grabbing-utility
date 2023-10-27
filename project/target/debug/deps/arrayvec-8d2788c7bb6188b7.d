@@ -1,0 +1,11 @@
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\arrayvec-8d2788c7bb6188b7.rmeta: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\arrayvec_impl.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\arrayvec.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\array_string.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\char.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\errors.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\utils.rs
+
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\arrayvec-8d2788c7bb6188b7.d: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\arrayvec_impl.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\arrayvec.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\array_string.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\char.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\errors.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\utils.rs
+
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\lib.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\arrayvec_impl.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\arrayvec.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\array_string.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\char.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\errors.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\arrayvec-0.7.4\src\utils.rs:

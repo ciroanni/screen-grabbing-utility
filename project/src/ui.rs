@@ -632,7 +632,7 @@ pub fn show_edit() -> impl Widget<AppState>{
 pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     let image = Image::new(img.clone());
     let points = Vec::<Point>::new();
-    let mut path = druid::kurbo::BezPath::new();
+    let mut path = Vec::new();
     //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
     
     Flex::column()
@@ -833,25 +833,33 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         Tools::Random => {
                             if let Some(point) = data.tool_window.random_point {
                                 let color = data.color.as_rgba();
-                                if path.is_empty() {
-                                    path.push(druid::kurbo::PathEl::MoveTo(point));
-                                    path.push(druid::kurbo::PathEl::LineTo(point));
-                                } else {
-                                    path.push(druid::kurbo::PathEl::LineTo(point));
-                                }
+                                let mut bez=druid::kurbo::BezPath::new();
 
+
+                                path.push(point);
+
+                                bez.move_to(path[0].clone());
+                                for p in path.iter().skip(1){
+                                    bez.line_to(p.clone());
+                                }
+                                
                                 let circle = druid::kurbo::Circle::new(point, 5.);
 
                                 ctx.fill(circle, &Color::rgba(color.0, color.1, color.2, color.3));
                                 ctx.stroke(
-                                    path.clone(),
+                                    bez.clone(),
                                     &Color::rgba(color.0, color.1, color.2, color.3),
-                                    10.,
+                                    5.,
                                 );
 
+                                println!("{:?}",color);
+
                                 if color.3 == 0.0 {
-                                    path = druid::kurbo::BezPath::new();
+                                    println!("entro");
+                                    path = Vec::new();
+
                                 }
+                                
                             }
                         }
                         Tools::Text => {
