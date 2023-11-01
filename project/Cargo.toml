@@ -21,6 +21,7 @@ druid-widget-nursery = { git = "https://github.com/linebender/druid-widget-nurse
 druid-shell = "0.8.3"
 arboard = "3.2.1"
 imageproc = "0.23.0"
+global-hotkey="0.4.0"
 
 [profile.dev]
 overflow-checks = false

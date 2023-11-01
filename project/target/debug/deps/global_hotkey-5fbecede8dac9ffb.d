@@ -1,0 +1,9 @@
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\global_hotkey-5fbecede8dac9ffb.rmeta: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\error.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\hotkey.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\platform_impl\mod.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\platform_impl\windows\mod.rs
+
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\global_hotkey-5fbecede8dac9ffb.d: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\error.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\hotkey.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\platform_impl\mod.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\platform_impl\windows\mod.rs
+
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\lib.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\error.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\hotkey.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\platform_impl\mod.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\global-hotkey-0.4.0\src\platform_impl\windows\mod.rs:

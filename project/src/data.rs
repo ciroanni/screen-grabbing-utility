@@ -248,7 +248,7 @@ impl AppState {
             image.clone().height() as usize,
         );
 
-        self.tool_window.img = Some(self.img.clone());
+        self.tool_window.img = self.img.clone();
 
         let width = self.img.width() as f64;
         let height = self.img.height() as f64;
@@ -308,9 +308,9 @@ impl AppState {
 
     pub fn save(&mut self) {
         let image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
-            self.img.width() as u32,
-            self.img.height() as u32,
-            self.img.raw_pixels().to_vec(),
+            self.tool_window.img.width() as u32,
+            self.tool_window.img.height() as u32,
+            self.tool_window.img.raw_pixels().to_vec(),
         )
         .unwrap();
         self.set_default_name();
@@ -326,9 +326,9 @@ impl AppState {
 
     pub fn save_as(&mut self, path: &Path) {
         let image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
-            self.img.width() as u32,
-            self.img.height() as u32,
-            self.img.raw_pixels().to_vec(),
+            self.tool_window.img.width() as u32,
+            self.tool_window.img.height() as u32,
+            self.tool_window.img.raw_pixels().to_vec(),
         )
         .unwrap();
         image
@@ -371,6 +371,7 @@ pub struct SelectionShape {
     pub end_point: Option<Point>,
     pub center: Option<Point>,
     pub radii: Option<druid::Vec2>,
+    pub filled :bool,
 }
 
 impl Default for SelectionShape {
@@ -380,8 +381,17 @@ impl Default for SelectionShape {
             end_point: None,   // p4
             center: None,
             radii: None,
+            filled:true,
         }
     }
+}
+
+#[derive(Clone,Debug)]
+pub enum Draw{
+    Shape{shape:SelectionShape},
+    Text{text:String,text_pos:druid::Point,font:Font<'static>},
+    Free{points:Vec<Point>},
+    Resize{res:SelectionRectangle},
 }
 
 #[derive(Clone, Data, Lens, Debug)]
@@ -395,10 +405,12 @@ pub struct AnnotationTools {
     pub rect_stroke: f64,
     pub rect_transparency: f64,
     pub shape: SelectionShape,
-    pub img: Option<ImageBuf>,
+    pub img: ImageBuf,
     pub text: String,
     pub text_pos: Option<druid::Point>,
     pub random_point: Option<Point>,
+    #[data(ignore)]
+    pub draws:Vec<(Draw,Tools,Color)>,
 }
 
 impl Default for AnnotationTools {
@@ -413,11 +425,11 @@ impl Default for AnnotationTools {
             rect_stroke: 0.0,
             rect_transparency: 0.0,
             shape: SelectionShape::default(),
-            img: None,
+            img: ImageBuf::empty(),
             text: "".to_string(),
             text_pos: None,
             random_point: None,
-            //text_font:Font::try_from_vec(Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8])).unwrap(),
+            draws:Vec::new(),
         }
     }
 }
@@ -1390,9 +1402,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     data.selection_transparency = 0.;
 
                     let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
-                        data.img.width() as u32,
-                        data.img.height() as u32,
-                        data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
+                        data.tool_window.img.width() as u32,
+                        data.tool_window.img.height() as u32,
+                        data.tool_window.img.raw_pixels().to_vec(),
                     )
                     .unwrap();
 
@@ -1405,77 +1417,57 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                 (
                                     ((data.tool_window.shape.center.unwrap().x
                                         - data.tool_window.origin.x)
-                                        * (data.img.width() as f64
+                                        * (data.tool_window.img.width() as f64
                                             / data.tool_window.img_size.width))
                                         .round() as i32,
                                     ((data.tool_window.shape.center.unwrap().y
                                         - data.tool_window.origin.y)
-                                        * (data.img.height() as f64
+                                        * (data.tool_window.img.height() as f64
                                             / data.tool_window.img_size.height))
                                         .round() as i32,
                                 ),
                                 ((data.tool_window.shape.radii.unwrap().x - i as f64 / 20.)
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                     as i32,
                                 ((data.tool_window.shape.radii.unwrap().y - i as f64 / 20.)
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                     as i32,
                                 Rgba([color.0, color.1, color.2, 255]),
                             );
-                            /*
-                            imageproc::drawing::draw_hollow_ellipse_mut(
-                                &mut image,
-                                (
-                                    ((data.tool_window.shape.center.unwrap().x
-                                        - data.tool_window.origin.x)
-                                        * (data.img.width() as f64
-                                            / data.tool_window.img_size.width))
-                                        as i32,
-                                    ((data.tool_window.shape.center.unwrap().y
-                                        - data.tool_window.origin.y)
-                                        * (data.img.height() as f64
-                                            / data.tool_window.img_size.height))
-                                        as i32,
-                                ),
-                                ((data.tool_window.shape.radii.unwrap().x + i as f64 / 20.)
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
-                                    as i32,
-                                ((data.tool_window.shape.radii.unwrap().y + i as f64 / 20.)
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
-                                    as i32,
-                                Rgba([color.0, color.1, color.2, 255]),
-                            );
-                            */
                         }
+                        data.tool_window.shape.filled=false;
+                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Ellipse,data.color.clone()));
                     } else {
                         imageproc::drawing::draw_filled_ellipse_mut(
                             &mut image,
                             (
                                 ((data.tool_window.shape.center.unwrap().x
                                     - data.tool_window.origin.x)
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                     as i32,
                                 ((data.tool_window.shape.center.unwrap().y
                                     - data.tool_window.origin.y)
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                     as i32,
                             ),
                             (data.tool_window.shape.radii.unwrap().x
-                                * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                 as i32,
                             (data.tool_window.shape.radii.unwrap().y
-                                * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                 as i32,
                             Rgba([color.0, color.1, color.2, 255]),
                         );
+                        data.tool_window.shape.filled=true;
+                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Ellipse,data.color.clone()));
                     }
 
-                    data.tool_window.img = Some(ImageBuf::from_raw(
+                    data.tool_window.img = ImageBuf::from_raw(
                         image.clone().into_raw(),
                         druid::piet::ImageFormat::RgbaPremul,
                         image.clone().width() as usize,
                         image.clone().height() as usize,
-                    ));
+                    );
 
                     data.tool_window.shape.start_point = None;
                     data.tool_window.shape.end_point = None;
@@ -1530,9 +1522,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     data.selection_transparency = 0.;
 
                     let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
-                        data.img.width() as u32,
-                        data.img.height() as u32,
-                        data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
+                        data.tool_window.img.width() as u32,
+                        data.tool_window.img.height() as u32,
+                        data.tool_window.img.clone().raw_pixels().to_vec(),
                     )
                     .unwrap();
 
@@ -1552,7 +1544,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                         .min(data.tool_window.shape.end_point.unwrap().x)
                                         + i as f64 / 10.
                                         - data.tool_window.origin.x)
-                                        * (data.img.width() as f64
+                                        * (data.tool_window.img.width() as f64
                                             / data.tool_window.img_size.width))
                                         as i32,
                                     ((data
@@ -1564,7 +1556,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                         .min(data.tool_window.shape.end_point.unwrap().y)
                                         + i as f64 / 10.
                                         - data.tool_window.origin.y)
-                                        * (data.img.height() as f64
+                                        * (data.tool_window.img.height() as f64
                                             / data.tool_window.img_size.height))
                                         as i32,
                                 )
@@ -1573,7 +1565,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                         - data.tool_window.shape.end_point.unwrap().x)
                                         .abs()
                                         - 2. * i as f64 / 10.)
-                                        * (data.img.width() as f64
+                                        * (data.tool_window.img.width() as f64
                                             / data.tool_window.img_size.width))
                                         as u32)
                                         .max(1),
@@ -1581,7 +1573,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                         - data.tool_window.shape.end_point.unwrap().y)
                                         .abs()
                                         - 2. * i as f64 / 10.)
-                                        * (data.img.height() as f64
+                                        * (data.tool_window.img.height() as f64
                                             / data.tool_window.img_size.height))
                                         as u32)
                                         .max(1),
@@ -1589,6 +1581,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                 Rgba([color.0, color.1, color.2, 255]),
                             );
                         }
+                        data.tool_window.shape.filled=false;
+                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Rectangle,data.color.clone()));
                     } else {
                         imageproc::drawing::draw_filled_rect_mut(
                             &mut image,
@@ -1601,7 +1595,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                     .x
                                     .min(data.tool_window.shape.end_point.unwrap().x)
                                     - data.tool_window.origin.x)
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                     as i32,
                                 ((data
                                     .tool_window
@@ -1611,31 +1605,33 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                     .y
                                     .min(data.tool_window.shape.end_point.unwrap().y)
                                     - data.tool_window.origin.y)
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                     as i32,
                             )
                             .of_size(
                                 (((data.tool_window.shape.start_point.unwrap().x
                                     - data.tool_window.shape.end_point.unwrap().x)
                                     .abs())
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                     as u32,
                                 (((data.tool_window.shape.start_point.unwrap().y
                                     - data.tool_window.shape.end_point.unwrap().y)
                                     .abs())
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                     as u32,
                             ),
                             Rgba([color.0, color.1, color.2, 255]),
                         );
+                        data.tool_window.shape.filled=true;
+                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Rectangle,data.color.clone()));
                     }
 
-                    data.tool_window.img = Some(ImageBuf::from_raw(
+                    data.tool_window.img = ImageBuf::from_raw(
                         image.clone().into_raw(),
                         druid::piet::ImageFormat::RgbaPremul,
                         image.clone().width() as usize,
                         image.clone().height() as usize,
-                    ));
+                    );
 
                     data.tool_window.shape.start_point = None;
                     data.tool_window.shape.end_point = None;
@@ -1675,7 +1671,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
 
                     data.tool_window.shape.end_point = Some(mouse_move.pos);
                 }
-
                 Event::MouseUp(mouse_button) => {
                     let mouse_up = MouseEvent {
                         pos: mouse_button.pos,
@@ -1695,7 +1690,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     let start = data.tool_window.shape.start_point.unwrap();
 
                     if end == start {
-                        data.tool_window.img = Some(data.img.clone());
+                        //data.tool_window.img = data.img.clone();
                         data.tool_window.tool = Tools::No;
                         child.event(ctx, event, data, env);
                     } else {
@@ -1732,9 +1727,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         );
 
                         let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
-                            data.img.width() as u32,
-                            data.img.height() as u32,
-                            data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
+                            data.tool_window.img.width() as u32,
+                            data.tool_window.img.height() as u32,
+                            data.tool_window.img.clone().raw_pixels().to_vec(),
                         )
                         .unwrap();
 
@@ -1794,78 +1789,78 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         }
 
                         body.p1.x = ((body.p1.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         body.p1.y = ((body.p1.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         body.p2.x = ((body.p2.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         body.p2.y = ((body.p2.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         body.p3.x = ((body.p3.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         body.p3.y = ((body.p3.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         body.p4.x = ((body.p4.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         body.p4.y = ((body.p4.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
 
                         line1.p1.x = ((line1.p1.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line1.p1.y = ((line1.p1.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         line1.p2.x = ((line1.p2.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line1.p2.y = ((line1.p2.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         line1.p3.x = ((line1.p3.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line1.p3.y = ((line1.p3.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         line1.p4.x = ((line1.p4.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line1.p4.y = ((line1.p4.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
 
                         line2.p1.x = ((line2.p1.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line2.p1.y = ((line2.p1.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         line2.p2.x = ((line2.p2.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line2.p2.y = ((line2.p2.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         line2.p3.x = ((line2.p3.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line2.p3.y = ((line2.p3.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         line2.p4.x = ((line2.p4.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line2.p4.y = ((line2.p4.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
 
                         let color = data.color.as_rgba8();
@@ -1887,12 +1882,15 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             Rgba([color.0, color.1, color.2, color.3]),
                         );
 
-                        data.tool_window.img = Some(ImageBuf::from_raw(
+                        data.tool_window.img = ImageBuf::from_raw(
                             image.clone().into_raw(),
                             druid::piet::ImageFormat::RgbaPremul,
                             image.clone().width() as usize,
                             image.clone().height() as usize,
-                        ));
+                        );
+
+                        data.tool_window.shape.filled=true;
+                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Arrow,data.color.clone()));
 
                         data.tool_window.shape.start_point = None;
                         data.tool_window.shape.end_point = None;
@@ -1919,6 +1917,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     };
                     data.color = data.color.with_alpha(1.);
                     data.tool_window.text_pos = Some(mouse_down.pos);
+
                 }
                 _ => {}
             },
@@ -1956,7 +1955,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     }
                     Event::MouseUp(_mouse_button) => {
                         let mut image =
-                            ImageBuffer::new(data.img.width() as u32, data.img.height() as u32);
+                            ImageBuffer::new(data.tool_window.img.width() as u32, data.tool_window.img.height() as u32);
 
                         let mut line = FreeRect::new(
                             data.tool_window.shape.start_point.unwrap(),
@@ -2001,28 +2000,28 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         }
 
                         line.p1.x = ((line.p1.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line.p1.y = ((line.p1.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         line.p2.x = ((line.p2.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line.p2.y = ((line.p2.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         line.p3.x = ((line.p3.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line.p3.y = ((line.p3.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
                         line.p4.x = ((line.p4.x as f64 - data.tool_window.origin.x)
-                            * (data.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                             as i32;
                         line.p4.y = ((line.p4.y as f64 - data.tool_window.origin.y)
-                            * (data.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                             as i32;
 
                         let color = data.color.as_rgba8();
@@ -2033,19 +2032,22 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         );
 
                         let mut bottom: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
-                            data.img.width() as u32,
-                            data.img.height() as u32,
-                            data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
+                            data.tool_window.img.width() as u32,
+                            data.tool_window.img.height() as u32,
+                            data.tool_window.img.clone().raw_pixels().to_vec(),
                         )
                         .unwrap();
                         image::imageops::overlay(&mut bottom, &prova, 0, 0);
 
-                        data.tool_window.img = Some(ImageBuf::from_raw(
+                        data.tool_window.img =ImageBuf::from_raw(
                             bottom.clone().into_raw(),
                             druid::piet::ImageFormat::RgbaPremul,
                             bottom.clone().width() as usize,
                             bottom.clone().height() as usize,
-                        ));
+                        );
+
+                        data.tool_window.shape.filled=true;
+                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Highlight,data.color.clone()));
 
                         data.tool_window.shape.start_point = None;
                         data.tool_window.shape.end_point = None;
@@ -2102,20 +2104,19 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     let color = data.color.as_rgba8();
 
                     let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
-                        data.img.width() as u32,
-                        data.img.height() as u32,
-                        data.tool_window.img.clone().unwrap().raw_pixels().to_vec(),
+                        data.tool_window.img.width() as u32,
+                        data.tool_window.img.height() as u32,
+                        data.tool_window.img.clone().raw_pixels().to_vec(),
                     )
                     .unwrap();
-                    if !self.points.is_empty()&&self.points.len()>=2 {
+                    if !self.points.is_empty()&&self.points.len()>=1 {
                         
-
-                        for i in 0..self.points.len() - 2 {
+                        for i in 0..self.points.len() - 1 {
                             let mut line = FreeRect::new(
                                 self.points[i],
                                 self.points[i],
-                                self.points[i + 2],
-                                self.points[i + 2],
+                                self.points[i + 1],
+                                self.points[i + 1],
                             );
 
                             let dx = ((line.p3.x - line.p1.x) as f64).abs();
@@ -2154,28 +2155,28 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             }
 
                             line.p1.x = ((line.p1.x as f64 - data.tool_window.origin.x)
-                                * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                 as i32;
                             line.p1.y = ((line.p1.y as f64 - data.tool_window.origin.y)
-                                * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                 as i32;
                             line.p2.x = ((line.p2.x as f64 - data.tool_window.origin.x)
-                                * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                 as i32;
                             line.p2.y = ((line.p2.y as f64 - data.tool_window.origin.y)
-                                * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                 as i32;
                             line.p3.x = ((line.p3.x as f64 - data.tool_window.origin.x)
-                                * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                 as i32;
                             line.p3.y = ((line.p3.y as f64 - data.tool_window.origin.y)
-                                * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                 as i32;
                             line.p4.x = ((line.p4.x as f64 - data.tool_window.origin.x)
-                                * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                 as i32;
                             line.p4.y = ((line.p4.y as f64 - data.tool_window.origin.y)
-                                * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                 as i32;
 
                             if line.p1 != line.p4 {
@@ -2185,69 +2186,65 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                     Rgba([color.0, color.1, color.2, color.3]),
                                 );
                             }
-                            /*
+
                             imageproc::drawing::draw_filled_circle_mut(
                                 &mut image,
                                 (
                                     ((self.points[i].x - data.tool_window.origin.x)
-                                        * (data.img.width() as f64
-                                            / data.tool_window.img_size.width))
+                                        * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                         as i32,
                                     ((self.points[i].y - data.tool_window.origin.y)
-                                        * (data.img.height() as f64
-                                            / data.tool_window.img_size.height))
+                                        * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                         as i32,
                                 ),
-                                1 * (data.img.height() as f64 / data.tool_window.img_size.height)
+                                2 * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height)
                                     as i32,
                                 Rgba([color.0, color.1, color.2, color.3]),
-                            );
-                            */
-                        }
+                            );                        }
 
                         imageproc::drawing::draw_filled_circle_mut(
                             &mut image,
                             (
                                 ((self.points.last().unwrap().x - data.tool_window.origin.x)
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                     as i32,
                                 ((self.points.last().unwrap().y - data.tool_window.origin.y)
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                     as i32,
                             ),
-                            3 * (data.img.height() as f64 / data.tool_window.img_size.height)
+                            3 * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height)
                                 as i32,
                             Rgba([color.0, color.1, color.2, color.3]),
                         );
 
-                        
-                        self.points = Vec::new();
                     }else
                     {
                         imageproc::drawing::draw_filled_circle_mut(
                             &mut image,
                             (
                                 ((mouse_button.pos.x - data.tool_window.origin.x)
-                                    * (data.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
                                     as i32,
                                 ((mouse_button.pos.y - data.tool_window.origin.y)
-                                    * (data.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
                                     as i32,
                             ),
-                            3 * (data.img.height() as f64 / data.tool_window.img_size.height)
+                            3 * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height)
                                 as i32,
                             Rgba([color.0, color.1, color.2, color.3]),
                         );
                     }
 
-                    data.tool_window.img = Some(ImageBuf::from_raw(
+                    data.tool_window.img = ImageBuf::from_raw(
                         image.clone().into_raw(),
                         druid::piet::ImageFormat::RgbaPremul,
                         image.clone().width() as usize,
                         image.clone().height() as usize,
-                    ));
+                    );
 
+                    data.tool_window.draws.push((Draw::Free{points:self.points.clone()},Tools::Random,data.color.clone()));
 
+                    self.points=Vec::new();
                     data.color = data.color.with_alpha(0.);
                 }
                 _ => {}
