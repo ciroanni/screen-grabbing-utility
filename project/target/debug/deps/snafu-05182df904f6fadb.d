@@ -1,0 +1,12 @@
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\snafu-05182df904f6fadb.rmeta: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\backtrace_inert.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\once_bool.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\error_chain.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\report.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\Snafu.md C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\report.md C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\../README.md
+
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\snafu-05182df904f6fadb.d: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\backtrace_inert.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\once_bool.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\error_chain.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\report.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\Snafu.md C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\report.md C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\../README.md
+
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\lib.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\backtrace_inert.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\once_bool.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\error_chain.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\report.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\Snafu.md:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\report.md:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\snafu-0.7.5\src\../README.md:

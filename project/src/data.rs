@@ -12,9 +12,33 @@ use num_complex::ComplexFloat;
 use rusttype::{Font, Scale};
 use std::path::Path;
 use std::time::Duration;
+use std::sync::mpsc::{self, Sender,Receiver,channel};
+use livesplit_hotkey::*;
+use crossbeam::channel::{Sender as CrossSender,Receiver as CrossReceiver, bounded};
+//use global_hotkey::*;
 //use imageproc::drawing::*;
 
 pub const SHORTCUT: Selector = Selector::new("shortcut_selector");
+
+#[derive(Clone,PartialEq)]
+pub struct MyModifier{
+    pub modifier:livesplit_hotkey::Modifiers,
+}
+impl Data for MyModifier{
+    fn same(&self, other: &Self) -> bool {
+        return self.modifier==other.modifier
+    }
+}
+
+#[derive(Clone,PartialEq)]
+pub struct MyKey{
+    pub key:livesplit_hotkey::KeyCode,
+}
+impl Data for MyKey{
+    fn same(&self, other: &Self) -> bool {
+        return self.key==other.key
+    }
+}
 
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
@@ -95,7 +119,29 @@ pub struct AppState {
     pub name: String,
     pub selected_format: ImageFormat,
     pub shortcut: String,
-    pub mods: u32,
+    #[data(ignore)]
+    pub sender: Sender<(Hotkey,u32)>,
+    #[data(ignore)]
+    pub receiver:CrossReceiver<u32>,
+    #[data(ignore)]
+    pub full_mods:(livesplit_hotkey::Modifiers,livesplit_hotkey::Modifiers,livesplit_hotkey::Modifiers),
+    pub full_mod1: MyModifier,
+    pub full_mod2: MyModifier,
+    pub full_mod3: MyModifier,
+    pub full_k:String,
+    #[data(ignore)]
+    pub full_key: livesplit_hotkey::KeyCode,
+    //pub full_id:u32,
+    #[data(ignore)]
+    pub area_mods:(livesplit_hotkey::Modifiers,livesplit_hotkey::Modifiers,livesplit_hotkey::Modifiers),
+    pub area_mod1: MyModifier,
+    pub area_mod2: MyModifier,
+    pub area_mod3: MyModifier,
+    pub area_k:String,
+    #[data(ignore)]
+    pub area_key: livesplit_hotkey::KeyCode,
+    pub err:bool,
+    //pub area_id:u32,
     pub key: u32,
     pub from: Point,
     pub size: Point,
@@ -164,11 +210,43 @@ impl AppState {
             }
         }
 
+        let (sender,receiver)=channel();
+        let (send,recv)=bounded(1);
+/*
+        let mut tasti1 = global_hotkey::hotkey::HotKey::new(Some(global_hotkey::hotkey::Modifiers::ALT), global_hotkey::hotkey::Code::KeyS);
+        let mut tasti2 = global_hotkey::hotkey::HotKey::new(Some(global_hotkey::hotkey::Modifiers::ALT), global_hotkey::hotkey::Code::KeyG);
+    
+        let id1=tasti1.id();
+        let id2=tasti2.id();
+        */
+        std::thread::spawn(||{
+            create_listener(receiver, send);
+        });
+/*
+        sender.send((tasti1,1));
+        sender.send((tasti2,2));
+*/
         AppState {
             name: "".to_string(),
             selected_format: ImageFormat::Jpeg,
             shortcut: "".to_string(),
-            mods: Modifiers::ALT.bits(),
+            sender:sender,
+            receiver:recv,
+            full_mods:(livesplit_hotkey::Modifiers::ALT,livesplit_hotkey::Modifiers::empty(),livesplit_hotkey::Modifiers::empty()),
+            full_mod1:MyModifier { modifier: livesplit_hotkey::Modifiers::ALT},
+            full_mod2:MyModifier{modifier:livesplit_hotkey::Modifiers::empty()},
+            full_mod3:MyModifier{modifier:livesplit_hotkey::Modifiers::empty()},
+            full_k:"S".to_string(),
+            full_key:livesplit_hotkey::KeyCode::KeyS,
+            //full_id:id1,
+            area_mods:(livesplit_hotkey::Modifiers::ALT,livesplit_hotkey::Modifiers::empty(),livesplit_hotkey::Modifiers::empty()),
+            area_mod1:MyModifier{modifier:livesplit_hotkey::Modifiers::ALT},
+            area_mod2:MyModifier{modifier:livesplit_hotkey::Modifiers::empty()},
+            area_mod3:MyModifier{modifier:livesplit_hotkey::Modifiers::empty()},
+            area_k:"S".to_string(),
+            area_key:livesplit_hotkey::KeyCode::KeyG,
+            err:false,
+            //area_id:id2,
             key: Key::Character("s".to_string()).legacy_charcode(),
             from: Point { x: 0.0, y: 0.0 },
             size: Point {
@@ -270,7 +348,8 @@ impl AppState {
             .title("Screen grabbing")
             .window_size((1200., 750.))
             .resizable(false)
-            .set_position(Point::new(0., 0.));
+            .set_position(Point::new(0., 0.))
+            .set_window_state(WindowState::Restored);
         ctx.new_window(window);
         self.selection_transparency = 0.4;
     }
@@ -282,6 +361,8 @@ impl AppState {
         } else {
             first = self.name.clone();
         }
+
+        let a=std::thread::spawn(||{});
 
         let mut str3 = format!("{}{}", first, self.selected_format.to_string());
 
@@ -488,7 +569,10 @@ pub struct Enter {
     pub id_t: TimerToken,
     pub id_t2: TimerToken,
     pub locks: [bool; 5],
+    pub do_screen:bool,
+    pub witch_screen:u32,
     pub display: Option<screenshots::DisplayInfo>,
+    pub hotkey:druid::HotKey,
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
@@ -500,7 +584,85 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
         data: &mut AppState,
         env: &Env,
     ) {
-        ctx.request_focus();
+
+        if self.do_screen{
+
+            println!("window state:{:?}",ctx.window().get_window_state());
+
+            match event {
+                Event::Timer(id)=>{
+                    if self.id_t==*id{
+                        ctx.window().close();
+                        self.id_t2=ctx.request_timer(Duration::from_millis(100));
+                        if self.witch_screen==1{//1=full screen
+
+                            println!("faccio lo screen fullll in enter");
+
+                            data.rect.start_point = Some(Point::new(0., 0.));
+                            data.rect.end_point = Some(data.size);
+                            data.rect.p2 = Some(Point::new(data.size.x, 0.));
+                            data.rect.p3 = Some(Point::new(0., data.size.y));
+                            let new_win = WindowDesc::new(drag_motion_ui(true))
+                                .show_titlebar(false)
+                                .transparent(true)
+                                .window_size((data.size.x as f64, data.size.y as f64))
+                                .resizable(false)
+                                .set_position(data.pos)
+                                .set_window_state(WindowState::Restored)
+                                .set_always_on_top(true);
+                            ctx.new_window(new_win);
+                            data.tool_window=AnnotationTools::default();
+
+                        }else {
+
+                            println!("faccio lo screen con area in enter");
+
+                            data.rect = SelectionRectangle::default();
+                            let current = ctx.window().clone();
+                            current.close();
+                            let new_win = WindowDesc::new(drag_motion_ui(false))
+                                .show_titlebar(false)
+                                .transparent(true)
+                                .window_size((data.size.x as f64, data.size.y as f64))
+                                .resizable(false)
+                                .set_position(data.pos);
+                            ctx.new_window(new_win);
+                            data.tool_window=AnnotationTools::default(); 
+                        }
+                    
+                    }
+                    if self.id_t2==*id{
+                        println!("entro");
+                        println!("window state:{:?}",ctx.window().get_window_state());
+                        self.do_screen=false;
+                        //ctx.window().close();
+                    }
+                }
+                _=>{}
+            }
+        }else {
+            match event{
+                Event::Timer(id)=>{
+                    if self.id_t==*id{
+                        //println!("is full:{:?}  len:{:?}",data.receiver.is_full(),data.receiver.len());
+                        if data.receiver.is_full(){
+                            self.witch_screen=data.receiver.recv().unwrap();
+                            //ctx.window().hide();
+                            ctx.window().clone().set_window_state(WindowState::Restored);
+                            ctx.window().hide();
+                            self.do_screen=true;
+                        }
+                        self.id_t=ctx.request_timer(Duration::from_millis(100));
+                    }
+                }
+                _=>{
+                    self.id_t=ctx.request_timer(Duration::from_millis(100));
+                }
+            }
+        }
+        
+        
+        /*
         match event {
             Event::KeyDown(key) => {
                 let mut keyboard_event = KeyboardEvent {
@@ -512,6 +674,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                     repeat: key.repeat,
                     is_composing: true,
                 };
+
+                if self.hotkey.matches(key){
+                    println!("bene");
+                }
 
                 match keyboard_event.key {
                     druid::keyboard_types::Key::CapsLock => {
@@ -627,7 +793,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
             }
             _ => child.event(ctx, event, data, env),
         }
-
+        */
         child.event(ctx, event, data, env)
     }
 
@@ -657,7 +823,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
 //Controller to save custom shortcut
 
 pub struct ShortcutController {
-    pub locks: [bool; 5],
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
@@ -669,125 +834,19 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
         data: &mut AppState,
         env: &Env,
     ) {
-        ctx.request_focus();
-        if let Event::KeyDown(key) = event {
-            let mut keyboard_event = KeyboardEvent {
-                state: key.state,
-                key: key.key.clone(),
-                code: key.code,
-                location: key.location,
-                modifiers: key.mods.raw(),
-                repeat: key.repeat,
-                is_composing: true,
-            };
-
-            match keyboard_event.key {
-                druid::keyboard_types::Key::CapsLock => {
-                    self.locks[0] = true;
-                }
-                druid::keyboard_types::Key::FnLock => {
-                    self.locks[1] = true;
-                }
-                druid::keyboard_types::Key::NumLock => {
-                    self.locks[2] = true;
-                }
-                druid::keyboard_types::Key::ScrollLock => {
-                    self.locks[3] = true;
-                }
-                druid::keyboard_types::Key::SymbolLock => {
-                    self.locks[4] = true;
-                }
-                _ => {}
+        match event {
+            Event::WindowDisconnected=>{
+                data.full_mod1.modifier=data.full_mods.0;
+                data.full_mod2.modifier=data.full_mods.1;
+                data.full_mod3.modifier=data.full_mods.2;
+                data.full_k=data.full_key.name().to_string().pop().unwrap().to_string();
+                data.area_mod1.modifier=data.area_mods.0;
+                data.area_mod2.modifier=data.area_mods.1;
+                data.area_mod3.modifier=data.area_mods.2;
+                data.area_k=data.area_key.name().to_string().pop().unwrap().to_string();
             }
-
-            let mut ind = 0;
-            for i in self.locks {
-                match ind {
-                    0 => {
-                        if i {
-                            keyboard_event
-                                .modifiers
-                                .insert(druid::keyboard_types::Modifiers::CAPS_LOCK);
-                        } else {
-                            keyboard_event
-                                .modifiers
-                                .remove(druid::keyboard_types::Modifiers::CAPS_LOCK);
-                        }
-                    }
-                    1 => {
-                        if i {
-                            keyboard_event
-                                .modifiers
-                                .insert(druid::keyboard_types::Modifiers::FN_LOCK);
-                        } else {
-                            keyboard_event
-                                .modifiers
-                                .remove(druid::keyboard_types::Modifiers::FN_LOCK);
-                        }
-                    }
-                    2 => {
-                        if i {
-                            keyboard_event
-                                .modifiers
-                                .insert(druid::keyboard_types::Modifiers::NUM_LOCK);
-                        } else {
-                            keyboard_event
-                                .modifiers
-                                .remove(druid::keyboard_types::Modifiers::NUM_LOCK);
-                        }
-                    }
-                    3 => {
-                        if i {
-                            keyboard_event
-                                .modifiers
-                                .insert(druid::keyboard_types::Modifiers::SCROLL_LOCK);
-                        } else {
-                            keyboard_event
-                                .modifiers
-                                .remove(druid::keyboard_types::Modifiers::SCROLL_LOCK);
-                        }
-                    }
-                    4 => {
-                        if i {
-                            keyboard_event
-                                .modifiers
-                                .insert(druid::keyboard_types::Modifiers::SYMBOL_LOCK);
-                        } else {
-                            keyboard_event
-                                .modifiers
-                                .remove(druid::keyboard_types::Modifiers::SYMBOL_LOCK);
-                        }
-                    }
-                    _ => {}
-                }
-                ind = ind + 1;
-            }
-
-            if keyboard_event.key.legacy_charcode() != 0 && !keyboard_event.modifiers.is_empty() {
-                if !((keyboard_event
-                    .modifiers
-                    .contains(druid::keyboard_types::Modifiers::CONTROL)
-                    && keyboard_event.key == Key::Character("s".to_string()))
-                    || (keyboard_event
-                        .modifiers
-                        .contains(druid::keyboard_types::Modifiers::CONTROL)
-                        && keyboard_event
-                            .modifiers
-                            .contains(druid::keyboard_types::Modifiers::ALT)
-                        && keyboard_event.key == Key::Character("s".to_string()))
-                    || (keyboard_event
-                        .modifiers
-                        .contains(druid::keyboard_types::Modifiers::CONTROL)
-                        && keyboard_event.key == Key::Character("c".to_string())))
-                {
-                    data.mods = keyboard_event.modifiers.bits();
-                    data.key = keyboard_event.key.legacy_charcode();
-
-                    ctx.window().close();
-                }
-            }
+            _=>{}
         }
-
         child.event(ctx, event, data, env)
     }
 
@@ -2069,7 +2128,16 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         wheel_delta: mouse_button.wheel_delta,
                     };
 
-                    data.color = data.color.with_alpha(1.);
+                    if mouse_down.pos.x > data.tool_window.origin.x
+                        && mouse_down.pos.y > data.tool_window.origin.y
+                        && mouse_down.pos.x < data.tool_window.origin.x + data.tool_window.width
+                        && mouse_down.pos.y < data.tool_window.height
+                    {
+                        self.points.push(mouse_down.pos);
+                        data.color = data.color.with_alpha(1.);
+
+                    }
+
                 }
                 Event::MouseMove(mouse_button) => {
                     let mouse_move = MouseEvent {
@@ -2242,6 +2310,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         image.clone().height() as usize,
                     );
 
+                    println!("points:{:?}",self.points);
                     data.tool_window.draws.push((Draw::Free{points:self.points.clone()},Tools::Random,data.color.clone()));
 
                     self.points=Vec::new();
@@ -2319,9 +2388,133 @@ impl AppDelegate<AppState> for Delegate {
         if cmd.is(SHORTCUT) {
             let new_win = WindowDesc::new(shortcut_ui())
                 .title(LocalizedString::new("Shortcut"))
-                .window_size((300.0, 200.0));
+                .window_size((600.0, 200.0))
+                .resizable(false);
             ctx.new_window(new_win);
         }
         Handled::No
     }
 }
+
+
+fn create_listener(receiver:Receiver<(Hotkey,u32)>,sender:CrossSender<u32>){
+
+    let mut tasti1=livesplit_hotkey::Hotkey{modifiers:livesplit_hotkey::Modifiers::ALT,key_code:livesplit_hotkey::KeyCode::KeyS};
+    let mut tasti2=livesplit_hotkey::Hotkey{modifiers:livesplit_hotkey::Modifiers::ALT,key_code:livesplit_hotkey::KeyCode::KeyG};
+    let mut tasti;
+
+    let mut hk=livesplit_hotkey::Hook::new().unwrap();
+
+    let mut n_s=0;
+
+    loop{
+        //let keys=tasti.clone();
+        let send=sender.clone();
+
+        println!("listener creato");
+
+        let result=hk.register(tasti1, move||{
+            send.send(1);
+            //println!("send len:{:?}",send.len());
+        });
+
+        let send=sender.clone();
+
+        let result=hk.register(tasti2, move||{
+            send.send(2);
+            //println!("send len:{:?}",send.len());
+        });
+
+        let hotkeys=receiver.recv();
+
+        match hotkeys {
+            Ok(data)=>{(tasti,n_s)=data},
+            Err(err)=>{ break;}
+        }
+
+        if n_s==1{
+            hk.unregister(tasti1);
+            tasti1=tasti;
+            let send=sender.clone();
+            let result=hk.register(tasti1, move||{
+                send.send(1);
+                //println!("send len:{:?}",send.len());
+            });
+        }else {
+            hk.unregister(tasti2);
+            tasti2=tasti;
+            let send=sender.clone();
+            let result=hk.register(tasti2, move||{
+                send.send(2);
+                //println!("send len:{:?}",send.len());
+            });
+        }
+
+        println!("create");
+
+    }
+}
+
+
+/*
+fn create_listener(receiver:Receiver<(global_hotkey::hotkey::HotKey,u32)>,sender:CrossSender<u32>){
+
+    let mut tasti;
+
+    let mut n_s=0;
+
+    let manager = GlobalHotKeyManager::new().unwrap();
+    let (mut tasti1,ind1)=receiver.recv().unwrap();
+    let (mut tasti2,ind1)=receiver.recv().unwrap();
+
+    let result=manager.register(tasti1);
+
+    match result{
+        Ok(ok)=>{},
+        Err(err)=>{println!("cazzo")}
+    }
+    manager.register(tasti2).unwrap();
+
+    println!("{:?}",tasti1);
+    let rec = GlobalHotKeyEvent::receiver();
+    let send=sender.clone();
+
+    std::thread::spawn(|| loop {
+        if let Ok(event) = rec.try_recv() {
+            let id=event.id;
+            //send.send(id);
+
+            println!("try event: {event:?}");
+        }
+        println!("{:?}",rec.len());
+        //println!("funziona");
+        std::thread::sleep(Duration::from_millis(100));
+    });
+
+    loop{
+        //let keys=tasti.clone();
+
+        println!("listener creato");
+
+        let hotkeys=receiver.recv();
+
+        match hotkeys {
+            Ok(data)=>{(tasti,n_s)=data},
+            Err(err)=>{ break;}
+        }
+
+        if n_s==1{
+            manager.unregister(tasti1);
+            tasti1=tasti;
+            let result=manager.register(tasti1);
+        }else {
+            manager.unregister(tasti2);
+            tasti2=tasti;
+            let result=manager.register(tasti2);
+        }
+
+        println!("create");
+
+    }
+}
+*/

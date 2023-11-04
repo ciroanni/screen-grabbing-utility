@@ -10,12 +10,13 @@ use druid::{
     WindowDesc, WindowId, WindowLevel, WindowState,
 };
 use druid_shell::keyboard_types::Modifiers;
-use druid_shell::{SysMods, TimerToken};
+use druid_shell::{SysMods, TimerToken, HotKey};
 use druid_widget_nursery::{DropdownSelect, WidgetExt as _};
 use image::{GenericImage, ImageBuffer, Rgba, SubImage, EncodableLayout};
 use imageproc::{filter, point};
 use rusttype::Font;
 use std::borrow::Cow;
+use std::str::FromStr;
 
 pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
     let display_info = screenshots::DisplayInfo::all().expect("Err");
@@ -23,6 +24,7 @@ pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
     let mut width = (display_info[0].width as f32 * display_info[0].scale_factor) as u32;
     let mut height = (display_info[0].height as f32 * display_info[0].scale_factor) as u32;
     let mut pos = Point::new(0., 0.);
+    let mut hotkey=HotKey::new(Some(druid_shell::RawMods::Alt), 'g'.to_string().as_str());
 
     for display in display_info.iter() {
         if display.x < 0 {
@@ -123,30 +125,443 @@ pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
                     id_t: TimerToken::next(),
                     id_t2: TimerToken::next(),
                     locks: [false; 5],
+                    do_screen:false,
+                    witch_screen:1,
                     display: Some(display_info[0]),
+                    hotkey
                 }),
         )
         .with_spacer(50.)
         .with_child(Either::new(
             |data: &AppState, _env| data.img.size() == Size::ZERO,
-            Label::new(|data: &AppState, _env: &_| {
-                format!(
-                    "Premi {:?} {} per la cattura",
-                    Modifiers::from_bits(data.mods).unwrap_or(Modifiers::empty()),
-                    String::from("+ ")
-                        + &char::from_u32(data.key).unwrap().to_string().to_uppercase()
+            Flex::column()
+            .with_child(
+                Either::new(|data: &AppState, _env| data.full_mods.0==livesplit_hotkey::Modifiers::empty(),
+                    Label::new(|data: &AppState, _env: &_| {
+                        format!(
+                            "Premi {} per la cattura a schermo intero",
+                            data.full_key.name().to_string().pop().unwrap()
+                        )
+                    })
+                    .with_text_size(24.)
+                    .center(),
+                    Either::new(|data: &AppState, _env| data.full_mods.1==livesplit_hotkey::Modifiers::empty(),
+                        Label::new(|data: &AppState, _env: &_| {
+                            format!(
+                                "Premi {}+{} per la cattura a schermo intero",
+                                data.full_mods.0,
+                                data.full_key.name().to_string().pop().unwrap()
+                            )
+                        })
+                        .with_text_size(24.)
+                        .center(),
+                        Either::new(|data: &AppState, _env| data.full_mods.2==livesplit_hotkey::Modifiers::empty(),
+                            Label::new(|data: &AppState, _env: &_| {
+                                format!(
+                                    "Premi {}+{}+{} per la cattura a schermo intero",
+                                    data.full_mods.0,
+                                    data.full_mods.1,
+                                    data.full_key.name().to_string().pop().unwrap()
+                                )
+                            })
+                            .with_text_size(24.)
+                            .center(),
+                            Label::new(|data: &AppState, _env: &_| {
+                                format!(
+                                    "Premi {}+{}+{}+{} per la cattura a schermo intero",
+                                    data.full_mods.0,
+                                    data.full_mods.1,
+                                    data.full_mods.2,
+                                    data.full_key.name().to_string().pop().unwrap()
+                                )
+                            })
+                            .with_text_size(24.)
+                            .center()
+                        )
+                    )
                 )
-            })
-            .with_text_size(24.)
-            .center(),
+            )
+            .with_child(
+                Either::new(|data: &AppState, _env| data.area_mods.0==livesplit_hotkey::Modifiers::empty(),
+                    Label::new(|data: &AppState, _env: &_| {
+                        format!(
+                            "Premi {} per la cattura ad area",
+                            data.area_key.name().to_string().pop().unwrap()
+                        )
+                    })
+                    .with_text_size(24.)
+                    .center(),
+                    Either::new(|data: &AppState, _env| data.area_mods.1==livesplit_hotkey::Modifiers::empty(),
+                        Label::new(|data: &AppState, _env: &_| {
+                            format!(
+                                "Premi {}+{} per la cattura ad area",
+                                data.area_mods.0,
+                                data.area_key.name().to_string().pop().unwrap()
+                            )
+                        })
+                        .with_text_size(24.)
+                        .center(),
+                        Either::new(|data: &AppState, _env| data.area_mods.2==livesplit_hotkey::Modifiers::empty(),
+                            Label::new(|data: &AppState, _env: &_| {
+                                format!(
+                                    "Premi {}+{}+{} per la cattura ad area",
+                                    data.area_mods.0,
+                                    data.area_mods.1,
+                                    data.area_key.name().to_string().pop().unwrap()
+                                )
+                            })
+                            .with_text_size(24.)
+                            .center(),
+                            Label::new(|data: &AppState, _env: &_| {
+                                format!(
+                                    "Premi {}+{}+{}+{} per la cattura ad area",
+                                    data.area_mods.0,
+                                    data.area_mods.1,
+                                    data.area_mods.2,
+                                    data.area_key.name().to_string().pop().unwrap()
+                                )
+                            })
+                            .with_text_size(24.)
+                            .center()
+                        )
+                    )
+                )
+            )
+            ,
             show_screen_ui(img),
         ))
 }
 
 pub fn shortcut_ui() -> impl Widget<AppState> {
-    Flex::column()
+    /*Flex::column()
         .with_child(Label::new("Premi una nuova combinazione"))
         .controller(ShortcutController { locks: [false; 5] })
+    */
+    let s="str";
+
+    let a=s.to_string().pop();
+
+    Flex::column()
+        .with_child(
+            Label::new("Full_screen:").align_left()
+        )
+        .with_child(
+            Container::new(
+                Flex::row()
+                .with_child(
+                    Label::new("modifier 1:")
+                )
+                .with_child(
+                    DropdownSelect::new(
+                        vec![
+                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                    ])
+                    .fix_width(70.0)
+                    .fix_height(30.0)
+                    .align_left()
+                    .lens(AppState::full_mod1)
+                )
+                .with_child(
+                    Label::new("modifier 2:")
+                )
+                .with_child(
+                    DropdownSelect::new(
+                        vec![
+                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                    ])
+                    .fix_width(70.0)
+                    .fix_height(30.0)
+                    .align_left()
+                    .lens(AppState::full_mod2)
+                )
+                .with_child(
+                    Label::new("modifier 3:")
+                )
+                .with_child(
+                    DropdownSelect::new(
+                        vec![
+                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                    ])
+                    .fix_width(70.0)
+                    .fix_height(30.0)
+                    .align_left()
+                    .lens(AppState::full_mod3)
+                )
+                .with_child(
+                    Label::new("character:")
+                )
+                .with_child(
+                    TextBox::new().lens(AppState::full_k)
+                    /*
+                    DropdownSelect::new(
+                        vec![
+                        ("A", MyKey{key:livesplit_hotkey::KeyCode::KeyA}),
+                        ("B", MyKey{key:livesplit_hotkey::KeyCode::KeyB}),
+                        ("C", MyKey{key:livesplit_hotkey::KeyCode::KeyC}),
+                        ("D", MyKey{key:livesplit_hotkey::KeyCode::KeyD}),
+                        ("E", MyKey{key:livesplit_hotkey::KeyCode::KeyE}),
+                        ("F", MyKey{key:livesplit_hotkey::KeyCode::KeyF}),
+                        ("G", MyKey{key:livesplit_hotkey::KeyCode::KeyG}),
+                        ("H", MyKey{key:livesplit_hotkey::KeyCode::KeyH}),
+                        ("I", MyKey{key:livesplit_hotkey::KeyCode::KeyI}),
+                        ("J", MyKey{key:livesplit_hotkey::KeyCode::KeyJ}),
+                        ("K", MyKey{key:livesplit_hotkey::KeyCode::KeyK}),
+                        ("L", MyKey{key:livesplit_hotkey::KeyCode::KeyL}),
+                        ("M", MyKey{key:livesplit_hotkey::KeyCode::KeyM}),
+                        ("N", MyKey{key:livesplit_hotkey::KeyCode::KeyN}),
+                        ("O", MyKey{key:livesplit_hotkey::KeyCode::KeyO}),
+                        ("P", MyKey{key:livesplit_hotkey::KeyCode::KeyP}),
+                        ("Q", MyKey{key:livesplit_hotkey::KeyCode::KeyQ}),
+                        ("R", MyKey{key:livesplit_hotkey::KeyCode::KeyR}),
+                        ("S", MyKey{key:livesplit_hotkey::KeyCode::KeyS}),
+                        ("T", MyKey{key:livesplit_hotkey::KeyCode::KeyT}),
+                        ("U", MyKey{key:livesplit_hotkey::KeyCode::KeyU}),
+                        ("V", MyKey{key:livesplit_hotkey::KeyCode::KeyV}),
+                        ("W", MyKey{key:livesplit_hotkey::KeyCode::KeyW}),
+                        ("X", MyKey{key:livesplit_hotkey::KeyCode::KeyX}),
+                        ("Y", MyKey{key:livesplit_hotkey::KeyCode::KeyY}),
+                        ("Z", MyKey{key:livesplit_hotkey::KeyCode::KeyZ}),
+                    ])
+                    .fix_width(70.0)
+                    .fix_height(30.0)
+                    .align_left()
+                    .lens(AppState::full_key)
+                    */
+                )
+            ) 
+            .align_left()
+        )
+        .with_child(
+            Label::new("Drag and Drop:").align_left()
+        )
+        .with_child(
+            Container::new(
+                Flex::row()
+                .with_child(
+                    Label::new("modifier 1:")
+                )
+                .with_child(
+                    DropdownSelect::new(
+                        vec![
+                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                    ])
+                    .fix_width(70.0)
+                    .fix_height(30.0)
+                    .align_left()
+                    .lens(AppState::area_mod1)
+                )
+                .with_child(
+                    Label::new("modifier 2:")
+                )
+                .with_child(
+                    DropdownSelect::new(
+                        vec![
+                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                    ])
+                    .fix_width(70.0)
+                    .fix_height(30.0)
+                    .align_left()
+                    .lens(AppState::area_mod2)
+                )
+                .with_child(
+                    Label::new("modifier 3:")
+                )
+                .with_child(
+                    DropdownSelect::new(
+                        vec![
+                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                    ])
+                    .fix_width(70.0)
+                    .fix_height(30.0)
+                    .align_left()
+                    .lens(AppState::area_mod3)
+                )
+                .with_child(
+                    Label::new("character:")
+                )
+                .with_child(
+                    TextBox::new().lens(AppState::area_k)
+                    /*
+                    DropdownSelect::new(
+                        vec![
+                        ("A", MyKey{key:livesplit_hotkey::KeyCode::KeyA}),
+                        ("B", MyKey{key:livesplit_hotkey::KeyCode::KeyB}),
+                        ("C", MyKey{key:livesplit_hotkey::KeyCode::KeyC}),
+                        ("D", MyKey{key:livesplit_hotkey::KeyCode::KeyD}),
+                        ("E", MyKey{key:livesplit_hotkey::KeyCode::KeyE}),
+                        ("F", MyKey{key:livesplit_hotkey::KeyCode::KeyF}),
+                        ("G", MyKey{key:livesplit_hotkey::KeyCode::KeyG}),
+                        ("H", MyKey{key:livesplit_hotkey::KeyCode::KeyH}),
+                        ("I", MyKey{key:livesplit_hotkey::KeyCode::KeyI}),
+                        ("J", MyKey{key:livesplit_hotkey::KeyCode::KeyJ}),
+                        ("K", MyKey{key:livesplit_hotkey::KeyCode::KeyK}),
+                        ("L", MyKey{key:livesplit_hotkey::KeyCode::KeyL}),
+                        ("M", MyKey{key:livesplit_hotkey::KeyCode::KeyM}),
+                        ("N", MyKey{key:livesplit_hotkey::KeyCode::KeyN}),
+                        ("O", MyKey{key:livesplit_hotkey::KeyCode::KeyO}),
+                        ("P", MyKey{key:livesplit_hotkey::KeyCode::KeyP}),
+                        ("Q", MyKey{key:livesplit_hotkey::KeyCode::KeyQ}),
+                        ("R", MyKey{key:livesplit_hotkey::KeyCode::KeyR}),
+                        ("S", MyKey{key:livesplit_hotkey::KeyCode::KeyS}),
+                        ("T", MyKey{key:livesplit_hotkey::KeyCode::KeyT}),
+                        ("U", MyKey{key:livesplit_hotkey::KeyCode::KeyU}),
+                        ("V", MyKey{key:livesplit_hotkey::KeyCode::KeyV}),
+                        ("W", MyKey{key:livesplit_hotkey::KeyCode::KeyW}),
+                        ("X", MyKey{key:livesplit_hotkey::KeyCode::KeyX}),
+                        ("Y", MyKey{key:livesplit_hotkey::KeyCode::KeyY}),
+                        ("Z", MyKey{key:livesplit_hotkey::KeyCode::KeyZ}),
+                    ])
+                    .fix_width(70.0)
+                    .fix_height(30.0)
+                    .align_left()
+                    .scroll()
+                    .lens(AppState::area_k)
+                    */
+                )
+            ) 
+            .align_left()
+        )
+        .with_child(
+            Container::new(
+                Flex::column()
+                .with_child(Either::new(|data: &AppState,env| data.err, 
+                    Label::new("il carattere inserito è errato")
+                    .with_text_color(Color::RED)
+                    , Label::new("")))
+                .with_child(
+                Flex::row()
+                .with_child(
+                    Button::new("Salva")
+                    .on_click(|ctx,data: &mut AppState,env|{
+                        println!("{:?}",livesplit_hotkey::KeyCode::from_str(data.full_k.as_str()));
+                        println!("{:?}",livesplit_hotkey::KeyCode::from_str(data.full_k.to_uppercase().as_str()));
+                        let res1=livesplit_hotkey::KeyCode::from_str(data.full_k.to_uppercase().as_str());
+                        let res2=livesplit_hotkey::KeyCode::from_str(data.area_k.to_uppercase().as_str());
+                        let mut k1;
+                        let mut k2;
+
+                        match res1 {
+                            Ok(key)=>{k1=key;
+                                data.err=false}
+                            Err(err)=>{data.err=true;return;}
+                        }
+
+                        match res2 {
+                            Ok(key)=>{k2=key;
+                                data.err=false}
+                            Err(err)=>{data.err=true;return;}
+                        }
+
+                        if data.full_mod1.modifier==livesplit_hotkey::Modifiers::empty(){
+                            if data.full_mod2.modifier==livesplit_hotkey::Modifiers::empty(){
+                                data.full_mod1=data.full_mod3.clone();
+                            }else {
+                                data.full_mod1=data.full_mod2.clone();
+                            }
+                        }else {
+                            if data.full_mod2.modifier==livesplit_hotkey::Modifiers::empty(){
+                                data.full_mod2=data.full_mod3.clone();
+                            }
+                        }
+
+
+                        if data.full_mod1==data.full_mod2{
+                            data.full_mod2=MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+                        if data.full_mod1==data.full_mod3{
+                            data.full_mod3=MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+                        if data.full_mod2==data.full_mod3{
+                            data.full_mod3=MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+
+                        if data.area_mod1.modifier==livesplit_hotkey::Modifiers::empty(){
+                            if data.area_mod2.modifier==livesplit_hotkey::Modifiers::empty(){
+                                data.area_mod1=data.area_mod3.clone();
+                            }else {
+                                data.area_mod1=data.area_mod2.clone();
+                            }
+                        }else {
+                            if data.area_mod2.modifier==livesplit_hotkey::Modifiers::empty(){
+                                data.area_mod2=data.area_mod3.clone();
+                            }
+                        }
+
+                        if data.area_mod1==data.area_mod2{
+                            data.area_mod2=MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+                        if data.area_mod1==data.area_mod3{
+                            data.area_mod3=MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+                        if data.area_mod2==data.area_mod3{
+                            data.area_mod3=MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+
+                        if data.full_mod1.modifier!=data.full_mods.0 ||data.full_mod2.modifier!=data.full_mods.1 ||
+                        data.full_mod3.modifier!=data.full_mods.2 ||data.full_key!=k1 {
+                            data.full_mods.0=data.full_mod1.modifier;
+                            data.full_mods.1=data.full_mod2.modifier;
+                            data.full_mods.2=data.full_mod3.modifier;
+                            data.full_key=k1;
+
+                            data.sender.send((livesplit_hotkey::Hotkey{key_code:data.full_key,modifiers:data.full_mods.0|data.full_mods.1|data.full_mods.2},1));
+
+                        }
+
+                        if data.area_mod1.modifier!=data.area_mods.0 ||data.area_mod2.modifier!=data.area_mods.1 ||
+                        data.area_mod3.modifier!=data.area_mods.2 ||data.area_key!=k2 {
+                            data.area_mods.0=data.area_mod1.modifier;
+                            data.area_mods.1=data.area_mod2.modifier;
+                            data.area_mods.2=data.area_mod3.modifier;
+                            data.area_key=k2;
+
+                            data.sender.send((livesplit_hotkey::Hotkey{key_code:data.area_key,modifiers:data.area_mods.0|data.area_mods.1|data.area_mods.2},2));
+
+                        }
+
+                        ctx.window().close();
+
+                        //data.sender.send()
+                    })
+                )
+                .with_child(
+                    Button::new("Annulla")
+                    .on_click(|ctx,data: &mut AppState,env|{
+
+                        data.full_mod1.modifier=data.full_mods.0;
+                        data.full_mod2.modifier=data.full_mods.1;
+                        data.full_mod3.modifier=data.full_mods.2;
+                        data.full_k=data.full_key.name().to_string().pop().unwrap().to_string();
+                        data.area_mod1.modifier=data.area_mods.0;
+                        data.area_mod2.modifier=data.area_mods.1;
+                        data.area_mod3.modifier=data.area_mods.2;
+                        data.area_k=data.area_key.name().to_string().pop().unwrap().to_string();
+
+                        ctx.window().close();
+                        
+                    })
+                )
+            ))
+            .align_vertical(UnitPoint::LEFT)
+        ).controller(ShortcutController{})
 }
 
 pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
@@ -377,6 +792,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .padding(5.),
             )
             .with_child(
+                Container::new(
                 Either::new(
                     |data:&AppState,_env| data.tool_window.tool==Tools::Text,
                     Flex::column()
@@ -449,7 +865,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                         })
                     ),
                         Label::new("")
-                )
+                )).boxed()
             )
             .with_child(
                 Image::new(pencil)
@@ -1296,11 +1712,12 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
     Flex::column()
         .with_child(show_edit())
         .with_child(
-            ZStack::new(
+            Container::new(ZStack::new(
                 SizedBox::new(
+                    
                     Painter::new(|ctx, data: &AppState, env| {
                         let image = ctx
-                            .make_image(
+                        .make_image(
                                 data.tool_window.img.width(),
                                 data.tool_window.img.height(),
                                 data.tool_window.img.clone().raw_pixels(),
@@ -1493,7 +1910,6 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                 let color = data.color.as_rgba();
                                 let mut bez=druid::kurbo::BezPath::new();
 
-
                                 path.push(point);
 
                                 bez.move_to(path[0].clone());
@@ -1510,12 +1926,8 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                                     5.,
                                 );
 
-                                println!("{:?}",color);
-
                                 if color.3 == 0.0 {
-                                    println!("entro");
                                     path = Vec::new();
-
                                 }
                                 
                             }
@@ -1541,13 +1953,12 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                         }
                         _ => {}
                     };
-                    println!("painter");
                 }
                 )
-                .center(),
+                .center()
             )
             .controller(ResizeController { points: points }),
-        )
+        ))
 }
 
 #[allow(unused_assignments)]
