@@ -273,12 +273,14 @@ impl AppState {
     pub fn screen(&mut self, ctx: &mut EventCtx, full_screen: Option<screenshots::DisplayInfo>) {
         let a = screenshots::DisplayInfo::all();
 
-        let display_info = match a {
+        let _display_info = match a {
             Err(why) => return println!("{}", why),
             Ok(info) => info,
         };
+
         let b;
-        let mut display = display_info[0];
+        let display;
+        let c;
 
         if full_screen.is_none() {
             display = screenshots::DisplayInfo::from_point(
@@ -288,15 +290,6 @@ impl AppState {
             .unwrap();
 
             b = screenshots::Screen::new(&display);
-        } else {
-            b = screenshots::Screen::new(&(full_screen.unwrap()));
-        }
-
-        let c;
-        if self.is_full_screen {
-            c = b.capture();
-        } else {
-            //prendo lo start point x e sommo il pos x poi prendi display x e sottrai/sommi pos e poi quella la sottrai a quella che hai ottenuto prima funziona
             c = b.capture_area(
                 (self.rect.start_point.unwrap().x * self.scale as f64
                     - (display.x as f32 * display.scale_factor) as f64
@@ -307,7 +300,26 @@ impl AppState {
                 (self.rect.size.width as f32 * self.scale) as u32,
                 (self.rect.size.height as f32 * self.scale) as u32,
             );
-            //self.rect = SelectionRectangle::default();
+        } else {
+            b = screenshots::Screen::new(&(full_screen.unwrap()));
+            if self.is_full_screen {
+                c = b.capture();
+            } else {
+                //prendo lo start point x e sommo il pos x poi prendi display x e sottrai/sommi pos e poi quella la sottrai a quella che hai ottenuto prima funziona
+                c = b.capture_area(
+                    (self.rect.start_point.unwrap().x * self.scale as f64
+                        - (full_screen.unwrap().x as f32 * full_screen.unwrap().scale_factor)
+                            as f64
+                        + (self.pos.x * self.scale as f64)) as i32,
+                    (self.rect.start_point.unwrap().y * self.scale as f64
+                        - (full_screen.unwrap().y as f32 * full_screen.unwrap().scale_factor)
+                            as f64
+                        + (self.pos.y * self.scale as f64)) as i32,
+                    (self.rect.size.width as f32 * self.scale) as u32,
+                    (self.rect.size.height as f32 * self.scale) as u32,
+                );
+                //self.rect = SelectionRectangle::default();
+            }
         }
 
         let image = match c {
@@ -900,7 +912,15 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                     data.rect.start_point = Some(mouse_button.pos);
                     data.rect.end_point = Some(mouse_button.pos);
                     data.selection_transparency = 0.4;
-                    
+                    self.display = Some(
+                        screenshots::DisplayInfo::from_point(
+                            ((data.rect.start_point.unwrap().x - data.pos.x.abs())
+                                * data.scale as f64) as i32,
+                            ((data.rect.start_point.unwrap().y - data.pos.y.abs())
+                                * data.scale as f64) as i32,
+                        )
+                        .unwrap(),
+                    );
                 }
                 Event::MouseUp(mouse_button) => {
                     let mouse_up = MouseEvent {
@@ -920,7 +940,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                         (mouse_button.pos.y - data.pos.y.abs()) * data.scale as f64,
                     );
                     let r = druid::Rect::from_points(data.from, mouse_up.pos);
-                    println!("{:?}", r.max_x());
                     // aggiusto i punti
                     data.rect.start_point = Some(r.origin());
                     data.rect.p2 = Some(Point::new(r.max_x(), r.min_y()));
@@ -949,8 +968,34 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                         button: mouse_button.button,
                         wheel_delta: mouse_button.wheel_delta,
                     };
-
-                    data.rect.end_point = Some(mouse_move.pos);
+                    if !self.display.is_none() {
+                        let display = screenshots::DisplayInfo::from_point(
+                            ((mouse_move.pos.x - data.pos.x.abs()) * data.scale as f64) as i32,
+                            ((mouse_move.pos.y - data.pos.y.abs()) * data.scale as f64) as i32,
+                        )
+                        .unwrap();
+                        if display.id != self.display.unwrap().id {
+                            if mouse_move.pos.x - self.display.unwrap().x as f64 > self.display.unwrap().width as f64
+                            {
+                                if mouse_move.pos.y - self.display.unwrap().y as f64 > self.display.unwrap().height as f64
+                                {
+                                    data.rect.end_point = Some(Point::new(
+                                        self.display.unwrap().width as f64 / data.scale as f64,
+                                        self.display.unwrap().height as f64 / data.scale as f64,
+                                    ));                                    
+                                } else {
+                                    data.rect.end_point = Some(Point::new(
+                                        self.display.unwrap().width as f64 / data.scale as f64,
+                                        mouse_move.pos.y,
+                                    ));
+                                }
+                            }
+                        } else {
+                            data.rect.end_point = Some(mouse_move.pos);
+                        }
+                    } else {
+                        data.rect.end_point = Some(mouse_move.pos);
+                    }
                 }
                 Event::Timer(id) => {
                     if self.id_t == *id {
