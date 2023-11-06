@@ -1,82 +1,52 @@
 use crate::ui::*;
+use crossbeam::channel::{bounded, Receiver as CrossReceiver, Sender as CrossSender};
 use druid::Color;
 use druid::{
-    commands, widget::Controller, AppDelegate, Command, Cursor, CursorDesc, Data, DelegateCtx, Env,
-    Event, EventCtx, Handled, ImageBuf, Lens, LocalizedString, MouseEvent, Point, Selector, Size,
-    Target, TimerToken, Widget, WindowDesc, WindowState,
+    commands, widget::Controller, AppDelegate, Command, Cursor, Data, DelegateCtx, Env, Event,
+    EventCtx, Handled, ImageBuf, Lens, LocalizedString, MouseEvent, Point, Selector, Size, Target,
+    TimerToken, Widget, WindowDesc, WindowState,
 };
-use druid_shell::keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
-use druid_shell::piet::d2d::Bitmap;
+use druid_shell::keyboard_types::Key;
 use image::{ImageBuffer, Rgba};
-use num_complex::ComplexFloat;
-use rusttype::{Font, Scale};
-use std::path::Path;
-use std::time::Duration;
-use std::sync::mpsc::{self, Sender,Receiver,channel};
 use livesplit_hotkey::*;
-use crossbeam::channel::{Sender as CrossSender,Receiver as CrossReceiver, bounded};
+use rusttype::Font;
+use std::path::Path;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::time::Duration;
 //use global_hotkey::*;
 //use imageproc::drawing::*;
 
 pub const SHORTCUT: Selector = Selector::new("shortcut_selector");
 
-#[derive(Clone,PartialEq)]
-pub struct MyModifier{
-    pub modifier:livesplit_hotkey::Modifiers,
+#[derive(Clone, PartialEq)]
+pub struct MyModifier {
+    pub modifier: livesplit_hotkey::Modifiers,
 }
-impl Data for MyModifier{
+impl Data for MyModifier {
     fn same(&self, other: &Self) -> bool {
-        return self.modifier==other.modifier
+        return self.modifier == other.modifier;
     }
 }
 
-#[derive(Clone,PartialEq)]
-pub struct MyKey{
-    pub key:livesplit_hotkey::KeyCode,
+#[derive(Clone, PartialEq)]
+pub struct MyKey {
+    pub key: livesplit_hotkey::KeyCode,
 }
-impl Data for MyKey{
+impl Data for MyKey {
     fn same(&self, other: &Self) -> bool {
-        return self.key==other.key
+        return self.key == other.key;
     }
 }
 
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
     Jpeg,
-    Png,
-    Gif,
-    WebP,
-    Pnm,
-    Tiff,
-    Tga,
-    Dds,
-    Bmp,
-    Ico,
-    Hdr,
-    OpenExr,
-    Farbfeld,
-    Avif,
-    Qoi,
 }
 
 impl ImageFormat {
     pub fn to_string(&self) -> String {
         match self {
             ImageFormat::Jpeg => ".jpeg".to_string(),
-            ImageFormat::Png => ".png".to_string(),
-            ImageFormat::Gif => ".gif".to_string(),
-            ImageFormat::WebP => ".webp".to_string(),
-            ImageFormat::Pnm => ".pnm".to_string(),
-            ImageFormat::Tiff => ".tiff".to_string(),
-            ImageFormat::Tga => ".tga".to_string(),
-            ImageFormat::Dds => ".dds".to_string(),
-            ImageFormat::Bmp => ".bmp".to_string(),
-            ImageFormat::Ico => ".ico".to_string(),
-            ImageFormat::Hdr => ".hdr".to_string(),
-            ImageFormat::OpenExr => ".openexr".to_string(),
-            ImageFormat::Farbfeld => ".farbfeld".to_string(),
-            ImageFormat::Avif => ".avif".to_string(),
-            ImageFormat::Qoi => ".qoi".to_string(),
         }
     }
 }
@@ -87,7 +57,6 @@ pub enum Timer {
     ThreeSeconds,
     FiveSeconds,
     TenSeconds,
-    Custom,
 }
 
 impl Timer {
@@ -97,7 +66,6 @@ impl Timer {
             Timer::ThreeSeconds => 3,
             Timer::FiveSeconds => 5,
             Timer::TenSeconds => 10,
-            _ => 0,
         }
     }
 }
@@ -120,27 +88,35 @@ pub struct AppState {
     pub selected_format: ImageFormat,
     pub shortcut: String,
     #[data(ignore)]
-    pub sender: Sender<(Hotkey,u32)>,
+    pub sender: Sender<(Hotkey, u32)>,
     #[data(ignore)]
-    pub receiver:CrossReceiver<u32>,
+    pub receiver: CrossReceiver<u32>,
     #[data(ignore)]
-    pub full_mods:(livesplit_hotkey::Modifiers,livesplit_hotkey::Modifiers,livesplit_hotkey::Modifiers),
+    pub full_mods: (
+        livesplit_hotkey::Modifiers,
+        livesplit_hotkey::Modifiers,
+        livesplit_hotkey::Modifiers,
+    ),
     pub full_mod1: MyModifier,
     pub full_mod2: MyModifier,
     pub full_mod3: MyModifier,
-    pub full_k:String,
+    pub full_k: String,
     #[data(ignore)]
     pub full_key: livesplit_hotkey::KeyCode,
     //pub full_id:u32,
     #[data(ignore)]
-    pub area_mods:(livesplit_hotkey::Modifiers,livesplit_hotkey::Modifiers,livesplit_hotkey::Modifiers),
+    pub area_mods: (
+        livesplit_hotkey::Modifiers,
+        livesplit_hotkey::Modifiers,
+        livesplit_hotkey::Modifiers,
+    ),
     pub area_mod1: MyModifier,
     pub area_mod2: MyModifier,
     pub area_mod3: MyModifier,
-    pub area_k:String,
+    pub area_k: String,
     #[data(ignore)]
     pub area_key: livesplit_hotkey::KeyCode,
-    pub err:bool,
+    pub err: bool,
     //pub area_id:u32,
     pub key: u32,
     pub from: Point,
@@ -210,42 +186,62 @@ impl AppState {
             }
         }
 
-        let (sender,receiver)=channel();
-        let (send,recv)=bounded(1);
-/*
+        let (sender, receiver) = channel();
+        let (send, recv) = bounded(1);
+        /*
         let mut tasti1 = global_hotkey::hotkey::HotKey::new(Some(global_hotkey::hotkey::Modifiers::ALT), global_hotkey::hotkey::Code::KeyS);
         let mut tasti2 = global_hotkey::hotkey::HotKey::new(Some(global_hotkey::hotkey::Modifiers::ALT), global_hotkey::hotkey::Code::KeyG);
-    
+
         let id1=tasti1.id();
         let id2=tasti2.id();
         */
-        std::thread::spawn(||{
+        std::thread::spawn(|| {
             create_listener(receiver, send);
         });
-/*
-        sender.send((tasti1,1));
-        sender.send((tasti2,2));
-*/
+        /*
+                sender.send((tasti1,1));
+                sender.send((tasti2,2));
+        */
         AppState {
             name: "".to_string(),
             selected_format: ImageFormat::Jpeg,
             shortcut: "".to_string(),
-            sender:sender,
-            receiver:recv,
-            full_mods:(livesplit_hotkey::Modifiers::ALT,livesplit_hotkey::Modifiers::empty(),livesplit_hotkey::Modifiers::empty()),
-            full_mod1:MyModifier { modifier: livesplit_hotkey::Modifiers::ALT},
-            full_mod2:MyModifier{modifier:livesplit_hotkey::Modifiers::empty()},
-            full_mod3:MyModifier{modifier:livesplit_hotkey::Modifiers::empty()},
-            full_k:"S".to_string(),
-            full_key:livesplit_hotkey::KeyCode::KeyS,
+            sender: sender,
+            receiver: recv,
+            full_mods: (
+                livesplit_hotkey::Modifiers::ALT,
+                livesplit_hotkey::Modifiers::CONTROL,
+                livesplit_hotkey::Modifiers::empty(),
+            ),
+            full_mod1: MyModifier {
+                modifier: livesplit_hotkey::Modifiers::ALT,
+            },
+            full_mod2: MyModifier {
+                modifier: livesplit_hotkey::Modifiers::CONTROL,
+            },
+            full_mod3: MyModifier {
+                modifier: livesplit_hotkey::Modifiers::empty(),
+            },
+            full_k: "S".to_string(),
+            full_key: livesplit_hotkey::KeyCode::KeyS,
             //full_id:id1,
-            area_mods:(livesplit_hotkey::Modifiers::ALT,livesplit_hotkey::Modifiers::empty(),livesplit_hotkey::Modifiers::empty()),
-            area_mod1:MyModifier{modifier:livesplit_hotkey::Modifiers::ALT},
-            area_mod2:MyModifier{modifier:livesplit_hotkey::Modifiers::empty()},
-            area_mod3:MyModifier{modifier:livesplit_hotkey::Modifiers::empty()},
-            area_k:"S".to_string(),
-            area_key:livesplit_hotkey::KeyCode::KeyG,
-            err:false,
+            area_mods: (
+                livesplit_hotkey::Modifiers::ALT,
+                livesplit_hotkey::Modifiers::empty(),
+                livesplit_hotkey::Modifiers::empty(),
+            ),
+            area_mod1: MyModifier {
+                modifier: livesplit_hotkey::Modifiers::ALT,
+            },
+            area_mod2: MyModifier {
+                modifier: livesplit_hotkey::Modifiers::empty(),
+            },
+            area_mod3: MyModifier {
+                modifier: livesplit_hotkey::Modifiers::empty(),
+            },
+            area_k: "S".to_string(),
+            area_key: livesplit_hotkey::KeyCode::KeyG,
+            err: false,
             //area_id:id2,
             key: Key::Character("s".to_string()).legacy_charcode(),
             from: Point { x: 0.0, y: 0.0 },
@@ -281,7 +277,7 @@ impl AppState {
             Err(why) => return println!("{}", why),
             Ok(info) => info,
         };
-        let mut b;
+        let b;
         let mut display = display_info[0];
 
         if full_screen.is_none() {
@@ -315,7 +311,7 @@ impl AppState {
         }
 
         let image = match c {
-            Err(why) => return println!("{}", why),
+            Err(why) => return println!("qui {}", why),
             Ok(info) => info,
         };
 
@@ -343,7 +339,7 @@ impl AppState {
             self.tool_window.center.y - (self.tool_window.img_size.height / 2.),
         );
 
-        let window = WindowDesc::new(build_ui(self.scale, self.img.clone()))
+        let window = WindowDesc::new(build_ui(self.scale))
             .menu(make_menu)
             .title("Screen grabbing")
             .window_size((1200., 750.))
@@ -361,8 +357,6 @@ impl AppState {
         } else {
             first = self.name.clone();
         }
-
-        let a=std::thread::spawn(||{});
 
         let mut str3 = format!("{}{}", first, self.selected_format.to_string());
 
@@ -452,7 +446,7 @@ pub struct SelectionShape {
     pub end_point: Option<Point>,
     pub center: Option<Point>,
     pub radii: Option<druid::Vec2>,
-    pub filled :bool,
+    pub filled: bool,
 }
 
 impl Default for SelectionShape {
@@ -462,17 +456,27 @@ impl Default for SelectionShape {
             end_point: None,   // p4
             center: None,
             radii: None,
-            filled:true,
+            filled: true,
         }
     }
 }
 
-#[derive(Clone,Debug)]
-pub enum Draw{
-    Shape{shape:SelectionShape},
-    Text{text:String,text_pos:druid::Point,font:Font<'static>},
-    Free{points:Vec<Point>},
-    Resize{res:SelectionRectangle},
+#[derive(Clone, Debug)]
+pub enum Draw {
+    Shape {
+        shape: SelectionShape,
+    },
+    Text {
+        text: String,
+        text_pos: druid::Point,
+        font: Font<'static>,
+    },
+    Free {
+        points: Vec<Point>,
+    },
+    Resize {
+        res: SelectionRectangle,
+    },
 }
 
 #[derive(Clone, Data, Lens, Debug)]
@@ -491,7 +495,7 @@ pub struct AnnotationTools {
     pub text_pos: Option<druid::Point>,
     pub random_point: Option<Point>,
     #[data(ignore)]
-    pub draws:Vec<(Draw,Tools,Color)>,
+    pub draws: Vec<(Draw, Tools, Color)>,
 }
 
 impl Default for AnnotationTools {
@@ -510,7 +514,7 @@ impl Default for AnnotationTools {
             text: "".to_string(),
             text_pos: None,
             random_point: None,
-            draws:Vec::new(),
+            draws: Vec::new(),
         }
     }
 }
@@ -569,10 +573,10 @@ pub struct Enter {
     pub id_t: TimerToken,
     pub id_t2: TimerToken,
     pub locks: [bool; 5],
-    pub do_screen:bool,
-    pub witch_screen:u32,
+    pub do_screen: bool,
+    pub witch_screen: u32,
     pub display: Option<screenshots::DisplayInfo>,
-    pub hotkey:druid::HotKey,
+    pub hotkey: druid::HotKey,
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
@@ -584,19 +588,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
         data: &mut AppState,
         env: &Env,
     ) {
-
-        if self.do_screen{
-
-            println!("window state:{:?}",ctx.window().get_window_state());
-
+        if self.do_screen {
             match event {
-                Event::Timer(id)=>{
-                    if self.id_t==*id{
+                Event::Timer(id) => {
+                    if self.id_t == *id {
                         ctx.window().close();
-                        self.id_t2=ctx.request_timer(Duration::from_millis(100));
-                        if self.witch_screen==1{//1=full screen
-
-                            println!("faccio lo screen fullll in enter");
+                        self.id_t2 = ctx.request_timer(Duration::from_millis(100));
+                        if self.witch_screen == 1 {
+                            //1=full screen
 
                             data.rect.start_point = Some(Point::new(0., 0.));
                             data.rect.end_point = Some(data.size);
@@ -611,12 +610,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                                 .set_window_state(WindowState::Restored)
                                 .set_always_on_top(true);
                             ctx.new_window(new_win);
-                            data.tool_window=AnnotationTools::default();
-
-                        }else {
-
-                            println!("faccio lo screen con area in enter");
-
+                            data.tool_window = AnnotationTools::default();
+                        } else {
                             data.rect = SelectionRectangle::default();
                             let current = ctx.window().clone();
                             current.close();
@@ -627,41 +622,37 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
                                 .resizable(false)
                                 .set_position(data.pos);
                             ctx.new_window(new_win);
-                            data.tool_window=AnnotationTools::default(); 
+                            data.tool_window = AnnotationTools::default();
                         }
-                    
                     }
-                    if self.id_t2==*id{
-                        println!("entro");
-                        println!("window state:{:?}",ctx.window().get_window_state());
-                        self.do_screen=false;
+                    if self.id_t2 == *id {
+                        self.do_screen = false;
                         //ctx.window().close();
                     }
                 }
-                _=>{}
+                _ => {}
             }
-        }else {
-            match event{
-                Event::Timer(id)=>{
-                    if self.id_t==*id{
+        } else {
+            match event {
+                Event::Timer(id) => {
+                    if self.id_t == *id {
                         //println!("is full:{:?}  len:{:?}",data.receiver.is_full(),data.receiver.len());
-                        if data.receiver.is_full(){
-                            self.witch_screen=data.receiver.recv().unwrap();
+                        if data.receiver.is_full() {
+                            self.witch_screen = data.receiver.recv().unwrap();
                             //ctx.window().hide();
                             ctx.window().clone().set_window_state(WindowState::Restored);
                             ctx.window().hide();
-                            self.do_screen=true;
+                            self.do_screen = true;
                         }
-                        self.id_t=ctx.request_timer(Duration::from_millis(100));
+                        self.id_t = ctx.request_timer(Duration::from_millis(100));
                     }
                 }
-                _=>{
-                    self.id_t=ctx.request_timer(Duration::from_millis(100));
+                _ => {
+                    self.id_t = ctx.request_timer(Duration::from_millis(100));
                 }
             }
         }
-        
-        
+
         /*
         match event {
             Event::KeyDown(key) => {
@@ -822,8 +813,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
 
 //Controller to save custom shortcut
 
-pub struct ShortcutController {
-}
+pub struct ShortcutController {}
 
 impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
     fn event(
@@ -835,17 +825,17 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
         env: &Env,
     ) {
         match event {
-            Event::WindowDisconnected=>{
-                data.full_mod1.modifier=data.full_mods.0;
-                data.full_mod2.modifier=data.full_mods.1;
-                data.full_mod3.modifier=data.full_mods.2;
-                data.full_k=data.full_key.name().to_string().pop().unwrap().to_string();
-                data.area_mod1.modifier=data.area_mods.0;
-                data.area_mod2.modifier=data.area_mods.1;
-                data.area_mod3.modifier=data.area_mods.2;
-                data.area_k=data.area_key.name().to_string().pop().unwrap().to_string();
+            Event::WindowDisconnected => {
+                data.full_mod1.modifier = data.full_mods.0;
+                data.full_mod2.modifier = data.full_mods.1;
+                data.full_mod3.modifier = data.full_mods.2;
+                data.full_k = data.full_key.name().to_string().pop().unwrap().to_string();
+                data.area_mod1.modifier = data.area_mods.0;
+                data.area_mod2.modifier = data.area_mods.1;
+                data.area_mod3.modifier = data.area_mods.2;
+                data.area_k = data.area_key.name().to_string().pop().unwrap().to_string();
             }
-            _=>{}
+            _ => {}
         }
         child.event(ctx, event, data, env)
     }
@@ -895,7 +885,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
             data.is_full_screen = false;
             match event {
                 Event::MouseDown(mouse_button) => {
-                    let mut mouse_down = MouseEvent {
+                    let mouse_down = MouseEvent {
                         pos: mouse_button.pos,
                         window_pos: mouse_button.window_pos,
                         buttons: mouse_button.buttons,
@@ -909,9 +899,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                     data.from = mouse_down.pos;
                     data.rect.start_point = Some(mouse_button.pos);
                     data.rect.end_point = Some(mouse_button.pos);
-                    let x = (mouse_button.pos.x - data.pos.x.abs()) * data.scale as f64;
-                    let y = (mouse_button.pos.y - data.pos.y.abs()) * data.scale as f64;
                     data.selection_transparency = 0.4;
+                    
                 }
                 Event::MouseUp(mouse_button) => {
                     let mouse_up = MouseEvent {
@@ -926,12 +915,12 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                     };
 
                     data.rect.end_point = Some(mouse_button.pos);
-                    let mouse_up2 = Point::new(
+                    let _mouse_up2 = Point::new(
                         (mouse_button.pos.x - data.pos.x.abs()) * data.scale as f64,
                         (mouse_button.pos.y - data.pos.y.abs()) * data.scale as f64,
                     );
                     let r = druid::Rect::from_points(data.from, mouse_up.pos);
-
+                    println!("{:?}", r.max_x());
                     // aggiusto i punti
                     data.rect.start_point = Some(r.origin());
                     data.rect.p2 = Some(Point::new(r.max_x(), r.min_y()));
@@ -939,7 +928,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                     data.rect.end_point = Some(Point::new(r.max_x(), r.max_y()));
                     data.rect.size = r.size();
                     data.selection_transparency = 0.0;
-
                     match data.delay {
                         Timer::Zero => self.id_t = ctx.request_timer(Duration::from_millis(100)),
                         _ => {
@@ -951,7 +939,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                     ctx.window().clone().hide();
                 }
                 Event::MouseMove(mouse_button) => {
-                    let mut mouse_move = MouseEvent {
+                    let mouse_move = MouseEvent {
                         pos: mouse_button.pos,
                         window_pos: mouse_button.window_pos,
                         buttons: mouse_button.buttons,
@@ -1447,7 +1435,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     }
                 }
                 Event::MouseUp(mouse_button) => {
-                    let mouse_up = MouseEvent {
+                    let _mouse_up = MouseEvent {
                         pos: mouse_button.pos,
                         window_pos: mouse_button.window_pos,
                         buttons: mouse_button.buttons,
@@ -1486,39 +1474,57 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                         .round() as i32,
                                 ),
                                 ((data.tool_window.shape.radii.unwrap().x - i as f64 / 20.)
-                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64
+                                        / data.tool_window.img_size.width))
                                     as i32,
                                 ((data.tool_window.shape.radii.unwrap().y - i as f64 / 20.)
-                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64
+                                        / data.tool_window.img_size.height))
                                     as i32,
                                 Rgba([color.0, color.1, color.2, 255]),
                             );
                         }
-                        data.tool_window.shape.filled=false;
-                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Ellipse,data.color.clone()));
+                        data.tool_window.shape.filled = false;
+                        data.tool_window.draws.push((
+                            Draw::Shape {
+                                shape: data.tool_window.shape.clone(),
+                            },
+                            Tools::Ellipse,
+                            data.color.clone(),
+                        ));
                     } else {
                         imageproc::drawing::draw_filled_ellipse_mut(
                             &mut image,
                             (
                                 ((data.tool_window.shape.center.unwrap().x
                                     - data.tool_window.origin.x)
-                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64
+                                        / data.tool_window.img_size.width))
                                     as i32,
                                 ((data.tool_window.shape.center.unwrap().y
                                     - data.tool_window.origin.y)
-                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64
+                                        / data.tool_window.img_size.height))
                                     as i32,
                             ),
                             (data.tool_window.shape.radii.unwrap().x
-                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
                                 as i32,
                             (data.tool_window.shape.radii.unwrap().y
-                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
                                 as i32,
                             Rgba([color.0, color.1, color.2, 255]),
                         );
-                        data.tool_window.shape.filled=true;
-                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Ellipse,data.color.clone()));
+                        data.tool_window.shape.filled = true;
+                        data.tool_window.draws.push((
+                            Draw::Shape {
+                                shape: data.tool_window.shape.clone(),
+                            },
+                            Tools::Ellipse,
+                            data.color.clone(),
+                        ));
                     }
 
                     data.tool_window.img = ImageBuf::from_raw(
@@ -1640,8 +1646,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                 Rgba([color.0, color.1, color.2, 255]),
                             );
                         }
-                        data.tool_window.shape.filled=false;
-                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Rectangle,data.color.clone()));
+                        data.tool_window.shape.filled = false;
+                        data.tool_window.draws.push((
+                            Draw::Shape {
+                                shape: data.tool_window.shape.clone(),
+                            },
+                            Tools::Rectangle,
+                            data.color.clone(),
+                        ));
                     } else {
                         imageproc::drawing::draw_filled_rect_mut(
                             &mut image,
@@ -1654,7 +1666,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                     .x
                                     .min(data.tool_window.shape.end_point.unwrap().x)
                                     - data.tool_window.origin.x)
-                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64
+                                        / data.tool_window.img_size.width))
                                     as i32,
                                 ((data
                                     .tool_window
@@ -1664,25 +1677,34 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                     .y
                                     .min(data.tool_window.shape.end_point.unwrap().y)
                                     - data.tool_window.origin.y)
-                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64
+                                        / data.tool_window.img_size.height))
                                     as i32,
                             )
                             .of_size(
                                 (((data.tool_window.shape.start_point.unwrap().x
                                     - data.tool_window.shape.end_point.unwrap().x)
                                     .abs())
-                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64
+                                        / data.tool_window.img_size.width))
                                     as u32,
                                 (((data.tool_window.shape.start_point.unwrap().y
                                     - data.tool_window.shape.end_point.unwrap().y)
                                     .abs())
-                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64
+                                        / data.tool_window.img_size.height))
                                     as u32,
                             ),
                             Rgba([color.0, color.1, color.2, 255]),
                         );
-                        data.tool_window.shape.filled=true;
-                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Rectangle,data.color.clone()));
+                        data.tool_window.shape.filled = true;
+                        data.tool_window.draws.push((
+                            Draw::Shape {
+                                shape: data.tool_window.shape.clone(),
+                            },
+                            Tools::Rectangle,
+                            data.color.clone(),
+                        ));
                     }
 
                     data.tool_window.img = ImageBuf::from_raw(
@@ -1848,78 +1870,102 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         }
 
                         body.p1.x = ((body.p1.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         body.p1.y = ((body.p1.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         body.p2.x = ((body.p2.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         body.p2.y = ((body.p2.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         body.p3.x = ((body.p3.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         body.p3.y = ((body.p3.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         body.p4.x = ((body.p4.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         body.p4.y = ((body.p4.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
 
                         line1.p1.x = ((line1.p1.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line1.p1.y = ((line1.p1.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         line1.p2.x = ((line1.p2.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line1.p2.y = ((line1.p2.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         line1.p3.x = ((line1.p3.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line1.p3.y = ((line1.p3.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         line1.p4.x = ((line1.p4.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line1.p4.y = ((line1.p4.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
 
                         line2.p1.x = ((line2.p1.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line2.p1.y = ((line2.p1.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         line2.p2.x = ((line2.p2.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line2.p2.y = ((line2.p2.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         line2.p3.x = ((line2.p3.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line2.p3.y = ((line2.p3.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         line2.p4.x = ((line2.p4.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line2.p4.y = ((line2.p4.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
 
                         let color = data.color.as_rgba8();
@@ -1948,8 +1994,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             image.clone().height() as usize,
                         );
 
-                        data.tool_window.shape.filled=true;
-                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Arrow,data.color.clone()));
+                        data.tool_window.shape.filled = true;
+                        data.tool_window.draws.push((
+                            Draw::Shape {
+                                shape: data.tool_window.shape.clone(),
+                            },
+                            Tools::Arrow,
+                            data.color.clone(),
+                        ));
 
                         data.tool_window.shape.start_point = None;
                         data.tool_window.shape.end_point = None;
@@ -1976,7 +2028,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     };
                     data.color = data.color.with_alpha(1.);
                     data.tool_window.text_pos = Some(mouse_down.pos);
-
                 }
                 _ => {}
             },
@@ -2013,8 +2064,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         data.tool_window.shape.end_point = Some(mouse_move.pos);
                     }
                     Event::MouseUp(_mouse_button) => {
-                        let mut image =
-                            ImageBuffer::new(data.tool_window.img.width() as u32, data.tool_window.img.height() as u32);
+                        let mut image = ImageBuffer::new(
+                            data.tool_window.img.width() as u32,
+                            data.tool_window.img.height() as u32,
+                        );
 
                         let mut line = FreeRect::new(
                             data.tool_window.shape.start_point.unwrap(),
@@ -2059,28 +2112,36 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         }
 
                         line.p1.x = ((line.p1.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line.p1.y = ((line.p1.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         line.p2.x = ((line.p2.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line.p2.y = ((line.p2.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         line.p3.x = ((line.p3.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line.p3.y = ((line.p3.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
                         line.p4.x = ((line.p4.x as f64 - data.tool_window.origin.x)
-                            * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                            * (data.tool_window.img.width() as f64
+                                / data.tool_window.img_size.width))
                             as i32;
                         line.p4.y = ((line.p4.y as f64 - data.tool_window.origin.y)
-                            * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                            * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height))
                             as i32;
 
                         let color = data.color.as_rgba8();
@@ -2098,15 +2159,21 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         .unwrap();
                         image::imageops::overlay(&mut bottom, &prova, 0, 0);
 
-                        data.tool_window.img =ImageBuf::from_raw(
+                        data.tool_window.img = ImageBuf::from_raw(
                             bottom.clone().into_raw(),
                             druid::piet::ImageFormat::RgbaPremul,
                             bottom.clone().width() as usize,
                             bottom.clone().height() as usize,
                         );
 
-                        data.tool_window.shape.filled=true;
-                        data.tool_window.draws.push((Draw::Shape{shape:data.tool_window.shape.clone()},Tools::Highlight,data.color.clone()));
+                        data.tool_window.shape.filled = true;
+                        data.tool_window.draws.push((
+                            Draw::Shape {
+                                shape: data.tool_window.shape.clone(),
+                            },
+                            Tools::Highlight,
+                            data.color.clone(),
+                        ));
 
                         data.tool_window.shape.start_point = None;
                         data.tool_window.shape.end_point = None;
@@ -2135,9 +2202,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     {
                         self.points.push(mouse_down.pos);
                         data.color = data.color.with_alpha(1.);
-
                     }
-
                 }
                 Event::MouseMove(mouse_button) => {
                     let mouse_move = MouseEvent {
@@ -2158,14 +2223,12 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         && data.color.as_rgba8().3 == 255
                     {
                         self.points.push(mouse_move.pos);
-                    }else
-                    {
-                        if !self.points.is_empty(){
-                            self.points=Vec::new();
+                    } else {
+                        if !self.points.is_empty() {
+                            self.points = Vec::new();
                         }
                     }
                     data.tool_window.random_point = Some(mouse_move.pos);
-
                 }
                 Event::MouseUp(mouse_button) => {
                     data.color = data.color.with_alpha(1.);
@@ -2177,8 +2240,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         data.tool_window.img.clone().raw_pixels().to_vec(),
                     )
                     .unwrap();
-                    if !self.points.is_empty()&&self.points.len()>=1 {
-                        
+                    if !self.points.is_empty() && self.points.len() >= 1 {
                         for i in 0..self.points.len() - 1 {
                             let mut line = FreeRect::new(
                                 self.points[i],
@@ -2223,28 +2285,36 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                             }
 
                             line.p1.x = ((line.p1.x as f64 - data.tool_window.origin.x)
-                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
                                 as i32;
                             line.p1.y = ((line.p1.y as f64 - data.tool_window.origin.y)
-                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
                                 as i32;
                             line.p2.x = ((line.p2.x as f64 - data.tool_window.origin.x)
-                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
                                 as i32;
                             line.p2.y = ((line.p2.y as f64 - data.tool_window.origin.y)
-                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
                                 as i32;
                             line.p3.x = ((line.p3.x as f64 - data.tool_window.origin.x)
-                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
                                 as i32;
                             line.p3.y = ((line.p3.y as f64 - data.tool_window.origin.y)
-                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
                                 as i32;
                             line.p4.x = ((line.p4.x as f64 - data.tool_window.origin.x)
-                                * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
                                 as i32;
                             line.p4.y = ((line.p4.y as f64 - data.tool_window.origin.y)
-                                * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
                                 as i32;
 
                             if line.p1 != line.p4 {
@@ -2259,45 +2329,53 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                                 &mut image,
                                 (
                                     ((self.points[i].x - data.tool_window.origin.x)
-                                        * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                        * (data.tool_window.img.width() as f64
+                                            / data.tool_window.img_size.width))
                                         as i32,
                                     ((self.points[i].y - data.tool_window.origin.y)
-                                        * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                        * (data.tool_window.img.height() as f64
+                                            / data.tool_window.img_size.height))
                                         as i32,
                                 ),
-                                2 * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height)
+                                2 * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height)
                                     as i32,
                                 Rgba([color.0, color.1, color.2, color.3]),
-                            );                        }
+                            );
+                        }
 
                         imageproc::drawing::draw_filled_circle_mut(
                             &mut image,
                             (
                                 ((self.points.last().unwrap().x - data.tool_window.origin.x)
-                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64
+                                        / data.tool_window.img_size.width))
                                     as i32,
                                 ((self.points.last().unwrap().y - data.tool_window.origin.y)
-                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64
+                                        / data.tool_window.img_size.height))
                                     as i32,
                             ),
-                            3 * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height)
+                            3 * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height)
                                 as i32,
                             Rgba([color.0, color.1, color.2, color.3]),
                         );
-
-                    }else
-                    {
+                    } else {
                         imageproc::drawing::draw_filled_circle_mut(
                             &mut image,
                             (
                                 ((mouse_button.pos.x - data.tool_window.origin.x)
-                                    * (data.tool_window.img.width() as f64 / data.tool_window.img_size.width))
+                                    * (data.tool_window.img.width() as f64
+                                        / data.tool_window.img_size.width))
                                     as i32,
                                 ((mouse_button.pos.y - data.tool_window.origin.y)
-                                    * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height))
+                                    * (data.tool_window.img.height() as f64
+                                        / data.tool_window.img_size.height))
                                     as i32,
                             ),
-                            3 * (data.tool_window.img.height() as f64 / data.tool_window.img_size.height)
+                            3 * (data.tool_window.img.height() as f64
+                                / data.tool_window.img_size.height)
                                 as i32,
                             Rgba([color.0, color.1, color.2, color.3]),
                         );
@@ -2310,10 +2388,15 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         image.clone().height() as usize,
                     );
 
-                    println!("points:{:?}",self.points);
-                    data.tool_window.draws.push((Draw::Free{points:self.points.clone()},Tools::Random,data.color.clone()));
+                    data.tool_window.draws.push((
+                        Draw::Free {
+                            points: self.points.clone(),
+                        },
+                        Tools::Random,
+                        data.color.clone(),
+                    ));
 
-                    self.points=Vec::new();
+                    self.points = Vec::new();
                     data.color = data.color.with_alpha(0.);
                 }
                 _ => {}
@@ -2396,65 +2479,65 @@ impl AppDelegate<AppState> for Delegate {
     }
 }
 
-
-fn create_listener(receiver:Receiver<(Hotkey,u32)>,sender:CrossSender<u32>){
-
-    let mut tasti1=livesplit_hotkey::Hotkey{modifiers:livesplit_hotkey::Modifiers::ALT,key_code:livesplit_hotkey::KeyCode::KeyS};
-    let mut tasti2=livesplit_hotkey::Hotkey{modifiers:livesplit_hotkey::Modifiers::ALT,key_code:livesplit_hotkey::KeyCode::KeyG};
+fn create_listener(receiver: Receiver<(Hotkey, u32)>, sender: CrossSender<u32>) {
+    let mut tasti1 = livesplit_hotkey::Hotkey {
+        modifiers: livesplit_hotkey::Modifiers::ALT,
+        key_code: livesplit_hotkey::KeyCode::KeyS,
+    };
+    let mut tasti2 = livesplit_hotkey::Hotkey {
+        modifiers: livesplit_hotkey::Modifiers::ALT,
+        key_code: livesplit_hotkey::KeyCode::KeyG,
+    };
     let mut tasti;
 
-    let mut hk=livesplit_hotkey::Hook::new().unwrap();
+    let hk = livesplit_hotkey::Hook::new().unwrap();
 
-    let mut n_s=0;
+    let mut n_s;
 
-    loop{
+    loop {
         //let keys=tasti.clone();
-        let send=sender.clone();
+        let send = sender.clone();
 
-        println!("listener creato");
-
-        let result=hk.register(tasti1, move||{
-            send.send(1);
+        let _result = hk.register(tasti1, move || {
+            send.send(1).expect("Error shortcut");
             //println!("send len:{:?}",send.len());
         });
 
-        let send=sender.clone();
+        let send = sender.clone();
 
-        let result=hk.register(tasti2, move||{
-            send.send(2);
+        let _result = hk.register(tasti2, move || {
+            send.send(2).expect("Error shortcut");
             //println!("send len:{:?}",send.len());
         });
 
-        let hotkeys=receiver.recv();
+        let hotkeys = receiver.recv();
 
         match hotkeys {
-            Ok(data)=>{(tasti,n_s)=data},
-            Err(err)=>{ break;}
+            Ok(data) => (tasti, n_s) = data,
+            Err(_err) => {
+                break;
+            }
         }
 
-        if n_s==1{
-            hk.unregister(tasti1);
-            tasti1=tasti;
-            let send=sender.clone();
-            let result=hk.register(tasti1, move||{
-                send.send(1);
+        if n_s == 1 {
+            hk.unregister(tasti1).expect("Error shortcut");
+            tasti1 = tasti;
+            let send = sender.clone();
+            let _result = hk.register(tasti1, move || {
+                send.send(1).expect("Error shortcut");
                 //println!("send len:{:?}",send.len());
             });
-        }else {
-            hk.unregister(tasti2);
-            tasti2=tasti;
-            let send=sender.clone();
-            let result=hk.register(tasti2, move||{
-                send.send(2);
+        } else {
+            hk.unregister(tasti2).expect("Error shortcut");
+            tasti2 = tasti;
+            let send = sender.clone();
+            let _result = hk.register(tasti2, move || {
+                send.send(2).expect("Error shortcut");
                 //println!("send len:{:?}",send.len());
             });
         }
-
-        println!("create");
-
     }
 }
-
 
 /*
 fn create_listener(receiver:Receiver<(global_hotkey::hotkey::HotKey,u32)>,sender:CrossSender<u32>){

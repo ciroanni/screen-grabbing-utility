@@ -1,30 +1,28 @@
 use crate::data::*;
 use arboard::{Clipboard, ImageData};
 use druid::widget::{
-    BackgroundBrush, Button, DisabledIf, Either, FillStrat, Flex, Image, Label, Painter, SizedBox,
+    BackgroundBrush, Button, Either, Flex, Image, Label, Painter, SizedBox,
     Switch, TextBox, ViewSwitcher, ZStack,Container
 };
 use druid::{
     commands, Color, Env, EventCtx, FileDialogOptions, FileSpec, ImageBuf, LocalizedString, Menu,
-    MenuItem, Point, RenderContext, Size, UnitPoint, Vec2, Widget, WidgetExt, WidgetPod,
-    WindowDesc, WindowId, WindowLevel, WindowState,
+    MenuItem, Point, RenderContext, Size, UnitPoint, Widget, WidgetExt,
+    WindowDesc, WindowId
 };
-use druid_shell::keyboard_types::Modifiers;
 use druid_shell::{SysMods, TimerToken, HotKey};
 use druid_widget_nursery::{DropdownSelect, WidgetExt as _};
-use image::{GenericImage, ImageBuffer, Rgba, SubImage, EncodableLayout};
-use imageproc::{filter, point};
+use image::{GenericImage, ImageBuffer, Rgba};
 use rusttype::Font;
 use std::borrow::Cow;
 use std::str::FromStr;
 
-pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
+pub fn build_ui(scale: f32) -> impl Widget<AppState> {
     let display_info = screenshots::DisplayInfo::all().expect("Err");
     //let scale = display_info[0].scale_factor;
     let mut width = (display_info[0].width as f32 * display_info[0].scale_factor) as u32;
     let mut height = (display_info[0].height as f32 * display_info[0].scale_factor) as u32;
     let mut pos = Point::new(0., 0.);
-    let mut hotkey=HotKey::new(Some(druid_shell::RawMods::Alt), 'g'.to_string().as_str());
+    let hotkey=HotKey::new(Some(druid_shell::RawMods::Alt), 'g'.to_string().as_str());
 
     for display in display_info.iter() {
         if display.x < 0 {
@@ -228,7 +226,7 @@ pub fn build_ui(scale: f32, img: ImageBuf) -> impl Widget<AppState> {
                 )
             )
             ,
-            show_screen_ui(img),
+            show_screen_ui(),
         ))
 }
 
@@ -237,10 +235,6 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
         .with_child(Label::new("Premi una nuova combinazione"))
         .controller(ShortcutController { locks: [false; 5] })
     */
-    let s="str";
-
-    let a=s.to_string().pop();
-
     Flex::column()
         .with_child(
             Label::new("Full_screen:").align_left()
@@ -442,7 +436,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
         .with_child(
             Container::new(
                 Flex::column()
-                .with_child(Either::new(|data: &AppState,env| data.err, 
+                .with_child(Either::new(|data: &AppState, _env| data.err, 
                     Label::new("il carattere inserito è errato")
                     .with_text_color(Color::RED)
                     , Label::new("")))
@@ -450,24 +444,22 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                 Flex::row()
                 .with_child(
                     Button::new("Salva")
-                    .on_click(|ctx,data: &mut AppState,env|{
-                        println!("{:?}",livesplit_hotkey::KeyCode::from_str(data.full_k.as_str()));
-                        println!("{:?}",livesplit_hotkey::KeyCode::from_str(data.full_k.to_uppercase().as_str()));
+                    .on_click(|ctx,data: &mut AppState,_env|{
                         let res1=livesplit_hotkey::KeyCode::from_str(data.full_k.to_uppercase().as_str());
                         let res2=livesplit_hotkey::KeyCode::from_str(data.area_k.to_uppercase().as_str());
-                        let mut k1;
-                        let mut k2;
+                        let k1;
+                        let k2;
 
                         match res1 {
                             Ok(key)=>{k1=key;
                                 data.err=false}
-                            Err(err)=>{data.err=true;return;}
+                            Err(_err)=>{data.err=true;return;}
                         }
 
                         match res2 {
                             Ok(key)=>{k2=key;
                                 data.err=false}
-                            Err(err)=>{data.err=true;return;}
+                            Err(_err)=>{data.err=true;return;}
                         }
 
                         if data.full_mod1.modifier==livesplit_hotkey::Modifiers::empty(){
@@ -522,7 +514,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                             data.full_mods.2=data.full_mod3.modifier;
                             data.full_key=k1;
 
-                            data.sender.send((livesplit_hotkey::Hotkey{key_code:data.full_key,modifiers:data.full_mods.0|data.full_mods.1|data.full_mods.2},1));
+                            data.sender.send((livesplit_hotkey::Hotkey{key_code:data.full_key,modifiers:data.full_mods.0|data.full_mods.1|data.full_mods.2},1)).expect("Error shortcut");
 
                         }
 
@@ -533,7 +525,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                             data.area_mods.2=data.area_mod3.modifier;
                             data.area_key=k2;
 
-                            data.sender.send((livesplit_hotkey::Hotkey{key_code:data.area_key,modifiers:data.area_mods.0|data.area_mods.1|data.area_mods.2},2));
+                            data.sender.send((livesplit_hotkey::Hotkey{key_code:data.area_key,modifiers:data.area_mods.0|data.area_mods.1|data.area_mods.2},2)).expect("Error shortcut");
 
                         }
 
@@ -544,7 +536,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                 )
                 .with_child(
                     Button::new("Annulla")
-                    .on_click(|ctx,data: &mut AppState,env|{
+                    .on_click(|ctx,data: &mut AppState, _env|{
 
                         data.full_mod1.modifier=data.full_mods.0;
                         data.full_mod2.modifier=data.full_mods.1;
@@ -606,7 +598,7 @@ pub fn show_edit() -> impl Widget<AppState>{
         |data, _env| data.tool_window.tool == Tools::Resize,
         Flex::row()
                 .with_child(Button::new("salva").on_click(
-                    move |ctx, data: &mut AppState, env| {
+                    move |_ctx, data: &mut AppState, _env| {
                                 let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> =
                                     ImageBuffer::from_vec(
                                         data.tool_window.img.width() as u32,
@@ -673,7 +665,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                             }
                 ))
                 .with_child(Button::new("annulla")
-                        .on_click(|ctx, data: &mut AppState, env| {
+                        .on_click(|_ctx, data: &mut AppState, _env| {
                             
                             data.tool_window.rect_stroke = 0.;
                             data.tool_window.rect_transparency = 0.;
@@ -686,7 +678,7 @@ pub fn show_edit() -> impl Widget<AppState>{
         .with_child(
             Image::new(crop)
                 .fix_size(20., 20.)
-                .on_click(|ctx: &mut EventCtx, data: &mut AppState, _env| {
+                .on_click(|_ctx: &mut EventCtx, data: &mut AppState, _env| {
                     data.tool_window.tool = Tools::Resize;
                     data.resize = true;
                     data.annulla = false;
@@ -713,26 +705,26 @@ pub fn show_edit() -> impl Widget<AppState>{
             .with_child(
                 Image::new(marker)
                     .fix_size(20., 20.)
-                    .on_click(|ctx, data: &mut AppState, _: &Env| {
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Highlight
                         //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .stack_tooltip("   highlight")
                     .tooltip("highlight")
             )
             .with_child(
                 Image::new(ellipse)
                     .fix_size(20., 20.)
-                    .on_click(|ctx, data: &mut AppState, _: &Env| {
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Ellipse;
                         //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
-                    .padding(5.),
+                    .padding(5.)
+                    .tooltip("ellipse"),
             )
             .with_child(Either::new(
                 |data: &AppState, _env| data.tool_window.tool == Tools::Ellipse,
@@ -749,13 +741,14 @@ pub fn show_edit() -> impl Widget<AppState>{
             .with_child(
                 Image::new(square)
                     .fix_size(20., 20.)
-                    .on_click(|ctx, data: &mut AppState, _: &Env| {
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Rectangle;
                         //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
-                    .padding(5.),
+                    .padding(5.)
+                    .tooltip("square"),
             )
             .with_child(Either::new(
                 |data: &AppState, _env| data.tool_window.tool == Tools::Rectangle,
@@ -772,24 +765,26 @@ pub fn show_edit() -> impl Widget<AppState>{
             .with_child(
                 Image::new(arrow)
                 .fix_size(20., 20.)
-                .on_click(|ctx, data: &mut AppState, _: &Env| {
+                .on_click(|_ctx, data: &mut AppState, _: &Env| {
                     data.tool_window.tool = Tools::Arrow
                     //data.line_thickness = 10.;s
                 })
                 .border(Color::WHITE, 1.)
                 .background(Color::rgb8(0, 0, 0))
-                .padding(5.),
+                .padding(5.)
+                .tooltip("arrow"),
             )
             .with_child(
                 Image::new(text)
                     .fix_size(20., 20.)
-                    .on_click(|ctx, data: &mut AppState, _: &Env| {
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Text
                         //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
-                    .padding(5.),
+                    .padding(5.)
+                    .tooltip("text"),
             )
             .with_child(
                 Container::new(
@@ -805,7 +800,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     ))
                     .with_child(
                         Button::new("salva")
-                        .on_click(move |ctx, data: &mut AppState, _: &Env| {
+                        .on_click(move |_ctx, data: &mut AppState, _: &Env| {
                             if let Some(point) = data.tool_window.text_pos {
                                 let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> =
                                     ImageBuffer::from_vec(
@@ -870,18 +865,19 @@ pub fn show_edit() -> impl Widget<AppState>{
             .with_child(
                 Image::new(pencil)
                     .fix_size(20., 20.)
-                    .on_click(|ctx, data: &mut AppState, _: &Env| {
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.color = data.color.with_alpha(0.);
                         data.tool_window.tool = Tools::Random
                         //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
-                    .padding(5.),
+                    .padding(5.)
+                    .tooltip("pencil"),
             )
             .with_child(
                 Button::new("undo")
-                .on_click(|ctx,data: &mut AppState,env|{
+                .on_click(|_ctx,data: &mut AppState,_env|{
                     let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
                         data.img.width() as u32,
                         data.img.height() as u32,
@@ -892,7 +888,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     let popped=data.tool_window.draws.pop().unwrap();
 
                     match popped.0 {
-                        Draw::Resize{res}=>{
+                        Draw::Resize{res: _}=>{
                             let width = data.img.width() as f64;
                             let height = data.img.height() as f64;
 
@@ -915,7 +911,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                         let w=image.width();
                         let h=image.height();
                         let color=d.2.as_rgba8();
-                        println!("{:?}",d.1);
                         match d.0{
                             Draw::Resize{res}=>{
 
@@ -1541,7 +1536,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                                     deref = deref + 25.;
                                 }
                                 }
-                            _=>{}
                         }
                     }
 
@@ -1589,7 +1583,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                 |data: &AppState, _env| !data.color_picker,
                 Image::new(color_wheel)
                 .fix_size(30., 30.)
-                .on_click(|ctx, data: &mut AppState, _: &Env| {
+                .on_click(|_ctx, data: &mut AppState, _: &Env| {
                     data.color_picker = true;
                 }),
                 Flex::row()
@@ -1601,7 +1595,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                         .fix_size(20., 20.)
                         //Button::new("")
                         //.foreground(Color::BLACK)
-                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                        .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::BLACK;
                             data.color=data.color.with_alpha(0.);
                             data.color_picker = false;
@@ -1616,7 +1610,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                         .fix_size(20., 20.)
                         //Button::new("")
                         //.foreground(Color::BLUE)
-                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                        .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::BLUE;
                             data.color=data.color.with_alpha(0.);
                             data.color_picker = false;
@@ -1631,7 +1625,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                         .fix_size(20., 20.)
                         //Button::new("")
                         //.foreground(Color::GREEN)
-                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                        .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::GREEN;
                             data.color=data.color.with_alpha(0.);
                             data.color_picker = false;
@@ -1646,7 +1640,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                         .fix_size(20., 20.)
                         //Button::new("")
                         //.foreground(Color::GRAY)
-                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                        .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::GRAY;
                             data.color=data.color.with_alpha(0.);
                             data.color_picker = false;
@@ -1661,7 +1655,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                         .fix_size(20., 20.)
                         //Button::new("")
                         //.foreground(Color::RED)
-                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                        .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::RED;
                             data.color=data.color.with_alpha(0.);
                             data.color_picker = false;
@@ -1676,7 +1670,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                         .fix_size(20., 20.)
                         //Button::new("")
                         //.foreground(Color::WHITE)
-                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                        .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::WHITE;
                             data.color=data.color.with_alpha(0.);
                             data.color_picker = false;
@@ -1691,7 +1685,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                         .fix_size(20., 20.)
                         //Button::new("")
                         //.foreground(Color::YELLOW)
-                        .on_click(|ctx, data: &mut AppState, _: &Env| {
+                        .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::YELLOW;
                             data.color=data.color.with_alpha(0.);
                             data.color_picker = false;
@@ -1703,8 +1697,7 @@ pub fn show_edit() -> impl Widget<AppState>{
         )
 }
 
-pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
-    let image = Image::new(img.clone());
+pub fn show_screen_ui() -> impl Widget<AppState> {
     let points = Vec::<Point>::new();
     let mut path = Vec::new();
     //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
@@ -1715,7 +1708,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
             Container::new(ZStack::new(
                 SizedBox::new(
                     
-                    Painter::new(|ctx, data: &AppState, env| {
+                    Painter::new(|ctx, data: &AppState, _env| {
                         let image = ctx
                         .make_image(
                                 data.tool_window.img.width(),
@@ -1743,7 +1736,7 @@ pub fn show_screen_ui(img: ImageBuf) -> impl Widget<AppState> {
                 Painter::new(
                     move |ctx, data: &AppState, env|{ match data.tool_window.tool {
                         Tools::Resize => {
-                            if let (Some(start), Some(end)) =
+                            if let (Some(_start), Some(_end)) =
                                 (data.rect.start_point, data.rect.end_point)
                             {
                                 if data.rect.size.width <= data.tool_window.width
