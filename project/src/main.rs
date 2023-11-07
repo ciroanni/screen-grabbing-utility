@@ -8,7 +8,9 @@ mod data;
 use data::{AppState, Delegate};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
+
 fn main() -> Result<(), PlatformError> {
+
     let display_info = screenshots::DisplayInfo::all().expect("Err");
     let (_sender ,_receiver):(Sender<Vec<u32>>,Receiver<Vec<u32>>)=channel();
 
@@ -19,13 +21,9 @@ fn main() -> Result<(), PlatformError> {
     .title(LocalizedString::new("Screen grabbing"))
     .window_size((1000.0, 500.0));
 
-    /*
-    std::thread::spawn(move ||{
-        create_listener(receiver);
-    });
-    */
-
     AppLauncher::with_window(main_window)
         .delegate(Delegate) //per far funzionare il delegate
         .launch(app_state)
+
+
 }

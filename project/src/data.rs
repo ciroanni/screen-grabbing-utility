@@ -18,7 +18,7 @@ use std::time::Duration;
 
 pub const SHORTCUT: Selector = Selector::new("shortcut_selector");
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct MyModifier {
     pub modifier: livesplit_hotkey::Modifiers,
 }
@@ -210,14 +210,14 @@ impl AppState {
             receiver: recv,
             full_mods: (
                 livesplit_hotkey::Modifiers::ALT,
-                livesplit_hotkey::Modifiers::CONTROL,
+                livesplit_hotkey::Modifiers::empty(),
                 livesplit_hotkey::Modifiers::empty(),
             ),
             full_mod1: MyModifier {
                 modifier: livesplit_hotkey::Modifiers::ALT,
             },
             full_mod2: MyModifier {
-                modifier: livesplit_hotkey::Modifiers::CONTROL,
+                modifier: livesplit_hotkey::Modifiers::empty(),
             },
             full_mod3: MyModifier {
                 modifier: livesplit_hotkey::Modifiers::empty(),
@@ -239,7 +239,7 @@ impl AppState {
             area_mod3: MyModifier {
                 modifier: livesplit_hotkey::Modifiers::empty(),
             },
-            area_k: "S".to_string(),
+            area_k: "G".to_string(),
             area_key: livesplit_hotkey::KeyCode::KeyG,
             err: false,
             //area_id:id2,

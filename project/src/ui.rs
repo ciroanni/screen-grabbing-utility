@@ -138,7 +138,7 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                     Label::new(|data: &AppState, _env: &_| {
                         format!(
                             "Premi {} per la cattura a schermo intero",
-                            data.full_key.name().to_string().pop().unwrap()
+                            data.full_k
                         )
                     })
                     .with_text_size(24.)
@@ -147,8 +147,8 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                         Label::new(|data: &AppState, _env: &_| {
                             format!(
                                 "Premi {}+{} per la cattura a schermo intero",
-                                data.full_mods.0,
-                                data.full_key.name().to_string().pop().unwrap()
+                                data.full_mod1.modifier,
+                                data.full_k
                             )
                         })
                         .with_text_size(24.)
@@ -157,8 +157,8 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                             Label::new(|data: &AppState, _env: &_| {
                                 format!(
                                     "Premi {}+{}+{} per la cattura a schermo intero",
-                                    data.full_mods.0,
-                                    data.full_mods.1,
+                                    data.full_mod1.modifier,
+                                    data.full_mod2.modifier,
                                     data.full_key.name().to_string().pop().unwrap()
                                 )
                             })
@@ -167,9 +167,9 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                             Label::new(|data: &AppState, _env: &_| {
                                 format!(
                                     "Premi {}+{}+{}+{} per la cattura a schermo intero",
-                                    data.full_mods.0,
-                                    data.full_mods.1,
-                                    data.full_mods.2,
+                                    data.full_mod1.modifier,
+                                    data.full_mod2.modifier,
+                                    data.full_mod3.modifier,
                                     data.full_key.name().to_string().pop().unwrap()
                                 )
                             })
@@ -184,7 +184,7 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                     Label::new(|data: &AppState, _env: &_| {
                         format!(
                             "Premi {} per la cattura ad area",
-                            data.area_key.name().to_string().pop().unwrap()
+                            data.area_k
                         )
                     })
                     .with_text_size(24.)
@@ -193,8 +193,8 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                         Label::new(|data: &AppState, _env: &_| {
                             format!(
                                 "Premi {}+{} per la cattura ad area",
-                                data.area_mods.0,
-                                data.area_key.name().to_string().pop().unwrap()
+                                data.area_mod1.modifier,
+                                data.area_k
                             )
                         })
                         .with_text_size(24.)
@@ -203,9 +203,9 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                             Label::new(|data: &AppState, _env: &_| {
                                 format!(
                                     "Premi {}+{}+{} per la cattura ad area",
-                                    data.area_mods.0,
-                                    data.area_mods.1,
-                                    data.area_key.name().to_string().pop().unwrap()
+                                    data.area_mod1.modifier,
+                                    data.area_mod2.modifier,
+                                    data.area_k
                                 )
                             })
                             .with_text_size(24.)
@@ -213,10 +213,10 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                             Label::new(|data: &AppState, _env: &_| {
                                 format!(
                                     "Premi {}+{}+{}+{} per la cattura ad area",
-                                    data.area_mods.0,
-                                    data.area_mods.1,
-                                    data.area_mods.2,
-                                    data.area_key.name().to_string().pop().unwrap()
+                                    data.area_mod1.modifier,
+                                    data.area_mod2.modifier,
+                                    data.area_mod3.modifier,
+                                    data.area_k
                                 )
                             })
                             .with_text_size(24.)
