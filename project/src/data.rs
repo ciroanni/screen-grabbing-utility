@@ -79,7 +79,7 @@ pub enum Tools {
     Arrow,
     Text,
     Highlight,
-    Random,
+    Pencil,
 }
 
 #[derive(Clone, Data, Lens)]
@@ -1094,13 +1094,12 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
     }
 }
 
-//Controller to resize screening area
 
-pub struct ResizeController {
+pub struct AnnotationsController {
     pub points: Vec<Point>,
 }
 
-impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
+impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
     fn event(
         &mut self,
         child: &mut W,
@@ -2227,7 +2226,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                     _ => {}
                 }
             }
-            Tools::Random => match event {
+            Tools::Pencil => match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
                         pos: mouse_button.pos,
@@ -2437,7 +2436,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ResizeController {
                         Draw::Free {
                             points: self.points.clone(),
                         },
-                        Tools::Random,
+                        Tools::Pencil,
                         data.color.clone(),
                     ));
 

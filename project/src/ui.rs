@@ -867,7 +867,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.color = data.color.with_alpha(0.);
-                        data.tool_window.tool = Tools::Random
+                        data.tool_window.tool = Tools::Pencil
                         //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
@@ -1898,7 +1898,7 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
                                 );
                             }
                         }
-                        Tools::Random => {
+                        Tools::Pencil => {
                             if let Some(point) = data.tool_window.random_point {
                                 let color = data.color.as_rgba();
                                 let mut bez=druid::kurbo::BezPath::new();
@@ -1950,7 +1950,7 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
                 )
                 .center()
             )
-            .controller(ResizeController { points: points }),
+            .controller(AnnotationsController { points: points }),
         ))
 }
 
