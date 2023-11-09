@@ -1,0 +1,13 @@
+C:\Users\stefa\Desktop\poli\Programmazione di sistema\PROGETTO\screen-grabbing-utility\project\target\debug\deps\toml-79b74ad80f77cc78.rmeta: C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\lib.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\map.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\value.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\datetime.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\ser.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\de.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\tokens.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\macros.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\spanned.rs
+
+C:\Users\stefa\Desktop\poli\Programmazione di sistema\PROGETTO\screen-grabbing-utility\project\target\debug\deps\toml-79b74ad80f77cc78.d: C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\lib.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\map.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\value.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\datetime.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\ser.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\de.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\tokens.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\macros.rs C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\spanned.rs
+
+C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\lib.rs:
+C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\map.rs:
+C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\value.rs:
+C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\datetime.rs:
+C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\ser.rs:
+C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\de.rs:
+C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\tokens.rs:
+C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\macros.rs:
+C:\Users\stefa\.cargo\registry\src\github.com-1ecc6299db9ec823\toml-0.5.11\src\spanned.rs:

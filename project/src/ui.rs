@@ -1839,7 +1839,6 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
                                 data.tool_window.shape.end_point,
                             ) {
                                 let color = data.color.as_rgba();
-
                                 let shape = druid::kurbo::Line::new(start, end);
 
                                 ctx.stroke(
