@@ -302,6 +302,7 @@ impl AppState {
             );
         } else {
             b = screenshots::Screen::new(&(full_screen.unwrap()));
+
             if self.is_full_screen {
                 c = b.capture();
             } else {
@@ -323,7 +324,7 @@ impl AppState {
         }
 
         let image = match c {
-            Err(why) => return println!("qui {}", why),
+            Err(why) => return println!("{}", why),
             Ok(info) => info,
         };
 
@@ -648,7 +649,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for Enter {
             match event {
                 Event::Timer(id) => {
                     if self.id_t == *id {
-                        //println!("is full:{:?}  len:{:?}",data.receiver.is_full(),data.receiver.len());
                         if data.receiver.is_full() {
                             self.witch_screen = data.receiver.recv().unwrap();
                             //ctx.window().hide();
@@ -975,14 +975,16 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                         )
                         .unwrap();
                         if display.id != self.display.unwrap().id {
-                            if mouse_move.pos.x - self.display.unwrap().x as f64 > self.display.unwrap().width as f64
+                            if mouse_move.pos.x - self.display.unwrap().x as f64
+                                > self.display.unwrap().width as f64
                             {
-                                if mouse_move.pos.y - self.display.unwrap().y as f64 > self.display.unwrap().height as f64
+                                if mouse_move.pos.y - self.display.unwrap().y as f64
+                                    > self.display.unwrap().height as f64
                                 {
                                     data.rect.end_point = Some(Point::new(
                                         self.display.unwrap().width as f64 / data.scale as f64,
                                         self.display.unwrap().height as f64 / data.scale as f64,
-                                    ));                                    
+                                    ));
                                 } else {
                                     data.rect.end_point = Some(Point::new(
                                         self.display.unwrap().width as f64 / data.scale as f64,
@@ -1051,6 +1053,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
                 }
                 _ => {
                     if data.num_display == 1 {
+                        let display = screenshots::DisplayInfo::all().expect("Err");
+                        self.display = Some(display[0]);
                         data.is_full_screen = true;
                         match data.delay {
                             Timer::Zero => {
@@ -1093,7 +1097,6 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
         child.update(ctx, old_data, data, env)
     }
 }
-
 
 pub struct AnnotationsController {
     pub points: Vec<Point>,
@@ -1404,31 +1407,64 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                                 }
                             }
                             Some(Direction::All) => {
-                                if mouse_button.pos.x
-                                    > (data.tool_window.origin.x + data.rect.size.width / 2.)
-                                    && (mouse_button.pos.x
-                                        < data.tool_window.origin.x
-                                            + data.tool_window.img_size.width
-                                            - data.rect.size.width / 2.)
-                                    && mouse_button.pos.y
+                                let mut rect2=druid::Rect::from_points(data.rect.start_point.unwrap(),data.rect.end_point.unwrap());
+
+                                if mouse_button.pos.y
                                         > (data.tool_window.origin.y + data.rect.size.height / 2.)
                                     && (mouse_button.pos.y
                                         < data.tool_window.origin.y
                                             + data.tool_window.img_size.height
                                             - data.rect.size.height / 2.)
                                 {
-                                    let rect2 = druid::Rect::from_center_size(
-                                        mouse_button.pos,
+                                    rect2 = druid::Rect::from_center_size(
+                                        druid::Point{x:data.rect.start_point.unwrap().x+mouse_button.pos.x+(data.rect.end_point.unwrap().x-data.rect.start_point.unwrap().x)/2.,y:mouse_button.pos.y},
                                         data.rect.size,
                                     );
+                                }
 
-                                    data.rect.start_point.replace(rect2.origin());
+                                
+                             if mouse_button.pos.x > (data.tool_window.origin.x + data.rect.size.width / 2.)
+                                    && (mouse_button.pos.x < data.tool_window.origin.x + data.tool_window.img_size.width - data.rect.size.width / 2.){
+                                    rect2 = druid::Rect::from_center_size(
+                                        druid::Point{x:mouse_button.pos.x,y:data.rect.start_point.unwrap().y+(data.rect.end_point.unwrap().y-data.rect.start_point.unwrap().y)/2.},
+                                        data.rect.size,
+                                    );
+                                }
+
+                                if mouse_button.pos.x > (data.tool_window.origin.x + data.rect.size.width / 2.)
+                                    && (mouse_button.pos.x < data.tool_window.origin.x + data.tool_window.img_size.width - data.rect.size.width / 2.)
+                                    && mouse_button.pos.y> (data.tool_window.origin.y + data.rect.size.height / 2.)
+                                    && (mouse_button.pos.y< data.tool_window.origin.y+ data.tool_window.img_size.height- data.rect.size.height / 2.){
+                                        rect2=druid::Rect::from_center_size(
+                                            druid::Point{x:mouse_button.pos.x,y:mouse_button.pos.y},
+                                            data.rect.size,
+                                        );
+                                }else
+                                {
+                                    if mouse_button.pos.x > (data.tool_window.origin.x + data.rect.size.width / 2.)
+                                    && (mouse_button.pos.x < data.tool_window.origin.x + data.tool_window.img_size.width - data.rect.size.width / 2.){
+                                        rect2 = druid::Rect::from_center_size(
+                                            druid::Point{x:mouse_button.pos.x,y:data.rect.start_point.unwrap().y+(data.rect.end_point.unwrap().y-data.rect.start_point.unwrap().y)/2.},
+                                            data.rect.size,
+                                        );
+                                    }else
+                                    {
+                                        if mouse_button.pos.y> (data.tool_window.origin.y + data.rect.size.height / 2.)
+                                        && (mouse_button.pos.y< data.tool_window.origin.y+ data.tool_window.img_size.height- data.rect.size.height / 2.){
+                                        rect2 = druid::Rect::from_center_size(
+                                            druid::Point{x:data.rect.start_point.unwrap().x+(data.rect.end_point.unwrap().x-data.rect.start_point.unwrap().x)/2.,y:mouse_button.pos.y},
+                                            data.rect.size,
+                                        );
+                                    }
+                                    }
+
+                                }
+                                data.rect.start_point.replace(rect2.origin());
                                     data.rect
                                         .end_point
                                         .replace(Point::new(rect2.max_x(), rect2.max_y()));
-                                    data.rect.p2 = Some(Point::new(0., rect2.max_y()));
-                                    data.rect.p3 = Some(Point::new(rect2.max_x(), 0.));
-                                }
+                                    data.rect.p2 = Some(Point::new(rect2.max_x(), 0.));
+                                    data.rect.p3 = Some(Point::new(0., rect2.max_y()));
                             }
                             None => return, // non è sopra il bordo
                         }
@@ -2582,66 +2618,3 @@ fn create_listener(receiver: Receiver<(Hotkey, u32)>, sender: CrossSender<u32>) 
         }
     }
 }
-
-/*
-fn create_listener(receiver:Receiver<(global_hotkey::hotkey::HotKey,u32)>,sender:CrossSender<u32>){
-
-    let mut tasti;
-
-    let mut n_s=0;
-
-    let manager = GlobalHotKeyManager::new().unwrap();
-    let (mut tasti1,ind1)=receiver.recv().unwrap();
-    let (mut tasti2,ind1)=receiver.recv().unwrap();
-
-    let result=manager.register(tasti1);
-
-    match result{
-        Ok(ok)=>{},
-        Err(err)=>{println!("cazzo")}
-    }
-    manager.register(tasti2).unwrap();
-
-    println!("{:?}",tasti1);
-    let rec = GlobalHotKeyEvent::receiver();
-    let send=sender.clone();
-
-    std::thread::spawn(|| loop {
-        if let Ok(event) = rec.try_recv() {
-            let id=event.id;
-            //send.send(id);
-
-            println!("try event: {event:?}");
-        }
-        println!("{:?}",rec.len());
-        //println!("funziona");
-        std::thread::sleep(Duration::from_millis(100));
-    });
-
-    loop{
-        //let keys=tasti.clone();
-
-        println!("listener creato");
-
-        let hotkeys=receiver.recv();
-
-        match hotkeys {
-            Ok(data)=>{(tasti,n_s)=data},
-            Err(err)=>{ break;}
-        }
-
-        if n_s==1{
-            manager.unregister(tasti1);
-            tasti1=tasti;
-            let result=manager.register(tasti1);
-        }else {
-            manager.unregister(tasti2);
-            tasti2=tasti;
-            let result=manager.register(tasti2);
-        }
-
-        println!("create");
-
-    }
-}
-*/

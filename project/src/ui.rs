@@ -134,7 +134,7 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
             |data: &AppState, _env| data.img.size() == Size::ZERO,
             Flex::column()
             .with_child(
-                Either::new(|data: &AppState, _env| data.full_mods.0==livesplit_hotkey::Modifiers::empty(),
+                Either::new(|data: &AppState, _env| data.full_mod1.modifier==livesplit_hotkey::Modifiers::empty(),
                     Label::new(|data: &AppState, _env: &_| {
                         format!(
                             "Premi {} per la cattura a schermo intero",
@@ -143,7 +143,7 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                     })
                     .with_text_size(24.)
                     .center(),
-                    Either::new(|data: &AppState, _env| data.full_mods.1==livesplit_hotkey::Modifiers::empty(),
+                    Either::new(|data: &AppState, _env| data.full_mod2.modifier==livesplit_hotkey::Modifiers::empty(),
                         Label::new(|data: &AppState, _env: &_| {
                             format!(
                                 "Premi {}+{} per la cattura a schermo intero",
@@ -153,13 +153,13 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                         })
                         .with_text_size(24.)
                         .center(),
-                        Either::new(|data: &AppState, _env| data.full_mods.2==livesplit_hotkey::Modifiers::empty(),
+                        Either::new(|data: &AppState, _env| data.full_mod3.modifier==livesplit_hotkey::Modifiers::empty(),
                             Label::new(|data: &AppState, _env: &_| {
                                 format!(
                                     "Premi {}+{}+{} per la cattura a schermo intero",
                                     data.full_mod1.modifier,
                                     data.full_mod2.modifier,
-                                    data.full_key.name().to_string().pop().unwrap()
+                                    data.full_k
                                 )
                             })
                             .with_text_size(24.)
@@ -170,7 +170,7 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                                     data.full_mod1.modifier,
                                     data.full_mod2.modifier,
                                     data.full_mod3.modifier,
-                                    data.full_key.name().to_string().pop().unwrap()
+                                    data.full_k
                                 )
                             })
                             .with_text_size(24.)
@@ -180,7 +180,7 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                 )
             )
             .with_child(
-                Either::new(|data: &AppState, _env| data.area_mods.0==livesplit_hotkey::Modifiers::empty(),
+                Either::new(|data: &AppState, _env| data.area_mod1.modifier==livesplit_hotkey::Modifiers::empty(),
                     Label::new(|data: &AppState, _env: &_| {
                         format!(
                             "Premi {} per la cattura ad area",
@@ -189,7 +189,7 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                     })
                     .with_text_size(24.)
                     .center(),
-                    Either::new(|data: &AppState, _env| data.area_mods.1==livesplit_hotkey::Modifiers::empty(),
+                    Either::new(|data: &AppState, _env| data.area_mod2.modifier==livesplit_hotkey::Modifiers::empty(),
                         Label::new(|data: &AppState, _env: &_| {
                             format!(
                                 "Premi {}+{} per la cattura ad area",
@@ -199,7 +199,7 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                         })
                         .with_text_size(24.)
                         .center(),
-                        Either::new(|data: &AppState, _env| data.area_mods.2==livesplit_hotkey::Modifiers::empty(),
+                        Either::new(|data: &AppState, _env| data.area_mod3.modifier==livesplit_hotkey::Modifiers::empty(),
                             Label::new(|data: &AppState, _env: &_| {
                                 format!(
                                     "Premi {}+{}+{} per la cattura ad area",
@@ -258,78 +258,46 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                     .align_left()
                     .lens(AppState::full_mod1)
                 )
-                .with_child(
-                    Label::new("modifier 2:")
-                )
-                .with_child(
-                    DropdownSelect::new(
-                        vec![
-                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
-                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
-                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
-                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
-                    ])
-                    .fix_width(70.0)
-                    .fix_height(30.0)
-                    .align_left()
-                    .lens(AppState::full_mod2)
-                )
-                .with_child(
-                    Label::new("modifier 3:")
-                )
-                .with_child(
-                    DropdownSelect::new(
-                        vec![
-                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
-                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
-                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
-                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
-                    ])
-                    .fix_width(70.0)
-                    .fix_height(30.0)
-                    .align_left()
-                    .lens(AppState::full_mod3)
-                )
+                .with_child(Either::new(|data: &AppState, _env| data.full_mod1.modifier != livesplit_hotkey::Modifiers::empty(), 
+                    Flex::row()
+                    .with_child(Label::new("modifier 2:"))
+                    .with_child(
+                        DropdownSelect::new(
+                            vec![
+                            ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                            ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                            ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                            ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                        ])
+                        .fix_width(70.0)
+                        .fix_height(30.0)
+                        .align_left()
+                        .lens(AppState::full_mod2)
+                    )
+                    .with_child(Either::new(|data: &AppState, _env| data.full_mod2.modifier != livesplit_hotkey::Modifiers::empty(),
+                        Flex::row()
+                        .with_child(Label::new("modifier 3:"))
+                        .with_child(
+                            DropdownSelect::new(
+                                vec![
+                                ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                                ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                                ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                                ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                            ])
+                            .fix_width(70.0)
+                            .fix_height(30.0)
+                            .align_left()
+                            .lens(AppState::full_mod3)
+                        )
+                        ,Label::new("")))
+                    ,Label::new("")
+                ))
                 .with_child(
                     Label::new("character:")
                 )
                 .with_child(
                     TextBox::new().lens(AppState::full_k)
-                    /*
-                    DropdownSelect::new(
-                        vec![
-                        ("A", MyKey{key:livesplit_hotkey::KeyCode::KeyA}),
-                        ("B", MyKey{key:livesplit_hotkey::KeyCode::KeyB}),
-                        ("C", MyKey{key:livesplit_hotkey::KeyCode::KeyC}),
-                        ("D", MyKey{key:livesplit_hotkey::KeyCode::KeyD}),
-                        ("E", MyKey{key:livesplit_hotkey::KeyCode::KeyE}),
-                        ("F", MyKey{key:livesplit_hotkey::KeyCode::KeyF}),
-                        ("G", MyKey{key:livesplit_hotkey::KeyCode::KeyG}),
-                        ("H", MyKey{key:livesplit_hotkey::KeyCode::KeyH}),
-                        ("I", MyKey{key:livesplit_hotkey::KeyCode::KeyI}),
-                        ("J", MyKey{key:livesplit_hotkey::KeyCode::KeyJ}),
-                        ("K", MyKey{key:livesplit_hotkey::KeyCode::KeyK}),
-                        ("L", MyKey{key:livesplit_hotkey::KeyCode::KeyL}),
-                        ("M", MyKey{key:livesplit_hotkey::KeyCode::KeyM}),
-                        ("N", MyKey{key:livesplit_hotkey::KeyCode::KeyN}),
-                        ("O", MyKey{key:livesplit_hotkey::KeyCode::KeyO}),
-                        ("P", MyKey{key:livesplit_hotkey::KeyCode::KeyP}),
-                        ("Q", MyKey{key:livesplit_hotkey::KeyCode::KeyQ}),
-                        ("R", MyKey{key:livesplit_hotkey::KeyCode::KeyR}),
-                        ("S", MyKey{key:livesplit_hotkey::KeyCode::KeyS}),
-                        ("T", MyKey{key:livesplit_hotkey::KeyCode::KeyT}),
-                        ("U", MyKey{key:livesplit_hotkey::KeyCode::KeyU}),
-                        ("V", MyKey{key:livesplit_hotkey::KeyCode::KeyV}),
-                        ("W", MyKey{key:livesplit_hotkey::KeyCode::KeyW}),
-                        ("X", MyKey{key:livesplit_hotkey::KeyCode::KeyX}),
-                        ("Y", MyKey{key:livesplit_hotkey::KeyCode::KeyY}),
-                        ("Z", MyKey{key:livesplit_hotkey::KeyCode::KeyZ}),
-                    ])
-                    .fix_width(70.0)
-                    .fix_height(30.0)
-                    .align_left()
-                    .lens(AppState::full_key)
-                    */
                 )
             ) 
             .align_left()
@@ -356,79 +324,46 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                     .align_left()
                     .lens(AppState::area_mod1)
                 )
-                .with_child(
-                    Label::new("modifier 2:")
-                )
-                .with_child(
-                    DropdownSelect::new(
-                        vec![
-                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
-                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
-                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
-                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
-                    ])
-                    .fix_width(70.0)
-                    .fix_height(30.0)
-                    .align_left()
-                    .lens(AppState::area_mod2)
-                )
-                .with_child(
-                    Label::new("modifier 3:")
-                )
-                .with_child(
-                    DropdownSelect::new(
-                        vec![
-                        ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
-                        ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
-                        ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
-                        ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
-                    ])
-                    .fix_width(70.0)
-                    .fix_height(30.0)
-                    .align_left()
-                    .lens(AppState::area_mod3)
-                )
+                .with_child(Either::new(|data: &AppState, _env| data.area_mod1.modifier != livesplit_hotkey::Modifiers::empty(), 
+                    Flex::row()
+                    .with_child(Label::new("modifier 2:"))
+                    .with_child(
+                        DropdownSelect::new(
+                            vec![
+                            ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                            ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                            ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                            ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                        ])
+                        .fix_width(70.0)
+                        .fix_height(30.0)
+                        .align_left()
+                        .lens(AppState::area_mod2)
+                    )
+                    .with_child(Either::new(|data: &AppState, _env| data.area_mod2.modifier != livesplit_hotkey::Modifiers::empty(),
+                        Flex::row()
+                        .with_child(Label::new("modifier 3:"))
+                        .with_child(
+                            DropdownSelect::new(
+                                vec![
+                                ("-", MyModifier{modifier:livesplit_hotkey::Modifiers::empty()}),
+                                ("ALT", MyModifier{modifier:livesplit_hotkey::Modifiers::ALT}),
+                                ("CTRL", MyModifier{modifier:livesplit_hotkey::Modifiers::CONTROL}),
+                                ("SHIFT", MyModifier{modifier:livesplit_hotkey::Modifiers::SHIFT}),
+                            ])
+                            .fix_width(70.0)
+                            .fix_height(30.0)
+                            .align_left()
+                            .lens(AppState::area_mod3)
+                        )
+                        ,Label::new("")))
+                    ,Label::new("")
+                ))
                 .with_child(
                     Label::new("character:")
                 )
                 .with_child(
                     TextBox::new().lens(AppState::area_k)
-                    /*
-                    DropdownSelect::new(
-                        vec![
-                        ("A", MyKey{key:livesplit_hotkey::KeyCode::KeyA}),
-                        ("B", MyKey{key:livesplit_hotkey::KeyCode::KeyB}),
-                        ("C", MyKey{key:livesplit_hotkey::KeyCode::KeyC}),
-                        ("D", MyKey{key:livesplit_hotkey::KeyCode::KeyD}),
-                        ("E", MyKey{key:livesplit_hotkey::KeyCode::KeyE}),
-                        ("F", MyKey{key:livesplit_hotkey::KeyCode::KeyF}),
-                        ("G", MyKey{key:livesplit_hotkey::KeyCode::KeyG}),
-                        ("H", MyKey{key:livesplit_hotkey::KeyCode::KeyH}),
-                        ("I", MyKey{key:livesplit_hotkey::KeyCode::KeyI}),
-                        ("J", MyKey{key:livesplit_hotkey::KeyCode::KeyJ}),
-                        ("K", MyKey{key:livesplit_hotkey::KeyCode::KeyK}),
-                        ("L", MyKey{key:livesplit_hotkey::KeyCode::KeyL}),
-                        ("M", MyKey{key:livesplit_hotkey::KeyCode::KeyM}),
-                        ("N", MyKey{key:livesplit_hotkey::KeyCode::KeyN}),
-                        ("O", MyKey{key:livesplit_hotkey::KeyCode::KeyO}),
-                        ("P", MyKey{key:livesplit_hotkey::KeyCode::KeyP}),
-                        ("Q", MyKey{key:livesplit_hotkey::KeyCode::KeyQ}),
-                        ("R", MyKey{key:livesplit_hotkey::KeyCode::KeyR}),
-                        ("S", MyKey{key:livesplit_hotkey::KeyCode::KeyS}),
-                        ("T", MyKey{key:livesplit_hotkey::KeyCode::KeyT}),
-                        ("U", MyKey{key:livesplit_hotkey::KeyCode::KeyU}),
-                        ("V", MyKey{key:livesplit_hotkey::KeyCode::KeyV}),
-                        ("W", MyKey{key:livesplit_hotkey::KeyCode::KeyW}),
-                        ("X", MyKey{key:livesplit_hotkey::KeyCode::KeyX}),
-                        ("Y", MyKey{key:livesplit_hotkey::KeyCode::KeyY}),
-                        ("Z", MyKey{key:livesplit_hotkey::KeyCode::KeyZ}),
-                    ])
-                    .fix_width(70.0)
-                    .fix_height(30.0)
-                    .align_left()
-                    .scroll()
-                    .lens(AppState::area_k)
-                    */
                 )
             ) 
             .align_left()
@@ -437,7 +372,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
             Container::new(
                 Flex::column()
                 .with_child(Either::new(|data: &AppState, _env| data.err, 
-                    Label::new("il carattere inserito è errato")
+                    Label::new("Shortcut non valida")
                     .with_text_color(Color::RED)
                     , Label::new("")))
                 .with_child(
@@ -452,12 +387,28 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
 
                         match res1 {
                             Ok(key)=>{k1=key;
+                                if data.full_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL {
+                                    if data.full_mod2.modifier==livesplit_hotkey::Modifiers::ALT{
+                                        if k1 == livesplit_hotkey::KeyCode::from_str("S").unwrap(){
+                                            data.err = true;
+                                            return;
+                                        }
+                                    }else if k1 == livesplit_hotkey::KeyCode::from_str("C").unwrap() || k1 == livesplit_hotkey::KeyCode::from_str("S").unwrap(){
+                                        data.err = true;
+                                        return;
+                                    }
+                                } 
                                 data.err=false}
                             Err(_err)=>{data.err=true;return;}
                         }
 
                         match res2 {
                             Ok(key)=>{k2=key;
+                                if data.area_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL && 
+                                    (k2 == livesplit_hotkey::KeyCode::from_str("C").unwrap() || k2 == livesplit_hotkey::KeyCode::from_str("S").unwrap()){
+                                        data.err = true;
+                                        return;
+                                }
                                 data.err=false}
                             Err(_err)=>{data.err=true;return;}
                         }
