@@ -2625,6 +2625,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                                 as i32,
                             Rgba([color.0, color.1, color.2, color.3]),
                         );
+                        self.points.push(mouse_button.pos)
                     }
 
                     data.tool_window.img = ImageBuf::from_raw(
