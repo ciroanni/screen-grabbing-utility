@@ -2,7 +2,7 @@ use crate::ui::*;
 use crossbeam::channel::{bounded, Receiver as CrossReceiver, Sender as CrossSender};
 use druid::Color;
 use druid::{
-    commands, widget::Controller, AppDelegate, Command, Cursor, Data, DelegateCtx, Env, Event,
+    commands, widget::Controller, AppDelegate, Command, Cursor, CursorDesc, Data, DelegateCtx, Env, Event,
     EventCtx, Handled, ImageBuf, Lens, LocalizedString, MouseEvent, Point, Selector, Size, Target,
     TimerToken, Widget, WindowDesc, WindowState,
 };
@@ -139,6 +139,10 @@ pub struct AppState {
     pub fill_shape: bool,
     pub color_picker: bool,
     pub edit: bool,
+    #[data(ignore)]
+    pub custom_desc: CursorDesc,
+    #[data(ignore)]
+    pub custom: Option<Cursor>,
 }
 
 impl AppState {
@@ -202,6 +206,10 @@ impl AppState {
                 sender.send((tasti1,1));
                 sender.send((tasti2,2));
         */
+
+        let cursor_image = ImageBuf::from_data(include_bytes!("../icon/highlighter.cur")).unwrap();
+        let custom_desc = CursorDesc::new(cursor_image, (0.0, 0.0));
+
         AppState {
             name: "".to_string(),
             selected_format: ImageFormat::Jpeg,
@@ -267,6 +275,8 @@ impl AppState {
             fill_shape: false,
             color_picker: false,
             edit: false,
+            custom_desc,
+            custom: None,
         }
     }
 
@@ -1471,7 +1481,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     }
                 }
             }
-            Tools::Ellipse => match event {
+            Tools::Ellipse => {
+            data.cursor.typ = Cursor::Pointer;
+            ctx.set_cursor(&data.cursor.typ);
+            match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
                         pos: mouse_button.pos,
@@ -1624,8 +1637,11 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     data.tool_window.shape.radii = None;
                 }
                 _ => {}
-            },
-            Tools::Rectangle => match event {
+            }},
+            Tools::Rectangle => {
+                data.cursor.typ = Cursor::Pointer;
+                ctx.set_cursor(&data.cursor.typ);
+                match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
                         pos: mouse_button.pos,
@@ -1804,7 +1820,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     data.tool_window.shape.radii = None;
                 }
                 _ => {}
-            },
+            }},
             Tools::Arrow => match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
@@ -2096,7 +2112,10 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                 }
                 _ => {}
             },
-            Tools::Text => match event {
+            Tools::Text => {
+                data.cursor.typ = Cursor::IBeam;
+                ctx.set_cursor(&data.cursor.typ);
+                match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
                         pos: mouse_button.pos,
@@ -2112,8 +2131,13 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     data.tool_window.text_pos = Some(mouse_down.pos);
                 }
                 _ => {}
-            },
+            }},
             Tools::Highlight => {
+                let cursor_image =
+                    ImageBuf::from_data(include_bytes!("../icon/highlighter.cur")).unwrap();
+                data.custom_desc = CursorDesc::new(cursor_image, (0.0, 0.0));
+                data.custom = ctx.window().make_cursor(&data.custom_desc);
+                data.cursor.typ = data.custom.clone().unwrap();
                 ctx.set_cursor(&data.cursor.typ);
                 match event {
                     Event::MouseDown(mouse_button) => {
@@ -2269,7 +2293,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     _ => {}
                 }
             }
-            Tools::Pencil => match event {
+            Tools::Pencil => {
+                let cursor_image =
+                    ImageBuf::from_data(include_bytes!("../icon/pencil.cur")).unwrap();
+                data.custom_desc = CursorDesc::new(cursor_image, (0.0, 0.0));
+                data.custom = ctx.window().make_cursor(&data.custom_desc);
+                data.cursor.typ = data.custom.clone().unwrap();
+                ctx.set_cursor(&data.cursor.typ);
+                match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
                         pos: mouse_button.pos,
@@ -2654,8 +2685,11 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     data.color = data.color.with_alpha(0.);
                 }
                 _ => {}
-            },
-            _ => {}
+            }},
+            _ => {
+                data.cursor.typ = Cursor::Arrow;
+                ctx.set_cursor(&data.cursor.typ);
+            }
         }
 
         if !ctx.is_hot() {
