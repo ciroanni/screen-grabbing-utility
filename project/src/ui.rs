@@ -653,8 +653,19 @@ pub fn show_edit() -> impl Widget<AppState>{
                 .padding(5.)
                 .tooltip("crop"),
             )
-            .with_child(
-                Image::new(marker)
+            .with_child(Either::new(|data, _env| data.tool_window.tool == Tools::Highlight,
+                Image::new(marker.clone())
+                    .fix_size(20., 20.)
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
+                        data.tool_window.tool = Tools::Highlight
+                        //data.line_thickness = 10.;s
+                    })
+                    .border(Color::WHITE, 3.)
+                    .background(Color::rgb8(0, 0, 0))
+                    .padding(5.)
+                    .tooltip("highlight"),
+                    
+                    Image::new(marker.clone())
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Highlight
@@ -664,9 +675,19 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
                     .tooltip("highlight")
-            )
-            .with_child(
-                Image::new(ellipse)
+            ))
+            .with_child(Either::new(|data, _env| data.tool_window.tool == Tools::Ellipse,
+                Image::new(ellipse.clone())
+                    .fix_size(20., 20.)
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
+                        data.tool_window.tool = Tools::Ellipse;
+                        //data.line_thickness = 10.;s
+                    })
+                    .border(Color::WHITE, 3.)
+                    .background(Color::rgb8(0, 0, 0))
+                    .padding(5.)
+                    .tooltip("ellipse"),
+                    Image::new(ellipse.clone())
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Ellipse;
@@ -675,8 +696,8 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("ellipse"),
-            )
+                    .tooltip("ellipse")
+            ))
             .with_child(Either::new(
                 |data: &AppState, _env| data.tool_window.tool == Tools::Ellipse,
                 Flex::row()
@@ -689,8 +710,19 @@ pub fn show_edit() -> impl Widget<AppState>{
                 .with_child(Switch::new().lens(AppState::fill_shape)),
                 Label::new(""),
             ))
-            .with_child(
-                Image::new(square)
+            .with_child(Either::new(|data, _env| data.tool_window.tool == Tools::Rectangle,
+                Image::new(square.clone())
+                    .fix_size(20., 20.)
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
+                        data.tool_window.tool = Tools::Rectangle;
+                        //data.line_thickness = 10.;s
+                    })
+                    .border(Color::WHITE, 3.)
+                    .background(Color::rgb8(0, 0, 0))
+                    .padding(5.)
+                    .tooltip("square"),
+
+                    Image::new(square.clone())
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Rectangle;
@@ -699,8 +731,8 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("square"),
-            )
+                    .tooltip("square")
+            ))
             .with_child(Either::new(
                 |data: &AppState, _env| data.tool_window.tool == Tools::Rectangle,
                 Flex::row()
@@ -713,8 +745,19 @@ pub fn show_edit() -> impl Widget<AppState>{
                 .with_child(Switch::new().lens(AppState::fill_shape)),
                 Label::new(""),
             ))
-            .with_child(
-                Image::new(arrow)
+            .with_child(Either::new(|data, _env| data.tool_window.tool == Tools::Arrow,
+                Image::new(arrow.clone())
+                .fix_size(20., 20.)
+                .on_click(|_ctx, data: &mut AppState, _: &Env| {
+                    data.tool_window.tool = Tools::Arrow
+                    //data.line_thickness = 10.;s
+                })
+                .border(Color::WHITE, 3.)
+                .background(Color::rgb8(0, 0, 0))
+                .padding(5.)
+                .tooltip("arrow"),
+
+                Image::new(arrow.clone())
                 .fix_size(20., 20.)
                 .on_click(|_ctx, data: &mut AppState, _: &Env| {
                     data.tool_window.tool = Tools::Arrow
@@ -724,9 +767,20 @@ pub fn show_edit() -> impl Widget<AppState>{
                 .background(Color::rgb8(0, 0, 0))
                 .padding(5.)
                 .tooltip("arrow"),
-            )
-            .with_child(
-                Image::new(text)
+            ))
+            .with_child(Either::new(|data, _env| data.tool_window.tool == Tools::Text,
+                Image::new(text.clone())
+                    .fix_size(20., 20.)
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
+                        data.tool_window.tool = Tools::Text
+                        //data.line_thickness = 10.;s
+                    })
+                    .border(Color::WHITE, 3.)
+                    .background(Color::rgb8(0, 0, 0))
+                    .padding(5.)
+                    .tooltip("text"),
+                    
+                    Image::new(text.clone())
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Text
@@ -735,8 +789,8 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("text"),
-            )
+                    .tooltip("text")
+            ))
             .with_child(
                 Container::new(
                 Either::new(
@@ -813,8 +867,20 @@ pub fn show_edit() -> impl Widget<AppState>{
                         Label::new("")
                 )).boxed()
             )
-            .with_child(
-                Image::new(pencil)
+            .with_child(Either::new(|data, _env| data.tool_window.tool == Tools::Pencil,
+                Image::new(pencil.clone())
+                    .fix_size(20., 20.)
+                    .on_click(|_ctx, data: &mut AppState, _: &Env| {
+                        data.color = data.color.with_alpha(0.);
+                        data.tool_window.tool = Tools::Pencil
+                        //data.line_thickness = 10.;s
+                    })
+                    .border(Color::WHITE, 3.)
+                    .background(Color::rgb8(0, 0, 0))
+                    .padding(5.)
+                    .tooltip("pencil"),
+
+                    Image::new(pencil.clone())
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.color = data.color.with_alpha(0.);
@@ -825,7 +891,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
                     .tooltip("pencil"),
-            )
+            ))
             .with_child(
                 Button::new("undo")
                 .on_click(|_ctx,data: &mut AppState,_env|{
