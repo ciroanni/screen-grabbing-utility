@@ -1,4 +1,5 @@
 use crate::data::*;
+use crate::data::app_state_derived_lenses::area_mod1;
 use arboard::{Clipboard, ImageData};
 use druid::widget::{
     BackgroundBrush, Button, Either, Flex, Image, Label, Painter, SizedBox,
@@ -231,19 +232,15 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
 }
 
 pub fn shortcut_ui() -> impl Widget<AppState> {
-    /*Flex::column()
-        .with_child(Label::new("Premi una nuova combinazione"))
-        .controller(ShortcutController { locks: [false; 5] })
-    */
     Flex::column()
         .with_child(
-            Label::new("Full_screen:").align_left()
+            Label::new("Schermo intero:").align_left()
         )
         .with_child(
             Container::new(
                 Flex::row()
                 .with_child(
-                    Label::new("modifier 1:")
+                    Label::new("mod 1:")
                 )
                 .with_child(
                     DropdownSelect::new(
@@ -260,7 +257,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                 )
                 .with_child(Either::new(|data: &AppState, _env| data.full_mod1.modifier != livesplit_hotkey::Modifiers::empty(), 
                     Flex::row()
-                    .with_child(Label::new("modifier 2:"))
+                    .with_child(Label::new("mod 2:"))
                     .with_child(
                         DropdownSelect::new(
                             vec![
@@ -276,7 +273,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                     )
                     .with_child(Either::new(|data: &AppState, _env| data.full_mod2.modifier != livesplit_hotkey::Modifiers::empty(),
                         Flex::row()
-                        .with_child(Label::new("modifier 3:"))
+                        .with_child(Label::new("mod 3:"))
                         .with_child(
                             DropdownSelect::new(
                                 vec![
@@ -294,7 +291,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                     ,Label::new("")
                 ))
                 .with_child(
-                    Label::new("character:")
+                    Label::new("key:")
                 )
                 .with_child(
                     TextBox::new().lens(AppState::full_k)
@@ -303,13 +300,13 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
             .align_left()
         )
         .with_child(
-            Label::new("Drag and Drop:").align_left()
+            Label::new("Area:").align_left()
         )
         .with_child(
             Container::new(
                 Flex::row()
                 .with_child(
-                    Label::new("modifier 1:")
+                    Label::new("mod 1:")
                 )
                 .with_child(
                     DropdownSelect::new(
@@ -326,7 +323,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                 )
                 .with_child(Either::new(|data: &AppState, _env| data.area_mod1.modifier != livesplit_hotkey::Modifiers::empty(), 
                     Flex::row()
-                    .with_child(Label::new("modifier 2:"))
+                    .with_child(Label::new("mod 2:"))
                     .with_child(
                         DropdownSelect::new(
                             vec![
@@ -342,7 +339,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                     )
                     .with_child(Either::new(|data: &AppState, _env| data.area_mod2.modifier != livesplit_hotkey::Modifiers::empty(),
                         Flex::row()
-                        .with_child(Label::new("modifier 3:"))
+                        .with_child(Label::new("mod 3:"))
                         .with_child(
                             DropdownSelect::new(
                                 vec![
@@ -360,7 +357,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                     ,Label::new("")
                 ))
                 .with_child(
-                    Label::new("character:")
+                    Label::new("key:")
                 )
                 .with_child(
                     TextBox::new().lens(AppState::area_k)
@@ -387,38 +384,25 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
 
                         match res1 {
                             Ok(key)=>{k1=key;
-                                if data.full_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL || data.full_mod2.modifier==livesplit_hotkey::Modifiers::CONTROL{
-                                    if data.full_mod1.modifier==livesplit_hotkey::Modifiers::ALT || data.full_mod2.modifier==livesplit_hotkey::Modifiers::ALT{
-                                        if k1 == livesplit_hotkey::KeyCode::from_str("S").unwrap(){
-                                            data.err = true;
-                                            return;
-                                        }
-                                    }
-                                }
-                                if data.full_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL && data.full_mod2.modifier==livesplit_hotkey::Modifiers::empty() &&
-                                (k1 == livesplit_hotkey::KeyCode::from_str("C").unwrap() || k1 == livesplit_hotkey::KeyCode::from_str("S").unwrap()){
-                                    data.err = true;
+                                if (data.full_mod1.modifier|data.full_mod2.modifier|data.full_mod3.modifier==livesplit_hotkey::Modifiers::CONTROL|livesplit_hotkey::Modifiers::ALT&&k1 == livesplit_hotkey::KeyCode::from_str("S").unwrap())
+                                || (data.full_mod1.modifier|data.full_mod2.modifier|data.full_mod3.modifier==livesplit_hotkey::Modifiers::CONTROL && 
+                                    (k1 == livesplit_hotkey::KeyCode::from_str("C").unwrap()||k1 == livesplit_hotkey::KeyCode::from_str("S").unwrap())){
+                                    data.err=true;
                                     return;
-                                } 
+                                }
                                 data.err=false}
                             Err(_err)=>{data.err=true;return;}
                         }
 
                         match res2 {
                             Ok(key)=>{k2=key;
-                                if data.area_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL || data.area_mod2.modifier==livesplit_hotkey::Modifiers::CONTROL{
-                                    if data.area_mod1.modifier==livesplit_hotkey::Modifiers::ALT || data.area_mod2.modifier==livesplit_hotkey::Modifiers::ALT{
-                                        if k2 == livesplit_hotkey::KeyCode::from_str("S").unwrap(){
-                                            data.err = true;
-                                            return;
-                                        }
-                                    }
-                                }
-                                if data.area_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL && data.area_mod2.modifier==livesplit_hotkey::Modifiers::empty() &&
-                                (k2 == livesplit_hotkey::KeyCode::from_str("C").unwrap() || k2 == livesplit_hotkey::KeyCode::from_str("S").unwrap()){
-                                    data.err = true;
+
+                                if (data.area_mod1.modifier|data.area_mod2.modifier|data.area_mod3.modifier==livesplit_hotkey::Modifiers::CONTROL|livesplit_hotkey::Modifiers::ALT&&k2 == livesplit_hotkey::KeyCode::from_str("S").unwrap())
+                                || (data.area_mod1.modifier|data.area_mod2.modifier|data.area_mod3.modifier==livesplit_hotkey::Modifiers::CONTROL && 
+                                    (k2 == livesplit_hotkey::KeyCode::from_str("C").unwrap()||k2 == livesplit_hotkey::KeyCode::from_str("S").unwrap())){
+                                    data.err=true;
                                     return;
-                                } 
+                                }
                                 data.err=false}
                             Err(_err)=>{data.err=true;return;}
                         }
@@ -468,6 +452,13 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                             data.area_mod3=MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
                         }
 
+                        //let a=data.full_mod1.modifier||data.full_mod2.modifier||data.full_mod3.modifier;
+                        if (data.full_mod1.modifier|data.full_mod2.modifier|data.full_mod3.modifier)==(data.area_mod1.modifier|data.area_mod2.modifier|data.area_mod3.modifier)
+                        && k1==k2{
+                            data.err=true;
+                            return
+                        }
+
                         if data.full_mod1.modifier!=data.full_mods.0 ||data.full_mod2.modifier!=data.full_mods.1 ||
                         data.full_mod3.modifier!=data.full_mods.2 ||data.full_key!=k1 {
                             data.full_mods.0=data.full_mod1.modifier;
@@ -491,8 +482,6 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                         }
 
                         ctx.window().close();
-
-                        //data.sender.send()
                     })
                 )
                 .with_child(
@@ -526,7 +515,6 @@ pub fn drag_motion_ui(is_full: bool) -> impl Widget<AppState> {
                     rect,
                     &Color::rgba(0.0, 0.0, 0.0, data.selection_transparency),
                 );
-                //ctx.stroke(rect, &druid::Color::WHITE, 1.0);
             }
         }
     })
@@ -668,7 +656,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Highlight
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
@@ -679,7 +666,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Highlight
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
@@ -691,7 +677,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Ellipse;
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
@@ -701,7 +686,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Ellipse;
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
@@ -725,7 +709,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Rectangle;
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
@@ -736,7 +719,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Rectangle;
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
@@ -760,7 +742,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                 .fix_size(20., 20.)
                 .on_click(|_ctx, data: &mut AppState, _: &Env| {
                     data.tool_window.tool = Tools::Arrow
-                    //data.line_thickness = 10.;s
                 })
                 .border(Color::WHITE, 3.)
                 .background(Color::rgb8(0, 0, 0))
@@ -771,7 +752,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                 .fix_size(20., 20.)
                 .on_click(|_ctx, data: &mut AppState, _: &Env| {
                     data.tool_window.tool = Tools::Arrow
-                    //data.line_thickness = 10.;s
                 })
                 .border(Color::WHITE, 1.)
                 .background(Color::rgb8(0, 0, 0))
@@ -783,7 +763,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Text
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
@@ -794,7 +773,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.tool_window.tool = Tools::Text
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
@@ -808,7 +786,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     Flex::column()
                     .with_child(Container::new(
                         TextBox::multiline()
-                            .with_placeholder("scrivi qui")
+                            .with_placeholder("scrivi qui e clicca sull'immagine")
                             .fix_width(300.)
                             .fix_height(50.)
                             .lens(AppState::text)
@@ -867,7 +845,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                             data.tool_window.draws.push((Draw::Text{text:data.text.clone(),text_pos:data.tool_window.text_pos.unwrap(),font:font.clone()},Tools::Text,data.color.clone()));
                             data.tool_window.text_pos = None;
                             data.text = "".to_string();
-                            //data.line_thickness = 10.;s
                         }
                         )
                         .disabled_if(|data,_env|{
@@ -883,7 +860,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.color = data.color.with_alpha(0.);
                         data.tool_window.tool = Tools::Pencil
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
@@ -895,7 +871,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
                         data.color = data.color.with_alpha(0.);
                         data.tool_window.tool = Tools::Pencil
-                        //data.line_thickness = 10.;s
                     })
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
@@ -1615,8 +1590,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                                 .unwrap(),
                         )
                         .fix_size(20., 20.)
-                        //Button::new("")
-                        //.foreground(Color::BLACK)
                         .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::BLACK;
                             data.color=data.color.with_alpha(0.);
@@ -1630,8 +1603,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                                 .unwrap(),
                         )
                         .fix_size(20., 20.)
-                        //Button::new("")
-                        //.foreground(Color::BLUE)
                         .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::BLUE;
                             data.color=data.color.with_alpha(0.);
@@ -1645,8 +1616,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                                 .unwrap(),
                         )
                         .fix_size(20., 20.)
-                        //Button::new("")
-                        //.foreground(Color::GREEN)
                         .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::GREEN;
                             data.color=data.color.with_alpha(0.);
@@ -1660,8 +1629,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                                 .unwrap(),
                         )
                         .fix_size(20., 20.)
-                        //Button::new("")
-                        //.foreground(Color::GRAY)
                         .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::GRAY;
                             data.color=data.color.with_alpha(0.);
@@ -1675,8 +1642,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                                 .unwrap(),
                         )
                         .fix_size(20., 20.)
-                        //Button::new("")
-                        //.foreground(Color::RED)
                         .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::RED;
                             data.color=data.color.with_alpha(0.);
@@ -1690,8 +1655,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                                 .unwrap(),
                         )
                         .fix_size(20., 20.)
-                        //Button::new("")
-                        //.foreground(Color::WHITE)
                         .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::WHITE;
                             data.color=data.color.with_alpha(0.);
@@ -1705,8 +1668,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                                 .unwrap(),
                         )
                         .fix_size(20., 20.)
-                        //Button::new("")
-                        //.foreground(Color::YELLOW)
                         .on_click(|_ctx, data: &mut AppState, _: &Env| {
                             data.color = Color::YELLOW;
                             data.color=data.color.with_alpha(0.);
@@ -1722,7 +1683,6 @@ pub fn show_edit() -> impl Widget<AppState>{
 pub fn show_screen_ui() -> impl Widget<AppState> {
     let points = Vec::<Point>::new();
     let mut path = Vec::new();
-    //let brush = BackgroundBrush::Color(druid::Color::rgb(255., 0., 0.));
     
     Flex::column()
         .with_child(show_edit())
@@ -1993,7 +1953,6 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
         .entry(
             MenuItem::new(LocalizedString::new("Salva"))
                 .on_activate(
-                    //salvo nel path di default
                     |_ctx, data: &mut AppState, _env| {
                         data.save();
                     },
@@ -2012,7 +1971,6 @@ pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppSta
         .entry(
             MenuItem::new(LocalizedString::new("Copia"))
                 .on_activate(move |_ctx, data: &mut AppState, _env| {
-                    //ctx.submit_command(commands::SHOW_SAVE_PANEL.with(save_dialog_options.clone()))
                     let img = ImageData {
                         width: data.tool_window.img.width(),
                         height: data.tool_window.img.height(),

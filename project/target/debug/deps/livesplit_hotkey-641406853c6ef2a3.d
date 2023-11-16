@@ -1,0 +1,9 @@
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\livesplit_hotkey-641406853c6ef2a3.rmeta: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\hotkey.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\key_code.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\modifiers.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\windows\mod.rs
+
+C:\Users\ADMIN\Desktop\politecnico\magistrale\programmazione_di_sistema\malnati\progetto\screen-grabbing-utility\project\target\debug\deps\livesplit_hotkey-641406853c6ef2a3.d: C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\lib.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\hotkey.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\key_code.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\modifiers.rs C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\windows\mod.rs
+
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\lib.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\hotkey.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\key_code.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\modifiers.rs:
+C:\Users\ADMIN\.cargo\registry\src\github.com-1ecc6299db9ec823\livesplit-hotkey-0.7.0\src\windows\mod.rs:
