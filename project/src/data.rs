@@ -856,6 +856,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
                 data.area_mod2.modifier = data.area_mods.1;
                 data.area_mod3.modifier = data.area_mods.2;
                 data.area_k = data.area_key.name().to_string().pop().unwrap().to_string();
+                data.err = false;
             }
             _ => {}
         }
@@ -1110,6 +1111,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AreaController {
 
 pub struct AnnotationsController {
     pub points: Vec<Point>,
+    pub flag: bool
 }
 
 impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
@@ -1480,6 +1482,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                         }
                     }
                 }
+                self.flag = true;
             }
             Tools::Ellipse => {
             data.cursor.typ = Cursor::Pointer;
@@ -1636,7 +1639,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     data.tool_window.shape.center = None;
                     data.tool_window.shape.radii = None;
                 }
-                _ => {}
+                _ => {self.flag = true;}
             }},
             Tools::Rectangle => {
                 data.cursor.typ = Cursor::Pointer;
@@ -1819,9 +1822,12 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     data.tool_window.shape.center = None;
                     data.tool_window.shape.radii = None;
                 }
-                _ => {}
+                _ => {self.flag = true;}
             }},
-            Tools::Arrow => match event {
+            Tools::Arrow => {
+                data.cursor.typ = Cursor::Pointer;
+                ctx.set_cursor(&data.cursor.typ);
+                match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
                         pos: mouse_button.pos,
@@ -2110,11 +2116,9 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     data.tool_window.shape.center = None;
                     data.tool_window.shape.radii = None;
                 }
-                _ => {}
-            },
+                _ => {self.flag = true;}
+            }},
             Tools::Text => {
-                data.cursor.typ = Cursor::IBeam;
-                ctx.set_cursor(&data.cursor.typ);
                 match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
@@ -2130,15 +2134,18 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     data.color = data.color.with_alpha(1.);
                     data.tool_window.text_pos = Some(mouse_down.pos);
                 }
-                _ => {}
+                _ => {self.flag = true;}
             }},
             Tools::Highlight => {
-                let cursor_image =
-                    ImageBuf::from_data(include_bytes!("../icon/highlighter.cur")).unwrap();
-                data.custom_desc = CursorDesc::new(cursor_image, (0.0, 0.0));
-                data.custom = ctx.window().make_cursor(&data.custom_desc);
-                data.cursor.typ = data.custom.clone().unwrap();
-                ctx.set_cursor(&data.cursor.typ);
+                if self.flag{
+                    let cursor_image =
+                        ImageBuf::from_data(include_bytes!("../icon/highlighter.cur")).unwrap();
+                    data.custom_desc = CursorDesc::new(cursor_image, (0.0, 0.0));
+                    data.custom = ctx.window().make_cursor(&data.custom_desc);
+                    data.cursor.typ = data.custom.clone().unwrap();
+                    ctx.set_cursor(&data.cursor.typ);
+                    self.flag = false;
+                }
                 match event {
                     Event::MouseDown(mouse_button) => {
                         let mouse_down = MouseEvent {
@@ -2290,16 +2297,20 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                         data.color = data.color.with_alpha(1.);
                     }
                 }
-                    _ => {}
+                    _ => {self.flag = true;}
                 }
             }
             Tools::Pencil => {
-                let cursor_image =
-                    ImageBuf::from_data(include_bytes!("../icon/pencil.cur")).unwrap();
-                data.custom_desc = CursorDesc::new(cursor_image, (0.0, 0.0));
-                data.custom = ctx.window().make_cursor(&data.custom_desc);
-                data.cursor.typ = data.custom.clone().unwrap();
-                ctx.set_cursor(&data.cursor.typ);
+                if self.flag{
+                        let cursor_image =
+                        ImageBuf::from_data(include_bytes!("../icon/pencil.cur")).unwrap();
+                    data.custom_desc = CursorDesc::new(cursor_image, (0.0, 0.0));
+                    data.custom = ctx.window().make_cursor(&data.custom_desc);
+                    data.cursor.typ = data.custom.clone().unwrap();
+                    ctx.set_cursor(&data.cursor.typ);
+                    self.flag = false;
+                }
+
                 match event {
                 Event::MouseDown(mouse_button) => {
                     let mouse_down = MouseEvent {
@@ -2684,11 +2695,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     self.points = Vec::new();
                     data.color = data.color.with_alpha(0.);
                 }
-                _ => {}
+                _ => {
+                    self.flag = true;
+                }
             }},
             _ => {
                 data.cursor.typ = Cursor::Arrow;
                 ctx.set_cursor(&data.cursor.typ);
+                self.flag = true;
             }
         }
 
@@ -2844,7 +2858,610 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                     ));
 
                     self.points = Vec::new();
-                    //data.color = data.color.with_alpha(0.);
+                    data.color = data.color.with_alpha(0.);
+            }
+            match data.tool_window.tool{
+                Tools::Ellipse => {
+                   if !data.tool_window.shape.start_point.is_none()
+                   {     data.selection_transparency = 0.;
+
+                        let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
+                            data.tool_window.img.width() as u32,
+                            data.tool_window.img.height() as u32,
+                            data.tool_window.img.raw_pixels().to_vec(),
+                        )
+                        .unwrap();
+
+                        let color = data.color.as_rgba8();
+
+                        if !data.fill_shape {
+                            for i in -50..50 {
+                                imageproc::drawing::draw_hollow_ellipse_mut(
+                                    &mut image,
+                                    (
+                                        ((data.tool_window.shape.center.unwrap().x
+                                            - data.tool_window.origin.x)
+                                            * (data.tool_window.img.width() as f64
+                                                / data.tool_window.img_size.width))
+                                            .round() as i32,
+                                        ((data.tool_window.shape.center.unwrap().y
+                                            - data.tool_window.origin.y)
+                                            * (data.tool_window.img.height() as f64
+                                                / data.tool_window.img_size.height))
+                                            .round() as i32,
+                                    ),
+                                    ((data.tool_window.shape.radii.unwrap().x - i as f64 / 20.)
+                                        * (data.tool_window.img.width() as f64
+                                            / data.tool_window.img_size.width))
+                                        as i32,
+                                    ((data.tool_window.shape.radii.unwrap().y - i as f64 / 20.)
+                                        * (data.tool_window.img.height() as f64
+                                            / data.tool_window.img_size.height))
+                                        as i32,
+                                    Rgba([color.0, color.1, color.2, 255]),
+                                );
+                            }
+                            data.tool_window.shape.filled = false;
+                            data.tool_window.draws.push((
+                                Draw::Shape {
+                                    shape: data.tool_window.shape.clone(),
+                                },
+                                Tools::Ellipse,
+                                data.color.clone(),
+                            ));
+                        } else {
+                            imageproc::drawing::draw_filled_ellipse_mut(
+                                &mut image,
+                                (
+                                    ((data.tool_window.shape.center.unwrap().x
+                                        - data.tool_window.origin.x)
+                                        * (data.tool_window.img.width() as f64
+                                            / data.tool_window.img_size.width))
+                                        as i32,
+                                    ((data.tool_window.shape.center.unwrap().y
+                                        - data.tool_window.origin.y)
+                                        * (data.tool_window.img.height() as f64
+                                            / data.tool_window.img_size.height))
+                                        as i32,
+                                ),
+                                (data.tool_window.shape.radii.unwrap().x
+                                    * (data.tool_window.img.width() as f64
+                                        / data.tool_window.img_size.width))
+                                    as i32,
+                                (data.tool_window.shape.radii.unwrap().y
+                                    * (data.tool_window.img.height() as f64
+                                        / data.tool_window.img_size.height))
+                                    as i32,
+                                Rgba([color.0, color.1, color.2, 255]),
+                            );
+                            data.tool_window.shape.filled = true;
+                            data.tool_window.draws.push((
+                                Draw::Shape {
+                                    shape: data.tool_window.shape.clone(),
+                                },
+                                Tools::Ellipse,
+                                data.color.clone(),
+                            ));
+                        }
+
+                        data.tool_window.img = ImageBuf::from_raw(
+                            image.clone().into_raw(),
+                            druid::piet::ImageFormat::RgbaPremul,
+                            image.clone().width() as usize,
+                            image.clone().height() as usize,
+                        );
+
+                        data.tool_window.shape.start_point = None;
+                        data.tool_window.shape.end_point = None;
+                        data.tool_window.shape.center = None;
+                        data.tool_window.shape.radii = None;}
+                }
+                Tools::Rectangle => {
+                    if !data.tool_window.shape.start_point.is_none(){    
+                        data.selection_transparency = 0.;
+
+                        let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
+                            data.tool_window.img.width() as u32,
+                            data.tool_window.img.height() as u32,
+                            data.tool_window.img.clone().raw_pixels().to_vec(),
+                        )
+                        .unwrap();
+
+                        let color = data.color.as_rgba8();
+
+                        if !data.fill_shape {
+                            for i in -20..20 {
+                                imageproc::drawing::draw_hollow_rect_mut(
+                                    &mut image,
+                                    imageproc::rect::Rect::at(
+                                        ((data
+                                            .tool_window
+                                            .shape
+                                            .start_point
+                                            .unwrap()
+                                            .x
+                                            .min(data.tool_window.shape.end_point.unwrap().x)
+                                            + i as f64 / 10.
+                                            - data.tool_window.origin.x)
+                                            * (data.tool_window.img.width() as f64
+                                                / data.tool_window.img_size.width))
+                                            as i32,
+                                        ((data
+                                            .tool_window
+                                            .shape
+                                            .start_point
+                                            .unwrap()
+                                            .y
+                                            .min(data.tool_window.shape.end_point.unwrap().y)
+                                            + i as f64 / 10.
+                                            - data.tool_window.origin.y)
+                                            * (data.tool_window.img.height() as f64
+                                                / data.tool_window.img_size.height))
+                                            as i32,
+                                    )
+                                    .of_size(
+                                        ((((data.tool_window.shape.start_point.unwrap().x
+                                            - data.tool_window.shape.end_point.unwrap().x)
+                                            .abs()
+                                            - 2. * i as f64 / 10.)
+                                            * (data.tool_window.img.width() as f64
+                                                / data.tool_window.img_size.width))
+                                            as u32)
+                                            .max(1),
+                                        ((((data.tool_window.shape.start_point.unwrap().y
+                                            - data.tool_window.shape.end_point.unwrap().y)
+                                            .abs()
+                                            - 2. * i as f64 / 10.)
+                                            * (data.tool_window.img.height() as f64
+                                                / data.tool_window.img_size.height))
+                                            as u32)
+                                            .max(1),
+                                    ),
+                                    Rgba([color.0, color.1, color.2, 255]),
+                                );
+                            }
+                            data.tool_window.shape.filled = false;
+                            data.tool_window.draws.push((
+                                Draw::Shape {
+                                    shape: data.tool_window.shape.clone(),
+                                },
+                                Tools::Rectangle,
+                                data.color.clone(),
+                            ));
+                        } else {
+                            imageproc::drawing::draw_filled_rect_mut(
+                                &mut image,
+                                imageproc::rect::Rect::at(
+                                    ((data
+                                        .tool_window
+                                        .shape
+                                        .start_point
+                                        .unwrap()
+                                        .x
+                                        .min(data.tool_window.shape.end_point.unwrap().x)
+                                        - data.tool_window.origin.x)
+                                        * (data.tool_window.img.width() as f64
+                                            / data.tool_window.img_size.width))
+                                        as i32,
+                                    ((data
+                                        .tool_window
+                                        .shape
+                                        .start_point
+                                        .unwrap()
+                                        .y
+                                        .min(data.tool_window.shape.end_point.unwrap().y)
+                                        - data.tool_window.origin.y)
+                                        * (data.tool_window.img.height() as f64
+                                            / data.tool_window.img_size.height))
+                                        as i32,
+                                )
+                                .of_size(
+                                    (((data.tool_window.shape.start_point.unwrap().x
+                                        - data.tool_window.shape.end_point.unwrap().x)
+                                        .abs())
+                                        * (data.tool_window.img.width() as f64
+                                            / data.tool_window.img_size.width))
+                                        as u32,
+                                    (((data.tool_window.shape.start_point.unwrap().y
+                                        - data.tool_window.shape.end_point.unwrap().y)
+                                        .abs())
+                                        * (data.tool_window.img.height() as f64
+                                            / data.tool_window.img_size.height))
+                                        as u32,
+                                ),
+                                Rgba([color.0, color.1, color.2, 255]),
+                            );
+                            data.tool_window.shape.filled = true;
+                            data.tool_window.draws.push((
+                                Draw::Shape {
+                                    shape: data.tool_window.shape.clone(),
+                                },
+                                Tools::Rectangle,
+                                data.color.clone(),
+                            ));
+                        }
+
+                        data.tool_window.img = ImageBuf::from_raw(
+                            image.clone().into_raw(),
+                            druid::piet::ImageFormat::RgbaPremul,
+                            image.clone().width() as usize,
+                            image.clone().height() as usize,
+                        );
+
+                        data.tool_window.shape.start_point = None;
+                        data.tool_window.shape.end_point = None;
+                        data.tool_window.shape.center = None;
+                        data.tool_window.shape.radii = None;
+                    }}
+                Tools::Arrow => {
+                    if !data.tool_window.shape.start_point.is_none(){
+                        let end = data.tool_window.shape.end_point.unwrap();
+                        let start = data.tool_window.shape.start_point.unwrap();
+
+                        if end.x as u32 == start.x as u32 || end.y as u32 == start.y as u32 {
+                            //data.tool_window.img = data.img.clone();
+                            //data.tool_window.tool = Tools::No;
+                            child.event(ctx, event, data, env);
+                        } else {
+                            let cos = 0.866;
+                            let sin = 0.500;
+                            let dx = end.x - start.x;
+                            let dy = end.y - start.y;
+                            let end1 = druid::Point::new(
+                                end.x - (dx * cos + dy * -sin) * 2. / 5.,
+                                end.y - (dx * sin + dy * cos) * 2. / 5.,
+                            );
+                            let end2 = druid::Point::new(
+                                end.x - (dx * cos + dy * sin) * 2. / 5.,
+                                end.y - (dx * -sin + dy * cos) * 2. / 5.,
+                            );
+
+                            let mut body = FreeRect::new(
+                                data.tool_window.shape.start_point.unwrap(),
+                                data.tool_window.shape.start_point.unwrap(),
+                                data.tool_window.shape.end_point.unwrap(),
+                                data.tool_window.shape.end_point.unwrap(),
+                            );
+                            let mut line1 = FreeRect::new(
+                                end1,
+                                end1,
+                                data.tool_window.shape.end_point.unwrap(),
+                                data.tool_window.shape.end_point.unwrap(),
+                            );
+                            let mut line2 = FreeRect::new(
+                                end2,
+                                end2,
+                                data.tool_window.shape.end_point.unwrap(),
+                                data.tool_window.shape.end_point.unwrap(),
+                            );
+
+                            let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
+                                data.tool_window.img.width() as u32,
+                                data.tool_window.img.height() as u32,
+                                data.tool_window.img.clone().raw_pixels().to_vec(),
+                            )
+                            .unwrap();
+
+                            let dx = ((body.p3.x - body.p1.x) as f64).abs();
+                            let sx;
+                            if body.p1.x < body.p3.x {
+                                sx = 1;
+                            } else {
+                                sx = -1;
+                            }
+                            let dy = -((body.p3.y - body.p1.y) as f64).abs();
+                            let sy;
+                            if body.p1.y < body.p3.y {
+                                sy = 1;
+                            } else {
+                                sy = -1;
+                            }
+                            let mut err = dx + dy;
+                            let mut e2;
+
+                            for _i in 0..=2 {
+                                e2 = err * 2.;
+                                if e2 >= dy {
+                                    err = err + dy;
+                                    body.p1.y = body.p1.y + sy;
+                                    body.p2.y = body.p2.y - sy;
+                                    body.p3.y = body.p3.y - sy;
+                                    body.p4.y = body.p4.y + sy;
+
+                                    line1.p1.y = line1.p1.y + sy;
+                                    line1.p2.y = line1.p2.y - sy;
+                                    line1.p3.y = line1.p3.y - sy;
+                                    line1.p4.y = line1.p4.y + sy;
+
+                                    line2.p1.y = line2.p1.y + sy;
+                                    line2.p2.y = line2.p2.y - sy;
+                                    line2.p3.y = line2.p3.y - sy;
+                                    line2.p4.y = line2.p4.y + sy;
+                                }
+                                if e2 <= dx {
+                                    err = err + dx;
+                                    body.p1.x = body.p1.x - sx;
+                                    body.p2.x = body.p2.x + sx;
+                                    body.p3.x = body.p3.x + sx;
+                                    body.p4.x = body.p4.x - sx;
+
+                                    line1.p1.x = line1.p1.x - sx;
+                                    line1.p2.x = line1.p2.x + sx;
+                                    line1.p3.x = line1.p3.x + sx;
+                                    line1.p4.x = line1.p4.x - sx;
+
+                                    line2.p1.x = line2.p1.x - sx;
+                                    line2.p2.x = line2.p2.x + sx;
+                                    line2.p3.x = line2.p3.x + sx;
+                                    line2.p4.x = line2.p4.x - sx;
+                                }
+                            }
+
+                            body.p1.x = ((body.p1.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            body.p1.y = ((body.p1.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            body.p2.x = ((body.p2.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            body.p2.y = ((body.p2.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            body.p3.x = ((body.p3.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            body.p3.y = ((body.p3.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            body.p4.x = ((body.p4.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            body.p4.y = ((body.p4.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+
+                            line1.p1.x = ((line1.p1.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line1.p1.y = ((line1.p1.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            line1.p2.x = ((line1.p2.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line1.p2.y = ((line1.p2.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            line1.p3.x = ((line1.p3.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line1.p3.y = ((line1.p3.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            line1.p4.x = ((line1.p4.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line1.p4.y = ((line1.p4.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+
+                            line2.p1.x = ((line2.p1.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line2.p1.y = ((line2.p1.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            line2.p2.x = ((line2.p2.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line2.p2.y = ((line2.p2.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            line2.p3.x = ((line2.p3.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line2.p3.y = ((line2.p3.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            line2.p4.x = ((line2.p4.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line2.p4.y = ((line2.p4.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+
+                            let color = data.color.as_rgba8();
+
+                            if body.p1 != body.p4{
+                                imageproc::drawing::draw_polygon_mut(
+                                    &mut image,
+                                    &[body.p1, body.p2, body.p3, body.p4],
+                                    Rgba([color.0, color.1, color.2, color.3]),
+                                );
+        
+                                imageproc::drawing::draw_polygon_mut(
+                                    &mut image,
+                                    &[line1.p1, line1.p2, line1.p3, line1.p4],
+                                    Rgba([color.0, color.1, color.2, color.3]),
+                                );
+                                imageproc::drawing::draw_polygon_mut(
+                                    &mut image,
+                                    &[line2.p1, line2.p2, line2.p3, line2.p4],
+                                    Rgba([color.0, color.1, color.2, color.3]),
+                                );
+        
+                                data.tool_window.img = ImageBuf::from_raw(
+                                    image.clone().into_raw(),
+                                    druid::piet::ImageFormat::RgbaPremul,
+                                    image.clone().width() as usize,
+                                    image.clone().height() as usize,
+                                );
+        
+                                data.tool_window.shape.filled = true;
+                                data.tool_window.draws.push((
+                                    Draw::Shape {
+                                        shape: data.tool_window.shape.clone(),
+                                    },
+                                    Tools::Arrow,
+                                    data.color.clone(),
+                                ));
+                            }
+                        }
+                        data.tool_window.shape.start_point = None;
+                        data.tool_window.shape.end_point = None;
+                        data.tool_window.shape.center = None;
+                        data.tool_window.shape.radii = None;
+                    }}
+                Tools::Highlight => {
+                    if !data.tool_window.shape.start_point.is_none(){    
+                        if data.tool_window.shape.start_point.unwrap() != data.tool_window.shape.end_point.unwrap(){
+                            let mut image = ImageBuffer::new(
+                                data.tool_window.img.width() as u32,
+                                data.tool_window.img.height() as u32,
+                            );
+
+                            let mut line = FreeRect::new(
+                                data.tool_window.shape.start_point.unwrap(),
+                                data.tool_window.shape.start_point.unwrap(),
+                                data.tool_window.shape.end_point.unwrap(),
+                                data.tool_window.shape.end_point.unwrap(),
+                            );
+
+                            let dx = ((line.p3.x - line.p1.x) as f64).abs();
+                            let sx;
+                            if line.p1.x < line.p3.x {
+                                sx = 1;
+                            } else {
+                                sx = -1;
+                            }
+                            let dy = -((line.p3.y - line.p1.y) as f64).abs();
+                            let sy;
+                            if line.p1.y < line.p3.y {
+                                sy = 1;
+                            } else {
+                                sy = -1;
+                            }
+                            let mut err = dx + dy;
+                            let mut e2;
+
+                            for _i in 0..=4 {
+                                e2 = err * 2.;
+                                if e2 >= dy {
+                                    err = err + dy;
+                                    line.p1.y = line.p1.y + sy;
+                                    line.p2.y = line.p2.y - sy;
+                                    line.p3.y = line.p3.y - sy;
+                                    line.p4.y = line.p4.y + sy;
+                                }
+                                if e2 <= dx {
+                                    err = err + dx;
+                                    line.p1.x = line.p1.x - sx;
+                                    line.p2.x = line.p2.x + sx;
+                                    line.p3.x = line.p3.x + sx;
+                                    line.p4.x = line.p4.x - sx;
+                                }
+                            }
+
+                            line.p1.x = ((line.p1.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line.p1.y = ((line.p1.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            line.p2.x = ((line.p2.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line.p2.y = ((line.p2.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            line.p3.x = ((line.p3.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line.p3.y = ((line.p3.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+                            line.p4.x = ((line.p4.x as f64 - data.tool_window.origin.x)
+                                * (data.tool_window.img.width() as f64
+                                    / data.tool_window.img_size.width))
+                                as i32;
+                            line.p4.y = ((line.p4.y as f64 - data.tool_window.origin.y)
+                                * (data.tool_window.img.height() as f64
+                                    / data.tool_window.img_size.height))
+                                as i32;
+
+                            let color = data.color.as_rgba8();
+
+                            if line.p1 != line.p4{
+                                let prova = imageproc::drawing::draw_polygon(
+                                    &mut image,
+                                    &[line.p1, line.p2, line.p3, line.p4],
+                                    Rgba([color.0, color.1, color.2, color.3]),
+                                );
+
+                                let mut bottom: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
+                                    data.tool_window.img.width() as u32,
+                                    data.tool_window.img.height() as u32,
+                                    data.tool_window.img.clone().raw_pixels().to_vec(),
+                                )
+                                .unwrap();
+                                image::imageops::overlay(&mut bottom, &prova, 0, 0);
+
+                                data.tool_window.img = ImageBuf::from_raw(
+                                    bottom.clone().into_raw(),
+                                    druid::piet::ImageFormat::RgbaPremul,
+                                    bottom.clone().width() as usize,
+                                    bottom.clone().height() as usize,
+                                );
+
+                                data.tool_window.shape.filled = true;
+                                data.tool_window.draws.push((
+                                    Draw::Shape {
+                                        shape: data.tool_window.shape.clone(),
+                                    },
+                                    Tools::Highlight,
+                                    data.color.clone(),
+                                ));
+                            }
+
+                        data.tool_window.shape.start_point = None;
+                        data.tool_window.shape.end_point = None;
+                        data.color = data.color.with_alpha(1.);
+                    }
+                }
+                },
+                _ => {}
             }
         }
         if ctx.is_focused() && data.tool_window.tool != Tools::Text {

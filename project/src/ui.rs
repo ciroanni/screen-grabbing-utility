@@ -387,16 +387,18 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
 
                         match res1 {
                             Ok(key)=>{k1=key;
-                                if data.full_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL {
-                                    if data.full_mod2.modifier==livesplit_hotkey::Modifiers::ALT{
+                                if data.full_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL || data.full_mod2.modifier==livesplit_hotkey::Modifiers::CONTROL{
+                                    if data.full_mod1.modifier==livesplit_hotkey::Modifiers::ALT || data.full_mod2.modifier==livesplit_hotkey::Modifiers::ALT{
                                         if k1 == livesplit_hotkey::KeyCode::from_str("S").unwrap(){
                                             data.err = true;
                                             return;
                                         }
-                                    }else if k1 == livesplit_hotkey::KeyCode::from_str("C").unwrap() || k1 == livesplit_hotkey::KeyCode::from_str("S").unwrap(){
-                                        data.err = true;
-                                        return;
                                     }
+                                }
+                                if data.full_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL && data.full_mod2.modifier==livesplit_hotkey::Modifiers::empty() &&
+                                (k1 == livesplit_hotkey::KeyCode::from_str("C").unwrap() || k1 == livesplit_hotkey::KeyCode::from_str("S").unwrap()){
+                                    data.err = true;
+                                    return;
                                 } 
                                 data.err=false}
                             Err(_err)=>{data.err=true;return;}
@@ -404,11 +406,19 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
 
                         match res2 {
                             Ok(key)=>{k2=key;
-                                if data.area_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL && 
-                                    (k2 == livesplit_hotkey::KeyCode::from_str("C").unwrap() || k2 == livesplit_hotkey::KeyCode::from_str("S").unwrap()){
-                                        data.err = true;
-                                        return;
+                                if data.area_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL || data.area_mod2.modifier==livesplit_hotkey::Modifiers::CONTROL{
+                                    if data.area_mod1.modifier==livesplit_hotkey::Modifiers::ALT || data.area_mod2.modifier==livesplit_hotkey::Modifiers::ALT{
+                                        if k2 == livesplit_hotkey::KeyCode::from_str("S").unwrap(){
+                                            data.err = true;
+                                            return;
+                                        }
+                                    }
                                 }
+                                if data.area_mod1.modifier==livesplit_hotkey::Modifiers::CONTROL && data.area_mod2.modifier==livesplit_hotkey::Modifiers::empty() &&
+                                (k2 == livesplit_hotkey::KeyCode::from_str("C").unwrap() || k2 == livesplit_hotkey::KeyCode::from_str("S").unwrap()){
+                                    data.err = true;
+                                    return;
+                                } 
                                 data.err=false}
                             Err(_err)=>{data.err=true;return;}
                         }
@@ -651,7 +661,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                 .border(Color::WHITE, 1.)
                 .background(Color::rgb8(0, 0, 0))
                 .padding(5.)
-                .tooltip("crop"),
+                .tooltip("ritaglia"),
             )
             .with_child(Either::new(|data, _env| data.tool_window.tool == Tools::Highlight,
                 Image::new(marker.clone())
@@ -663,7 +673,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("highlight"),
+                    .tooltip("evidenziatore"),
                     
                     Image::new(marker.clone())
                     .fix_size(20., 20.)
@@ -674,7 +684,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("highlight")
+                    .tooltip("evidenziatore")
             ))
             .with_child(Either::new(|data, _env| data.tool_window.tool == Tools::Ellipse,
                 Image::new(ellipse.clone())
@@ -686,7 +696,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("ellipse"),
+                    .tooltip("ellisse"),
                     Image::new(ellipse.clone())
                     .fix_size(20., 20.)
                     .on_click(|_ctx, data: &mut AppState, _: &Env| {
@@ -696,7 +706,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("ellipse")
+                    .tooltip("ellisse")
             ))
             .with_child(Either::new(
                 |data: &AppState, _env| data.tool_window.tool == Tools::Ellipse,
@@ -720,7 +730,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("square"),
+                    .tooltip("rettangolo"),
 
                     Image::new(square.clone())
                     .fix_size(20., 20.)
@@ -731,7 +741,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("square")
+                    .tooltip("rettangolo")
             ))
             .with_child(Either::new(
                 |data: &AppState, _env| data.tool_window.tool == Tools::Rectangle,
@@ -755,7 +765,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                 .border(Color::WHITE, 3.)
                 .background(Color::rgb8(0, 0, 0))
                 .padding(5.)
-                .tooltip("arrow"),
+                .tooltip("freccia"),
 
                 Image::new(arrow.clone())
                 .fix_size(20., 20.)
@@ -766,7 +776,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                 .border(Color::WHITE, 1.)
                 .background(Color::rgb8(0, 0, 0))
                 .padding(5.)
-                .tooltip("arrow"),
+                .tooltip("freccia"),
             ))
             .with_child(Either::new(|data, _env| data.tool_window.tool == Tools::Text,
                 Image::new(text.clone())
@@ -778,7 +788,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("text"),
+                    .tooltip("testo"),
                     
                     Image::new(text.clone())
                     .fix_size(20., 20.)
@@ -789,7 +799,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("text")
+                    .tooltip("testo")
             ))
             .with_child(
                 Container::new(
@@ -878,7 +888,7 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 3.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("pencil"),
+                    .tooltip("penna"),
 
                     Image::new(pencil.clone())
                     .fix_size(20., 20.)
@@ -890,10 +900,10 @@ pub fn show_edit() -> impl Widget<AppState>{
                     .border(Color::WHITE, 1.)
                     .background(Color::rgb8(0, 0, 0))
                     .padding(5.)
-                    .tooltip("pencil"),
+                    .tooltip("penna"),
             ))
             .with_child(
-                Button::new("undo")
+                Button::new("indietro")
                 .on_click(|_ctx,data: &mut AppState,_env|{
                     let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
                         data.img.width() as u32,
@@ -902,11 +912,9 @@ pub fn show_edit() -> impl Widget<AppState>{
                     )
                     .unwrap();
 
-                    let popped=data.tool_window.draws.pop().unwrap();
+                    data.tool_window.draws.pop().unwrap();
 
-                    match popped.0 {
-                        Draw::Resize{res: _}=>{
-                            let width = data.img.width() as f64;
+                    let width = data.img.width() as f64;
                             let height = data.img.height() as f64;
 
                             data.tool_window.img_size.width = data.tool_window.width;
@@ -920,9 +928,6 @@ pub fn show_edit() -> impl Widget<AppState>{
                                 data.tool_window.center.x - (data.tool_window.img_size.width / 2.),
                                 data.tool_window.center.y - (data.tool_window.img_size.height / 2.),
                             );
-                        }
-                        _=>{}
-                    }
 
                     for d in data.tool_window.draws.clone(){
                         let w=image.width();
@@ -1966,7 +1971,7 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
                 )
                 .center()
             )
-            .controller(AnnotationsController { points: points }),
+            .controller(AnnotationsController { points: points, flag: true }),
         ))
 }
 
