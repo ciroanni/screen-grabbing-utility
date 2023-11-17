@@ -727,6 +727,29 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
                         data.full_mod3 = MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
                     }
                 }
+
+                if data.area_mod1.modifier == livesplit_hotkey::Modifiers::empty(){
+                    if data.area_mod2.modifier == livesplit_hotkey::Modifiers::empty(){
+                        if data.area_mod3.modifier != livesplit_hotkey::Modifiers::empty(){
+                            data.area_mod1 = data.area_mod3.clone();
+                            data.area_mod3 = MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+                    }else{
+                        if data.area_mod3.modifier != livesplit_hotkey::Modifiers::empty(){
+                            data.area_mod1 = data.area_mod2.clone();
+                            data.area_mod2 = data.area_mod3.clone();
+                            data.area_mod3 = MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }else{
+                            data.area_mod1 = data.area_mod2.clone();
+                            data.area_mod2 = MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+                    }
+                }else if data.area_mod2.modifier ==  livesplit_hotkey::Modifiers::empty(){
+                    if data.area_mod3.modifier != livesplit_hotkey::Modifiers::empty(){
+                        data.area_mod2 = data.area_mod3.clone();
+                        data.area_mod3 = MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                    }
+                }
                     
             }
         }
