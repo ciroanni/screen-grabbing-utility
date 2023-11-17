@@ -1688,7 +1688,6 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
         .with_child(
             Container::new(ZStack::new(
                 SizedBox::new(
-                    
                     Painter::new(|ctx, data: &AppState, _env| {
                         let image = ctx
                         .make_image(
@@ -1717,7 +1716,7 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
                 Painter::new(
                     move |ctx, data: &AppState, env|{ match data.tool_window.tool {
                         Tools::Resize => {
-                            if let (Some(_start), Some(_end)) =
+                            if let (Some(_), Some(_)) =
                                 (data.rect.start_point, data.rect.end_point)
                             {
                                 if data.rect.size.width <= data.tool_window.width
@@ -1763,7 +1762,7 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
                             }
                         }
                         Tools::Ellipse => {
-                            if let (Some(center), Some(_end)) = (
+                            if let (Some(center), Some(_)) = (
                                 data.tool_window.shape.center,
                                 data.tool_window.shape.end_point,
                             ) {
@@ -1930,7 +1929,7 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
                 )
                 .center()
             )
-            .controller(AnnotationsController { points: points, flag: true }),
+            .controller(AnnotationsController { points, flag: true }),
         ))
 }
 

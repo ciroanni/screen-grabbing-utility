@@ -1013,14 +1013,14 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
     ) {
         match data.tool_window.tool {
             Tools::Resize => {
-                if let Event::MouseDown(_mouse_button) = event {
+                if let Event::MouseDown(_) = event {
                     match data.cursor.over {
                         Some(_) => {
                             data.cursor.down = true; // è sopra il bordo, sto premendo
                         }
                         None => return, // non è sopra il bordo
                     }
-                } else if let Event::MouseUp(_mouse_button) = event {
+                } else if let Event::MouseUp(_) = event {
                     data.cursor.down = false;
                     data.rect.size = druid::Rect::from_points(
                         data.rect.start_point.unwrap(),
@@ -1372,152 +1372,152 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                 self.flag = true;
             }
             Tools::Ellipse => {
-            data.cursor.typ = Cursor::Pointer;
-            ctx.set_cursor(&data.cursor.typ);
-            match event {
-                Event::MouseDown(mouse_button) => {
-                    let mouse_down = MouseEvent {
-                        pos: mouse_button.pos,
-                        window_pos: mouse_button.window_pos,
-                        buttons: mouse_button.buttons,
-                        mods: mouse_button.mods,
-                        count: mouse_button.count,
-                        focus: mouse_button.focus,
-                        button: mouse_button.button,
-                        wheel_delta: mouse_button.wheel_delta,
-                    };
-                    data.tool_window.shape.start_point = Some(mouse_down.pos);
-                    data.tool_window.shape.end_point = Some(mouse_down.pos);
-                    
-                    data.tool_window.shape.center = Some(mouse_down.pos);
-                    data.tool_window.shape.radii =
-                        Some(druid::Vec2::new(0., 0.));
-
-                    data.selection_transparency = 1.;
-                }
-                Event::MouseMove(mouse_button) => {
-                    let mouse_move = MouseEvent {
-                        pos: mouse_button.pos,
-                        window_pos: mouse_button.window_pos,
-                        buttons: mouse_button.buttons,
-                        mods: mouse_button.mods,
-                        count: mouse_button.count,
-                        focus: mouse_button.focus,
-                        button: mouse_button.button,
-                        wheel_delta: mouse_button.wheel_delta,
-                    };
-
-                    data.tool_window.shape.end_point = Some(mouse_move.pos);
-                    if let (Some(start), Some(end)) = (
-                        data.tool_window.shape.start_point,
-                        data.tool_window.shape.end_point,
-                    ) {
-                        let radius1 = (start.x - end.x) / 2.;
-                        let radius2 = (start.y - end.y) / 2.;
-                        let c1 = end.x + radius1;
-                        let c2 = end.y + radius2;
-                        data.tool_window.shape.center = Some(druid::Point::new(c1, c2));
+                data.cursor.typ = Cursor::Pointer;
+                ctx.set_cursor(&data.cursor.typ);
+                match event {
+                    Event::MouseDown(mouse_button) => {
+                        let mouse_down = MouseEvent {
+                            pos: mouse_button.pos,
+                            window_pos: mouse_button.window_pos,
+                            buttons: mouse_button.buttons,
+                            mods: mouse_button.mods,
+                            count: mouse_button.count,
+                            focus: mouse_button.focus,
+                            button: mouse_button.button,
+                            wheel_delta: mouse_button.wheel_delta,
+                        };
+                        data.tool_window.shape.start_point = Some(mouse_down.pos);
+                        data.tool_window.shape.end_point = Some(mouse_down.pos);
+                        
+                        data.tool_window.shape.center = Some(mouse_down.pos);
                         data.tool_window.shape.radii =
-                            Some(druid::Vec2::new(radius1.abs(), radius2.abs()));
+                            Some(druid::Vec2::new(0., 0.));
+
+                        data.selection_transparency = 1.;
                     }
-                }
-                Event::MouseUp(_mouse_button) => {
-                    if !data.tool_window.shape.start_point.is_none(){
-                        data.selection_transparency = 0.;
+                    Event::MouseMove(mouse_button) => {
+                        let mouse_move = MouseEvent {
+                            pos: mouse_button.pos,
+                            window_pos: mouse_button.window_pos,
+                            buttons: mouse_button.buttons,
+                            mods: mouse_button.mods,
+                            count: mouse_button.count,
+                            focus: mouse_button.focus,
+                            button: mouse_button.button,
+                            wheel_delta: mouse_button.wheel_delta,
+                        };
 
-                        let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
-                            data.tool_window.img.width() as u32,
-                            data.tool_window.img.height() as u32,
-                            data.tool_window.img.raw_pixels().to_vec(),
-                        )
-                        .unwrap();
+                        data.tool_window.shape.end_point = Some(mouse_move.pos);
+                        if let (Some(start), Some(end)) = (
+                            data.tool_window.shape.start_point,
+                            data.tool_window.shape.end_point,
+                        ) {
+                            let radius1 = (start.x - end.x) / 2.;
+                            let radius2 = (start.y - end.y) / 2.;
+                            let c1 = end.x + radius1;
+                            let c2 = end.y + radius2;
+                            data.tool_window.shape.center = Some(druid::Point::new(c1, c2));
+                            data.tool_window.shape.radii =
+                                Some(druid::Vec2::new(radius1.abs(), radius2.abs()));
+                        }
+                    }
+                    Event::MouseUp(_) => {
+                        if !data.tool_window.shape.start_point.is_none(){
+                            data.selection_transparency = 0.;
 
-                        let color = data.color.as_rgba8();
+                            let mut image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
+                                data.tool_window.img.width() as u32,
+                                data.tool_window.img.height() as u32,
+                                data.tool_window.img.raw_pixels().to_vec(),
+                            )
+                            .unwrap();
 
-                        if !data.fill_shape {
-                            for i in -50..50 {
-                                imageproc::drawing::draw_hollow_ellipse_mut(
+                            let color = data.color.as_rgba8();
+
+                            if !data.fill_shape {
+                                for i in -50..50 {
+                                    imageproc::drawing::draw_hollow_ellipse_mut(
+                                        &mut image,
+                                        (
+                                            ((data.tool_window.shape.center.unwrap().x
+                                                - data.tool_window.origin.x)
+                                                * (data.tool_window.img.width() as f64
+                                                    / data.tool_window.img_size.width))
+                                                .round() as i32,
+                                            ((data.tool_window.shape.center.unwrap().y
+                                                - data.tool_window.origin.y)
+                                                * (data.tool_window.img.height() as f64
+                                                    / data.tool_window.img_size.height))
+                                                .round() as i32,
+                                        ),
+                                        ((data.tool_window.shape.radii.unwrap().x - i as f64 / 20.)
+                                            * (data.tool_window.img.width() as f64
+                                                / data.tool_window.img_size.width))
+                                            as i32,
+                                        ((data.tool_window.shape.radii.unwrap().y - i as f64 / 20.)
+                                            * (data.tool_window.img.height() as f64
+                                                / data.tool_window.img_size.height))
+                                            as i32,
+                                        Rgba([color.0, color.1, color.2, 255]),
+                                    );
+                                }
+                                data.tool_window.shape.filled = false;
+                                data.tool_window.draws.push((
+                                    Draw::Shape {
+                                        shape: data.tool_window.shape.clone(),
+                                    },
+                                    Tools::Ellipse,
+                                    data.color.clone(),
+                                ));
+                            } else {
+                                imageproc::drawing::draw_filled_ellipse_mut(
                                     &mut image,
                                     (
                                         ((data.tool_window.shape.center.unwrap().x
                                             - data.tool_window.origin.x)
                                             * (data.tool_window.img.width() as f64
                                                 / data.tool_window.img_size.width))
-                                            .round() as i32,
+                                            as i32,
                                         ((data.tool_window.shape.center.unwrap().y
                                             - data.tool_window.origin.y)
                                             * (data.tool_window.img.height() as f64
                                                 / data.tool_window.img_size.height))
-                                            .round() as i32,
+                                            as i32,
                                     ),
-                                    ((data.tool_window.shape.radii.unwrap().x - i as f64 / 20.)
+                                    (data.tool_window.shape.radii.unwrap().x
                                         * (data.tool_window.img.width() as f64
                                             / data.tool_window.img_size.width))
                                         as i32,
-                                    ((data.tool_window.shape.radii.unwrap().y - i as f64 / 20.)
+                                    (data.tool_window.shape.radii.unwrap().y
                                         * (data.tool_window.img.height() as f64
                                             / data.tool_window.img_size.height))
                                         as i32,
                                     Rgba([color.0, color.1, color.2, 255]),
                                 );
+                                data.tool_window.shape.filled = true;
+                                data.tool_window.draws.push((
+                                    Draw::Shape {
+                                        shape: data.tool_window.shape.clone(),
+                                    },
+                                    Tools::Ellipse,
+                                    data.color.clone(),
+                                ));
                             }
-                            data.tool_window.shape.filled = false;
-                            data.tool_window.draws.push((
-                                Draw::Shape {
-                                    shape: data.tool_window.shape.clone(),
-                                },
-                                Tools::Ellipse,
-                                data.color.clone(),
-                            ));
-                        } else {
-                            imageproc::drawing::draw_filled_ellipse_mut(
-                                &mut image,
-                                (
-                                    ((data.tool_window.shape.center.unwrap().x
-                                        - data.tool_window.origin.x)
-                                        * (data.tool_window.img.width() as f64
-                                            / data.tool_window.img_size.width))
-                                        as i32,
-                                    ((data.tool_window.shape.center.unwrap().y
-                                        - data.tool_window.origin.y)
-                                        * (data.tool_window.img.height() as f64
-                                            / data.tool_window.img_size.height))
-                                        as i32,
-                                ),
-                                (data.tool_window.shape.radii.unwrap().x
-                                    * (data.tool_window.img.width() as f64
-                                        / data.tool_window.img_size.width))
-                                    as i32,
-                                (data.tool_window.shape.radii.unwrap().y
-                                    * (data.tool_window.img.height() as f64
-                                        / data.tool_window.img_size.height))
-                                    as i32,
-                                Rgba([color.0, color.1, color.2, 255]),
+
+                            data.tool_window.img = ImageBuf::from_raw(
+                                image.clone().into_raw(),
+                                druid::piet::ImageFormat::RgbaPremul,
+                                image.clone().width() as usize,
+                                image.clone().height() as usize,
                             );
-                            data.tool_window.shape.filled = true;
-                            data.tool_window.draws.push((
-                                Draw::Shape {
-                                    shape: data.tool_window.shape.clone(),
-                                },
-                                Tools::Ellipse,
-                                data.color.clone(),
-                            ));
+
+                            data.tool_window.shape.start_point = None;
+                            data.tool_window.shape.end_point = None;
+                            data.tool_window.shape.center = None;
+                            data.tool_window.shape.radii = None;
                         }
-
-                        data.tool_window.img = ImageBuf::from_raw(
-                            image.clone().into_raw(),
-                            druid::piet::ImageFormat::RgbaPremul,
-                            image.clone().width() as usize,
-                            image.clone().height() as usize,
-                        );
-
-                        data.tool_window.shape.start_point = None;
-                        data.tool_window.shape.end_point = None;
-                        data.tool_window.shape.center = None;
-                        data.tool_window.shape.radii = None;
                     }
-                }
-                _ => {self.flag = true;}
+                    _ => {self.flag = true;}
             }},
             Tools::Rectangle => {
                 data.cursor.typ = Cursor::Pointer;
@@ -1553,7 +1553,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
 
                     data.tool_window.shape.end_point = Some(mouse_move.pos);
                 }
-                Event::MouseUp(_mouse_button) => {
+                Event::MouseUp(_) => {
                     if !data.tool_window.shape.start_point.is_none(){
                         
                         data.selection_transparency = 0.;
@@ -2048,7 +2048,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
 
                         data.tool_window.shape.end_point = Some(mouse_move.pos);
                     }
-                    Event::MouseUp(_mouse_button) => {
+                    Event::MouseUp(_) => {
                         if !data.tool_window.shape.start_point.is_none(){
 
                             if data.tool_window.shape.start_point.unwrap() != data.tool_window.shape.end_point.unwrap(){
@@ -3362,7 +3362,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
     }
 }
 
-pub struct Delegate; //vedi main.rs
+pub struct Delegate; 
 impl AppDelegate<AppState> for Delegate {
     //mi permette di gestire i comandi di show_save_panel e show_open_panel, rispettivamente infatti chiamano SAVE_FILE e OPEN_FILE
     fn command(
