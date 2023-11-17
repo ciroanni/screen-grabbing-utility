@@ -1933,7 +1933,6 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
         ))
 }
 
-#[allow(unused_assignments)]
 pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppState> {
     let save_dialog = FileDialogOptions::new()
         .allowed_types(formats())
