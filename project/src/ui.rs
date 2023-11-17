@@ -1,5 +1,4 @@
 use crate::data::*;
-use crate::data::app_state_derived_lenses::area_mod1;
 use arboard::{Clipboard, ImageData};
 use druid::widget::{
     BackgroundBrush, Button, Either, Flex, Image, Label, Painter, SizedBox,

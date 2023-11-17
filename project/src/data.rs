@@ -704,7 +704,31 @@ impl<W: Widget<AppState>> Controller<AppState, W> for ShortcutController {
                 data.area_k = data.area_key.name().to_string().pop().unwrap().to_string();
                 data.err = false;
             }
-            _ => {}
+            _ => {
+                if data.full_mod1.modifier == livesplit_hotkey::Modifiers::empty(){
+                    if data.full_mod2.modifier == livesplit_hotkey::Modifiers::empty(){
+                        if data.full_mod3.modifier != livesplit_hotkey::Modifiers::empty(){
+                            data.full_mod1 = data.full_mod3.clone();
+                            data.full_mod3 = MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+                    }else{
+                        if data.full_mod3.modifier != livesplit_hotkey::Modifiers::empty(){
+                            data.full_mod1 = data.full_mod2.clone();
+                            data.full_mod2 = data.full_mod3.clone();
+                            data.full_mod3 = MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }else{
+                            data.full_mod1 = data.full_mod2.clone();
+                            data.full_mod2 = MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                        }
+                    }
+                }else if data.full_mod2.modifier ==  livesplit_hotkey::Modifiers::empty(){
+                    if data.full_mod3.modifier != livesplit_hotkey::Modifiers::empty(){
+                        data.full_mod2 = data.full_mod3.clone();
+                        data.full_mod3 = MyModifier{modifier:livesplit_hotkey::Modifiers::empty()};
+                    }
+                }
+                    
+            }
         }
         child.event(ctx, event, data, env)
     }
