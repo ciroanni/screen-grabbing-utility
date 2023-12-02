@@ -270,53 +270,41 @@ impl AppState {
             Err(why) => return println!("{}", why),
             Ok(info) => info,
         };
+ 
+        let c;        
+        let b = screenshots::Screen::new(&(full_screen.unwrap()));
 
-        let b;
-        let display;
-        let c;
-
-        if full_screen.is_none() {
-            display = screenshots::DisplayInfo::from_point(
-                ((self.rect.start_point.unwrap().x - self.pos.x.abs()) * self.scale as f64) as i32,
-                ((self.rect.start_point.unwrap().y - self.pos.y.abs()) * self.scale as f64) as i32,
-            )
-            .unwrap();
-
-            b = screenshots::Screen::new(&display);
+        if self.is_full_screen {
+            c = b.capture();
+        } else {
             c = b.capture_area(
                 (self.rect.start_point.unwrap().x * self.scale as f64
-                    - (display.x as f32 * display.scale_factor) as f64
+                    - (full_screen.unwrap().x as f32 * full_screen.unwrap().scale_factor)
+                        as f64
                     + (self.pos.x * self.scale as f64)) as i32,
                 (self.rect.start_point.unwrap().y * self.scale as f64
-                    - (display.y as f32 * display.scale_factor) as f64
+                    - (full_screen.unwrap().y as f32 * full_screen.unwrap().scale_factor)
+                        as f64
                     + (self.pos.y * self.scale as f64)) as i32,
                 (self.rect.size.width as f32 * self.scale) as u32,
                 (self.rect.size.height as f32 * self.scale) as u32,
             );
-        } else {
-            b = screenshots::Screen::new(&(full_screen.unwrap()));
-
-            if self.is_full_screen {
-                c = b.capture();
-            } else {
-                //prendo lo start point x e sommo il pos x poi prendi display x e sottrai/sommi pos e poi quella la sottrai a quella che hai ottenuto prima funziona
-                c = b.capture_area(
-                    (self.rect.start_point.unwrap().x * self.scale as f64
-                        - (full_screen.unwrap().x as f32 * full_screen.unwrap().scale_factor)
-                            as f64
-                        + (self.pos.x * self.scale as f64)) as i32,
-                    (self.rect.start_point.unwrap().y * self.scale as f64
-                        - (full_screen.unwrap().y as f32 * full_screen.unwrap().scale_factor)
-                            as f64
-                        + (self.pos.y * self.scale as f64)) as i32,
-                    (self.rect.size.width as f32 * self.scale) as u32,
-                    (self.rect.size.height as f32 * self.scale) as u32,
-                );
-            }
         }
+        
 
         let image = match c {
-            Err(why) => return println!("{}", why),
+            Err(_) => {
+                self.img = ImageBuf::empty();
+                let window = WindowDesc::new(build_ui(self.scale))
+                    .menu(make_menu)
+                    .title("Cattura Schermo")
+                    .window_size((1000., 500.))
+                    .resizable(false)
+                    .set_position(Point::new(0., 0.))
+                    .set_window_state(WindowState::Restored);
+                ctx.new_window(window);
+                return;
+            },
             Ok(info) => info,
         };
 
@@ -346,7 +334,7 @@ impl AppState {
 
         let window = WindowDesc::new(build_ui(self.scale))
             .menu(make_menu)
-            .title("Screen grabbing")
+            .title("Cattura Schermo")
             .window_size((1200., 750.))
             .resizable(false)
             .set_position(Point::new(0., 0.))

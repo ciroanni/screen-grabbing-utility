@@ -10,7 +10,7 @@ use data::{AppState, Delegate};
 
 fn main() -> Result<(), PlatformError> {
 
-    let display_info = screenshots::DisplayInfo::all().expect("Err");
+    let display_info = screenshots::DisplayInfo::all().expect("Error finding display");
 
     let app_state = AppState::new(display_info[0].scale_factor, ImageBuf::empty());
 
@@ -20,7 +20,7 @@ fn main() -> Result<(), PlatformError> {
     .window_size((1000.0, 500.0));
 
     AppLauncher::with_window(main_window)
-        .delegate(Delegate) //per far funzionare il delegate
+        .delegate(Delegate) //per far funzionare il delegate e quindi i menù a tendina
         .launch(app_state)
 
 

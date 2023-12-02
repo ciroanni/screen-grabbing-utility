@@ -22,8 +22,9 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
     let mut width = (display_info[0].width as f32 * display_info[0].scale_factor) as u32;
     let mut height = (display_info[0].height as f32 * display_info[0].scale_factor) as u32;
     let mut pos = Point::new(0., 0.);
-    let hotkey=HotKey::new(Some(druid_shell::RawMods::Alt), 'g'.to_string().as_str());
+    let hotkey=HotKey::new(Some(druid_shell::RawMods::Alt), 'g'.to_string().as_str()); 
 
+    //calcolo grandezza complessiva di tutti gli schermi
     for display in display_info.iter() {
         if display.x < 0 {
             if display.x + display.width as i32 == 0 {
@@ -1936,14 +1937,11 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
 pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppState> {
     let save_dialog = FileDialogOptions::new()
         .allowed_types(formats())
-        .default_type(FileSpec::JPG)
-        .default_name("screenshot")
-        .name_label("Target")
-        .button_text("Export");
+        .default_type(FileSpec::JPG);
 
     let open_dialog = FileDialogOptions::new()
-        .select_directories()
-        .button_text("Import");
+        .select_directories();
+
     let base = Menu::empty();
     let mut file = Menu::new(LocalizedString::new("File"));
     file = file
