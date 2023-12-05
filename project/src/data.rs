@@ -39,12 +39,54 @@ impl Data for MyKey {
 #[derive(Clone, Data, PartialEq, Debug)]
 pub enum ImageFormat {
     Jpeg,
+    Png,
+    Gif,
+    Tiff,
+    Tga,
+    Dds,
+    Bmp,
+    Qoi
 }
 
 impl ImageFormat {
     pub fn to_string(&self) -> String {
         match self {
             ImageFormat::Jpeg => ".jpeg".to_string(),
+            ImageFormat::Png => ".png".to_string(),
+            ImageFormat::Gif => ".gif".to_string(),
+            ImageFormat::Tiff => ".tiff".to_string(),
+            ImageFormat::Tga => ".tga".to_string(),
+            ImageFormat::Dds => ".dds".to_string(),
+            ImageFormat::Bmp => ".bmp".to_string(),
+            ImageFormat::Qoi => ".qoi".to_string(),
+        }
+    }
+
+    pub fn to_img_format(&self) -> image::ImageFormat{
+        match self{
+            ImageFormat::Png => image::ImageFormat::Png,
+            ImageFormat::Jpeg => image::ImageFormat::Jpeg,
+            ImageFormat::Gif => image::ImageFormat::Gif,
+            ImageFormat::Tiff => image::ImageFormat::Tiff,
+            ImageFormat::Tga => image::ImageFormat::Tga,
+            ImageFormat::Dds => image::ImageFormat::Dds,
+            ImageFormat::Bmp => image::ImageFormat::Bmp,
+            ImageFormat::Qoi => image::ImageFormat::Qoi
+        }
+    }
+
+    pub fn from_fs(ext: &str) -> Self{
+        
+        match ext{
+            "png" => ImageFormat::Png,
+            "jpg" => ImageFormat::Jpeg,
+            "gif" => ImageFormat::Gif,
+            "tiff" => ImageFormat::Tiff,
+            "tga" => ImageFormat::Tga,
+            "dds" => ImageFormat::Dds,
+            "bmp" => ImageFormat::Bmp,
+            "qoi" => ImageFormat::Qoi,
+            _ => ImageFormat::Jpeg
         }
     }
 }
@@ -375,6 +417,7 @@ impl AppState {
     }
 
     pub fn save(&mut self) {
+        self.selected_format = ImageFormat::Jpeg;
         let image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_vec(
             self.tool_window.img.width() as u32,
             self.tool_window.img.height() as u32,
@@ -385,7 +428,7 @@ impl AppState {
         image
             .save_with_format(
                 self.path.clone() + "\\" + &self.name + &self.selected_format.to_string(),
-                image::ImageFormat::Png,
+                self.selected_format.to_img_format(),
             )
             .expect("Error saving");
         self.name = "".to_string();
@@ -399,7 +442,7 @@ impl AppState {
         )
         .unwrap();
         image
-            .save_with_format(path, image::ImageFormat::Png)
+            .save_with_format(path, self.selected_format.to_img_format())
             .expect("Error saving");
     }
 }
@@ -563,7 +606,6 @@ pub enum Direction {
 pub struct Enter {
     pub id_t: TimerToken,
     pub id_t2: TimerToken,
-    pub locks: [bool; 5],
     pub do_screen: bool,
     pub witch_screen: u32,
     pub display: Option<screenshots::DisplayInfo>,
@@ -3369,6 +3411,7 @@ impl AppDelegate<AppState> for Delegate {
             if let Err(e) = std::fs::write(file_info.path(), &data.name[..]) {
                 println!("Error writing file: {e}");
             } else {
+                data.selected_format = ImageFormat::from_fs(file_info.path.extension().unwrap().to_str().unwrap());
                 data.save_as(file_info.path());
                 return Handled::Yes;
             }

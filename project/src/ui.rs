@@ -123,7 +123,6 @@ pub fn build_ui(scale: f32) -> impl Widget<AppState> {
                 .controller(Enter {
                     id_t: TimerToken::next(),
                     id_t2: TimerToken::next(),
-                    locks: [false; 5],
                     do_screen:false,
                     witch_screen:1,
                     display: Some(display_info[0]),
@@ -1938,8 +1937,7 @@ pub fn show_screen_ui() -> impl Widget<AppState> {
 
 pub fn make_menu(_: Option<WindowId>, _state: &AppState, _: &Env) -> Menu<AppState> {
     let save_dialog = FileDialogOptions::new()
-        .allowed_types(formats())
-        .default_type(FileSpec::JPG);
+        .allowed_types(formats());
 
     let open_dialog = FileDialogOptions::new()
         .select_directories();
@@ -2001,17 +1999,10 @@ pub fn formats() -> Vec<FileSpec> {
         FileSpec::JPG,
         FileSpec::PNG,
         FileSpec::GIF,
-        FileSpec::new("Webp", &["webp"]),
-        FileSpec::new("Pnm", &["pnm"]),
         FileSpec::new("Tiff", &["tiff"]),
         FileSpec::new("Tga", &["tga"]),
         FileSpec::new("Dds", &["dds"]),
         FileSpec::new("Bmp", &["bmp"]),
-        FileSpec::new("Ico", &["ico"]),
-        FileSpec::new("Hdr", &["hdr"]),
-        FileSpec::new("OpenExr", &["openexr"]),
-        FileSpec::new("Farbfeld", &["farbfeld"]),
-        FileSpec::new("Avif", &["avif"]),
         FileSpec::new("Qoi", &["qoi"]),
     ]
 }
