@@ -465,8 +465,9 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                             data.full_mods.1=data.full_mod2.modifier;
                             data.full_mods.2=data.full_mod3.modifier;
                             data.full_key=k1;
-
-                            data.sender.send((livesplit_hotkey::Hotkey{key_code:data.full_key,modifiers:data.full_mods.0|data.full_mods.1|data.full_mods.2},1)).expect("Error shortcut");
+                            
+                            //avviso hook che ho cambiato shortcut (FULL SCREEN)
+                            data.sender.send((livesplit_hotkey::Hotkey{key_code:data.full_key,modifiers:data.full_mods.0|data.full_mods.1|data.full_mods.2},1)).expect("Error shortcut"); 
 
                         }
 
@@ -477,6 +478,7 @@ pub fn shortcut_ui() -> impl Widget<AppState> {
                             data.area_mods.2=data.area_mod3.modifier;
                             data.area_key=k2;
 
+                            //avviso hook che ho cambiato shortcut (AREA)
                             data.sender.send((livesplit_hotkey::Hotkey{key_code:data.area_key,modifiers:data.area_mods.0|data.area_mods.1|data.area_mods.2},2)).expect("Error shortcut");
 
                         }

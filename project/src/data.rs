@@ -186,8 +186,8 @@ impl AppState {
             }
         }
 
-        let (sender, receiver) = channel();
-        let (send, recv) = bounded(1);
+        let (sender, receiver) = channel(); //canale per avvisare l'hook che ho aggiornato le shortcut
+        let (send, recv) = bounded(1); //da hook ad app per dire che ho premuto
         std::thread::spawn(|| {
             create_listener(receiver, send);
         });
@@ -2382,6 +2382,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                             data.color = data.color.with_alpha(0.);
                         }
                     }
+                    
                     data.tool_window.random_point = Some(mouse_move.pos);
                 }
                 Event::MouseUp(mouse_button) => {
@@ -2565,6 +2566,7 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
             }
         }
 
+        //disegno quello che ho fatto prima di uscire dalla schermata di disegno
         if !ctx.is_hot() {
             data.cursor.over = None;
             data.cursor.down = false;
@@ -3321,6 +3323,8 @@ impl<W: Widget<AppState>> Controller<AppState, W> for AnnotationsController {
                 _ => {}
             }
         }
+        
+        //togliere focus alla textbox
         if ctx.is_focused() && data.tool_window.tool != Tools::Text {
             ctx.resign_focus();
         }
@@ -3402,14 +3406,14 @@ fn create_listener(receiver: Receiver<(Hotkey, u32)>, sender: CrossSender<u32>) 
     };
     let mut tasti;
 
-    let hk = livesplit_hotkey::Hook::new().unwrap();
+    let hk = livesplit_hotkey::Hook::new().unwrap(); //ascolta shortcut
 
     let mut n_s;
 
     loop {
         let send = sender.clone();
 
-        let _result = hk.register(tasti1, move || {
+        let _result = hk.register(tasti1, move || { //se ho premuto quella combinazione faccio send nel canale per comunicare con l'app
             send.send(1).expect("Error shortcut");
         });
 
@@ -3428,7 +3432,7 @@ fn create_listener(receiver: Receiver<(Hotkey, u32)>, sender: CrossSender<u32>) 
             }
         }
 
-        if n_s == 1 {
+        if n_s == 1 { //ho aggiornati le shortcut
             hk.unregister(tasti1).expect("Error shortcut");
             tasti1 = tasti;
             let send = sender.clone();
